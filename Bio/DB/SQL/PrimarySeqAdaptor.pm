@@ -175,7 +175,10 @@ sub get_subseq_as_string{
    if( $start < 0 || $end < 0 ) {
        $self->throw("Bad start/end points $start,$end");
    }
-   
+
+   print STDERR "Going to do select on $start to $end\n";
+
+
    my $sth = $self->prepare("select SUBSTRING(biosequence_str,$start,$length) from biosequence where bioentry_id = $id");
 
    $sth->execute;

@@ -60,6 +60,7 @@ The rest of the documentation details each of the object methods. Internal metho
 
 package Bio::DB::BioSeqDatabase;
 use vars qw(@ISA);
+use Bio::DB::BioDatabasePSeqStream;
 use strict;
 
 # Object preamble - inherits from Bio::Root::RootI
@@ -149,7 +150,7 @@ sub get_PrimarySeq_stream{
 
    my @array = $self->get_all_primary_ids;
 
-   my $stream = Bio::DB::BioDatabasePSeqStream->new( -adaptor => $self->adaptor->db->get_PrimarySeqAdaptor,
+   my $stream = Bio::DB::BioDatabasePSeqStream->new( -adaptor => $self->_adaptor->db->get_PrimarySeqAdaptor,
 						     -idlist => \@array);
 
    return $stream;
@@ -176,7 +177,7 @@ sub get_PrimarySeq_stream{
 sub get_all_primary_ids{
    my ($self,@args) = @_;
 
-   return $self->list_bioentry_ids($self->_dbid);
+   return $self->_adaptor->list_bioentry_ids($self->_dbid);
 }
 
 

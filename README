@@ -1,35 +1,27 @@
 
 Bio::EnsemblLite - Deprecated
-		   
 
 
-See TODO list for status of modules & project.
+Hard and Fast install instructions.
 
-------------------------------------------------------------------
- Setup
-------------------------------------------------------------------
-You will need
 1) a mysql db server 
 
 2) an account on the server
 
-3) 2 databases on the server
-   - one for the basic sequence db ( I called mine seqdb )
-   - one to be your ensembl-lite db ( I called mine ensdev )
-  You can call them whatever you want, but you may need to
-  tweak the test scripts a little if you do.
+Running 'make test' should now work. To set the options for the test suite, look
+into t/DBTestHarness.pm and make a file called DBTestHarness.conf
 
-4) copy PWD.basic PWD
-   edit it so that all the information is listed.
-   The default db is what is listed in PWD, you will
-   need to edit t/add_basic.t, t/remove_basic.t if your
-   basicseqdb is not called seqdb.
+3) Make a single SQL database. In general many biological 
+   "databases" will go into a single SQL instance
 
-5) do the following (substituting your db name where appropriate)
 
-   % mysql seqdb < sql/basicseqdb-mysql.sql
+4) do the following (substituting your db name where appropriate)
 
-8) write down any problems, complaints and send them to bioperl ;)
+   % mysql -u someone sqldbname < sql/basicseqdb-mysql.sql
+
+5) scripts/load_seqdatabase.pl should now work.
+
+6) write down any problems, complaints and send them to bioperl ;)
 
 
 

@@ -64,10 +64,9 @@ use strict;
 
 # Object preamble - inherits from Bio::Root::RootI
 
-use Bio::DB::SeqStreamI;
+use Bio::Root::RootI;
 
-
-@ISA = qw(Bio::DB::SeqStreamI);
+@ISA = qw(Bio::Root::RootI);
 # new() can be inherited from Bio::Root::RootI
 
 sub new {
@@ -103,7 +102,7 @@ sub new {
 sub next_primary_seq{
    my ($self) = @_;
 
-   $id = shift @{$self->{'_idlist'}};
+   my $id = shift @{$self->{'_idlist'}};
    if( !defined $id ) {
        return undef;
    }

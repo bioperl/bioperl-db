@@ -806,6 +806,36 @@ sub cascade_delete{
     return 1;
 }
 
+=head2 bind_param
+
+ Title   : bind_param
+ Usage   :
+ Function: Binds a parameter value to a prepared statement.
+
+           The reason this method is here is to give RDBMS-specific
+           drivers a chance to intercept the parameter binding and
+           perform additional actions, or add additional parameters to
+           the call, like data type. Certain drivers need to be helped
+           for certain types, for example DBD::Oracle for LOB
+           parameters.
+
+ Example :
+ Returns : the return value of the DBI::bind_param() call
+ Args    : the DBI statement handle to bind to
+           the index of the column
+           the value to bind
+           additional arguments to be passed to the sth->bind_param call
+
+
+=cut
+
+sub bind_param{
+   my ($self,$sth,$i,$val,@bindargs) = @_;
+
+   return $sth->bind_param($i,$val,@bindargs);
+}
+
+
 =head2 insert_object
 
  Title   : insert_object
@@ -894,7 +924,7 @@ sub insert_object{
 			    "binding column $j to \"", $slotvals->[$i],
 			    "\" ($slots[$i])\n");
 	    }
-	    $sth->bind_param($j, $slotvals->[$i]);
+	    $self->bind_param($sth, $j, $slotvals->[$i]);
 	    $j++;
 	}
 	$i++;
@@ -914,7 +944,7 @@ sub insert_object{
 			     (ref($o) ? ref($o->obj()) : $o) : "<unknown>"),
 			    ")\n");
 	    }
-	    $sth->bind_param($j, $fk);
+	    $self->bind_param($sth, $j, $fk);
 	    $j++;
 	}
     }
@@ -1026,7 +1056,7 @@ sub update_object{
 			    "binding column $j to \"" .
 			    $slotvals->[$i] . "\" ($slots[$i])\n");
 	    }
-	    $sth->bind_param($j, $slotvals->[$i]);
+	    $self->bind_param($sth, $j, $slotvals->[$i]);
 	    $j++;
 	}
 	$i++;
@@ -1045,7 +1075,7 @@ sub update_object{
 			    "binding column $j to \"$fk\" (FK to ".
 			    $self->table_name($o) . ")\n");
 	    }
-	    $sth->bind_param($j, $fk);
+	    $self->bind_param($sth, $j, $fk);
 	    $j++;
 	}
     }

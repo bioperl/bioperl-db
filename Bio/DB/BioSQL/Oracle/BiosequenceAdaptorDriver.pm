@@ -261,4 +261,37 @@ sub get_biosequence{
     return (@$row ? $row->[0]->[0] : undef);
 }
 
+=head2 bind_param
+
+ Title   : bind_param
+ Usage   :
+ Function: Binds a parameter value to a prepared statement.
+
+           The reason this method is here is to give RDBMS-specific
+           drivers a chance to intercept the parameter
+           binding. DBD::Oracle needs to be helped for the seq column.
+
+ Example :
+ Returns : the return value of the DBI::bind_param() call
+ Args    : the DBI statement handle to bind to
+           the index of the column
+           the value to bind
+           additional arguments to be passed to the sth->bind_param call
+
+
+=cut
+
+sub bind_param{
+   my ($self,$sth,$i,$val,@bindargs) = @_;
+
+   if($val && (length($val) > 4000)) {
+       my $h = @bindargs ? $bindargs[-1] : {};
+       $h->{ora_field} = 'SEQ';
+       push(@bindargs, $h) unless @bindargs;
+   }
+   # delegate to the inherited version
+   return $self->SUPER::bind_param($sth,$i,$val,@bindargs);
+}
+
+
 1;

@@ -393,10 +393,11 @@ sub add_association{
     }
     # then values if any, but be careful not to bind values for columns
     # that the schema actually doesn't support
+    my $columnmap;
     if($values) {
 	my $dbd = $self->dbd();
-	my $columnmap = $dbd->slot_attribute_map(
-				         $dbd->association_table_name($objs));
+	$columnmap = $dbd->slot_attribute_map(
+					$dbd->association_table_name($objs));
 	foreach my $valkey (keys %$values) {
 	    if($columnmap->{$valkey}) {
 		$self->debug(substr(ref($self),rindex(ref($self),"::")+2).
@@ -410,6 +411,26 @@ sub add_association{
     }
     # execute
     my $rv = $sth->execute();
+    # report unexpected error, also the bind values if not reported before
+    if(! ($rv || ($sth->errstr =~ /unique/i))) {
+	my $msg = substr(ref($self),rindex(ref($self),"::")+2).
+	    "::add_assoc: unexpected failure of statement execution: ".
+	    $sth->errstr."\n\tname: $cache_key";
+	# if verbose is on the values have already been reported
+	if($self->verbose <= 0){
+	    my @bindprms = map {
+		'FK['.ref($_->obj).']:'.$_->primary_key;
+	    } @$objs;
+	    if($values) {
+		push(@bindprms,
+		     map {
+			 "$_:\"".$values->{$_}.'"';
+		     } grep { $columnmap->{$_}; } keys %$values);
+	    }
+	    $msg .= "\n\tvalues: ".join(", ",@bindprms);
+	}
+	$self->warn($msg);
+    }
     # and return result
     return $rv;    
 }

@@ -28,10 +28,13 @@ Bio::DB::Query::QueryConstraint - a constraint on a variable value in a query
   # use lisp-style operand-first way of specifying composites
   # species taxa id is 7227 or 7228
   my $qc = 
-    Bio::DB::Query::QueryConstraint->new("or", 
-				       "species=7227", 
-				       "species=7228",
-				       "species=7229");
+    Bio::DB::Query::QueryConstraint->new(
+        [   "or", 
+	        "species=7227", 
+		    "species=7228",
+	        "species=7229"
+        ]
+    );
 
   # composite queries can also be built this way:
   my $qc = 
@@ -41,15 +44,18 @@ Bio::DB::Query::QueryConstraint - a constraint on a variable value in a query
 
   # we can have nested constraints like this:
   my $qc = 
-    Bio::DB::Query::QueryConstraint->new("or", 
-				       ["and", 
-					      "species=Human", 
-                                              "keywords=foo*"
-                                       ],
-				       ["and", 
-					      "species=Drosophila virilis", 
-                                              "keywords=bar*"
-					]);
+    Bio::DB::Query::QueryConstraint->new(
+        [   "or", 
+		    [   "and", 
+			    "species=Human", 
+                "keywords=foo*"
+            ],
+		    [   "and", 
+				"species=Drosophila virilis", 
+                "keywords=bar*"
+			]
+        ]
+    );
 
 
 =head1 DESCRIPTION

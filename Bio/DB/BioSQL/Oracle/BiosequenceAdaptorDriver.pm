@@ -154,31 +154,16 @@ sub insert_object{
 
 sub update_object{
     my ($self,$adp,$obj,$fkobjs) = @_;
-    
-    my $cache_key = 'SELECT UK '.$self;
-    my $sth = $adp->sth($cache_key);
-    if(! $sth) {
-	# create and prepare sql
-	my $table = $self->table_name($adp);
-	my $ukname = $self->foreign_key_name("Bio::PrimarySeqI");
-	my $sql = "SELECT $ukname FROM $table WHERE $ukname = ?";
-	$adp->debug("preparing SELECT statement: $sql\n");
-	$sth = $adp->dbh()->prepare($sql);
-	# and cache it
-	$adp->sth($cache_key, $sth);
+
+    # in the majority of cases this actually will be an update indeed - so
+    # let's just go ahead and try
+    my $rv = $self->SUPER::update_object($adp,$obj,$fkobjs);
+    # if the number of affected rows was zero, then it needs to be an insert
+    if($rv && ($rv == 0)) {
+	$rv = $self->insert_object($adp,$obj,$fkobjs);
     }
-    # bind parameters
-    $sth->bind_param(1, $obj->primary_key());
-    # execute and fetch
-    $sth->execute();
-    my $row = $sth->fetchall_arrayref();
-    if(@$row) {
-	# exists already, this is indeed an update
-	return $self->SUPER::update_object($adp,$obj,$fkobjs);
-    } else {
-	# doesn't exist yet, this is in fact an insert
-	return $self->insert_object($adp,$obj,$fkobjs);
-    }
+    # done
+    return $rv;
 }
 
 =head2 get_biosequence

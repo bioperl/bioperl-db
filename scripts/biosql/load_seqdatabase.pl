@@ -36,7 +36,15 @@ parameter are shown in square brackets. Note that --bulk is no longer available.
 
 =item --host $URL
 
-the host name or IP address incl. port [localhost]
+The host name or IP address incl. port. The default is undefined,
+which will get interpreted differently depending on the driver. E.g.,
+the mysql driver will assume localhost if host is undefined; the
+PostgreSQL driver will use a local (file-)socket connection to the
+local host, whereas it will use a TCP socket (which has to be enabled
+separately when starting the postmaster) if you specify 'localhost';
+the Oracle driver doesn't need (or may even get confused by) a host
+name if the local tnsnames.ora can properly resolve the SID, which
+would be specified using --dbname.
 
 =item --dbname $db_name
 
@@ -256,7 +264,7 @@ use Bio::ClusterIO;
 ####################################################################
 # Defaults for options changeable through command line
 ####################################################################
-my $host = 'localhost';
+my $host;
 my $dbname = 'biosql';
 my $dbuser = 'root';
 my $driver = 'mysql';

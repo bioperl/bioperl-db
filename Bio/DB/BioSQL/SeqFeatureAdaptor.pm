@@ -100,7 +100,6 @@ sub fetch_by_dbID{
    $generic->source_tag($source);
 
    my $loc = $self->db->get_SeqLocationAdaptor->fetch_by_dbID($id);
-
    $generic->location($loc);
 
    $sth = $self->prepare("select q.qualifier_name,qv.qualifier_value from seqfeature_qualifier q,seqfeature_qualifier_value qv where q.seqfeature_qualifier_id = qv.seqfeature_qualifier_id and qv.seqfeature_id = $id");
@@ -169,9 +168,7 @@ sub store{
    my $sth = $self->prepare("insert into seqfeature (seqfeature_id,bioentry_id,seqfeature_key_id,seqfeature_source_id,seqfeature_rank) VALUES (NULL,$bioentryid,$keyid,$sourceid,$rank)");
 
    $sth->execute();
-   $sth = $self->prepare("select last_insert_id()");
-   $sth->execute();
-   my ($last_id) = $sth->fetchrow_array;
+   my ($last_id) = $sth->{'mysql_insertid'};
 
    if( !defined $last_id ) {
        $self->throw("Dont have last insert id...");

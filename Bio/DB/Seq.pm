@@ -312,6 +312,10 @@ sub top_SeqFeatures{
    my @array;
    if( !defined $self->{'_seqfeature_array'} ) {
        @array = $self->adaptor->db->get_SeqFeatureAdaptor->fetch_by_bioentry_id($self->primary_id);
+       my $accsv=$self->accession.".".$self->version;
+       foreach my $sf (@array) {
+	   $sf->location->seq_id($accsv);
+       }
        $self->{'_seqfeature_array'} = \@array;
    }
    

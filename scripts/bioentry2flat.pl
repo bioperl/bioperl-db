@@ -19,13 +19,8 @@ my $file;
 	     'dbname:s' => \$format,
 	     'accession:s' => \$acc,
 	     'format:s' => \$format,
-	     'file:s' => \$file,
-	     'stdout' => \$stdout
+	     'file:s' => \$file
 	     );
-if (!$file) { 
-    $file="$acc.$format";
-}
-$file = ">$file";
 
 $db = Bio::DB::SQL::DBAdaptor->new( -host => $host,
 				    -dbname => $sqlname,
@@ -36,15 +31,17 @@ my $seqadaptor = $db->get_SeqAdaptor;
 my $dbseq = $seqadaptor->fetch_by_db_and_accession("embl",$acc);
 
 my $seqio;			
-if ($stdout) {
-    #$seqio = Bio::SeqIO->new('format' => $format,-fh => '>\*STDOUT');
+
+if ($file) {
+    print STDERR "Going the $file way...";
+    $seqio = Bio::SeqIO->new('-format' => $format,-file => ">$file");
+    $seqio->write_seq($dbseq);
+}
+else {
     $out = Bio::SeqIO->newFh('-format' => 'EMBL'); 
     print $out $dbseq;
 }
-else {
-    $seqio = Bio::SeqIO->new('-format' => $format,-file => $file);
-    $seqio->write_seq($dbseq);
-}
+
 
 
 

@@ -101,17 +101,21 @@ sub fetch_by_dbID {
  Usage   :
  Function:
  Example :
- Returns : 
- Args    :
+ Returns : An array of Bio::Annotation::Comment objects, ordered by rank
+ Args    : FK to the respective bioentry, rank (optional, an integer)
 
 
 =cut
 
 sub fetch_by_bioentry_id{
-   my ($self,$bioentry_id) = @_;
+   my ($self,$bioentry_id,$rank) = @_;
 
    # yes - not optimised. We could removed quite a few nested gets here
-   my $sth = $self->prepare("select comment_id from comment where bioentry_id = $bioentry_id order by comment_rank");
+   my $sth = $self->prepare("select comment_id from comment ".
+			    "where bioentry_id = $bioentry_id".
+			    (defined($rank) ?
+			     " and comment_rank = $rank" :
+			     " order by comment_rank"));
    $sth->execute;
 
    my @out;
@@ -132,7 +136,8 @@ sub fetch_by_bioentry_id{
  Function:
  Example :
  Returns : 
- Args    :
+ Args    : Bio::Annotation::Comment object, rank (an integer), FK to the
+           respective bioentry (usually the primary_id of a seq object)
 
 
 =cut
@@ -145,8 +150,8 @@ sub store{
    }
    my $text = $self->quote($comment->text);
   
-      my $sth = $self->prepare("insert into comment (bioentry_id,comment_text,comment_rank) values ($bioentry_id,$text,$rank)");
-      $sth->execute();
+   my $sth = $self->prepare("insert into comment (bioentry_id,comment_text,comment_rank) values ($bioentry_id,$text,$rank)");
+   return $sth->execute();
 }
 
 

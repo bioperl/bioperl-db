@@ -31,7 +31,7 @@ $db = $harness->get_DBAdaptor();
 
 ok $db;
 
-
+eval {
 $seqio = Bio::SeqIO->new('-format' => 'embl',-file => 't/data/AB030700.embl');
 
 $seq = $seqio->next_seq();
@@ -48,7 +48,9 @@ $id = $biodbadaptor->fetch_by_name_store_if_needed('rodent');
 $seqadaptor->store($id,$seq);
 
 # assumme bioentry_id is 1 - probably safe ;)
-$dbseq = $seqadaptor->fetch_by_dbID(1);
+# -- sure, extremely safe |:-[ -- in fact, too safe to have it stay here HL
+#$dbseq = $seqadaptor->fetch_by_dbID(1);
+$dbseq = $seqadaptor->fetch_by_db_and_accession("rodent", "AB030700");
 
 ok $dbseq;
 
@@ -93,3 +95,7 @@ $out = Bio::SeqIO->new( -file => '>t/tmp.embl' , -"format" => 'embl');
 
 
 $out->write_seq($dbseq);
+
+};
+
+print STDERR $@ if $@;

@@ -249,7 +249,8 @@ sub store{
    } elsif( $location->isa('Bio::Location::Simple') ) {
        $self->_store_component($location,$seqfeature_id,1);
    } else {
-       $self->throw("Not a simple location nor a split. Yikes");
+       $self->throw("Loc is-a ".ref($location).
+		    ", which is not a simple location nor a split. Yikes");
    }
 
        

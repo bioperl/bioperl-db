@@ -572,7 +572,7 @@ sub store{
  Usage   : $seq_adaptor->remove_by_dbID($db_id) or $seq_adaptor->remove_by_dbID(@db_ids)
  Function: removes sequence(s) by their database IDs
  Example :
- Returns : 
+ Returns : The number of deleted bioentries
  Args    :
 
 
@@ -599,12 +599,15 @@ sub remove_by_dbID {
                                comment
                                bioentry                   
                               );
+	my $num_affected = 0;
+
 	foreach my $tab (@simple_tables)  {
 		my $sth = $self->prepare("DELETE FROM $tab WHERE bioentry_id IN($be)");
-		$sth->execute(); 
+		my $n = $sth->execute();
+		$num_affected += $n if($tab eq 'bioentry');
 	}
 
-	
+	return $num_affected;
 }
 
 sub remove_by_db_and_accession {

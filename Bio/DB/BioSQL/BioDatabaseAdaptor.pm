@@ -343,35 +343,37 @@ sub store{
 
 
 sub remove_by_name{
-   my ($self,$name) = @_;
-   $self->throw("No database name specified") unless ($name);  	
-   
-   my $dbid = $self->fetch_by_name($name); 
-   
-   if( !defined $dbid ) {
-       $self->throw("Unable to find database $name");
-   }
-   
-   	my $sth = $self->prepare("DELETE FROM biodatabase WHERE biodatabase_id=$dbid"); 
-	$sth->execute; 
+    my ($self,$name) = @_;
+    my $sth;
 
-# Finding bioentries that belong to the database 
+    $self->throw("No database name specified") unless ($name);
 
-	$sth = $self->prepare("SELECT bioentry_id FROM bioentry WHERE biodatabase_id=$dbid");
-	$sth->execute();
-	my $be = $sth->fetchrow_array(); 
-	return unless $be; 
+    # we need to delete child records /before/ the parent!
 
+    # Finding bioentries that belong to the database 
+    $sth = $self->prepare("SELECT e.bioentry_id ".
+			  "FROM bioentry e, biodatabase db ".
+			  "WHERE e.biodatabase_id = db.biodatabase_id ".
+			  "AND db.name = ?");
+    $sth->execute($name);
+    my $be = $sth->fetchrow_array();
+    $sth->finish();
+
+    if($be) {
 	my @be; 
 	
 	while (my $a = $sth->fetchrow_array) {
-		unshift @be, $a; 
+	    unshift @be, $a; 
 	}
-	
-	
-	$self->db->get_SeqAdaptor->remove_by_dbID(@be);  
+	$self->db->get_SeqAdaptor->remove_by_dbID(@be);
+    }
 
-	   
+    # delete the parent
+    my $sth = $self->prepare("DELETE FROM biodatabase WHERE name = ?"); 
+    my $num_del = $sth->execute($name);
+    $sth->finish();
+
+    return $num_del;
 }
 
 1;

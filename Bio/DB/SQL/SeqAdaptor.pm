@@ -462,6 +462,7 @@ sub store{
 
    foreach my $sf ( $seq->top_SeqFeatures ) {
        $adp->store($sf,$rank,$id);
+       $rank++; 
    }
 
    $rank = 1;

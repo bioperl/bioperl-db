@@ -57,7 +57,7 @@ the bugs and their resolution.  Bug reports can be submitted via email
 or the web:
 
   bioperl-bugs@bio.perl.org
-  http://bio.perl.org/bioperl-bugs/
+  http://bugzilla.perl.org/
 
 =head1 AUTHOR - Hilmar Lapp, Ewan Birney
 
@@ -95,38 +95,9 @@ sub new {
     # initially, the seq is always `dirty'
     $self->seq_has_changed($has_seq);
     $self->_seq_is_fetched(0);
-    # get the seq length if there is a sequence
-    $self->length($self->obj()->length()) if $has_seq;
 
     # success - we hope
     return $self;
-}
-
-=head2 length
-
- Title   : length
- Usage   : $obj->length($newval)
- Function: This is overridden here in order to store the length as its own
-           attribute rather than obtaining it from the length of the physical
-           sequence.
- Example : 
- Returns : value of length
- Args    : newvalue (optional)
-
-
-=cut
-
-sub length{
-    my ($self,$value) = @_;
-
-    if( defined $value) {
-	$self->{'_seq_length'} = $value;
-    }
-    if(! exists($self->{'_seq_length'})) {
-	# utilize the peer object's potential wisdom
-	return $self->obj()->length();
-    }
-    return $self->{'_seq_length'};
 }
 
 =head2 seq
@@ -142,12 +113,13 @@ sub length{
 =cut
 
 sub seq{
-    my ($self,$value) = @_;
-    
+    my $self = shift;
+    my $value;
+
     # We do cache sequences, as fetching them is potentially quite expensive.
-    if(defined($value)) {
+    if(@_) {
 	# we allow set
-	$self->obj()->seq($value);
+	$value = $self->obj()->seq(@_);
 	$self->seq_has_changed(1);
 	# we don't need to fetch any more
 	$self->_seq_is_fetched(1);
@@ -156,7 +128,8 @@ sub seq{
         $value = $self->obj()->seq();
 	if((! $value) &&
 	   (! $self->_seq_is_fetched()) && $self->primary_key()) {
-	    # no, but we can retrieve it from the datastore
+	    # no, but we can retrieve it from the datastore (and we
+	    # haven't done so yet)
 	    $value = $self->adaptor()->get_biosequence($self->primary_key());
 	    $self->obj()->seq($value) if defined($value) || $self->alphabet();
 	    $self->seq_has_changed(0);

@@ -84,6 +84,7 @@ use strict;
 # Object preamble - inherits from Bio::Root::Root
 
 use Bio::DB::BioSQL::Oracle::BasePersistenceAdaptorDriver;
+use DBD::Oracle qw(:ora_types);
 
 @ISA = qw(Bio::DB::BioSQL::Oracle::BasePersistenceAdaptorDriver);
 
@@ -172,7 +173,7 @@ sub update_object{
     $sth->execute();
     my $row = $sth->fetchall_arrayref();
     if(@$row) {
-	# exists already, this is an update
+	# exists already, this is indeed an update
 	return $self->SUPER::update_object($adp,$obj,$fkobjs);
     } else {
 	# doesn't exist yet, this is in fact an insert
@@ -284,13 +285,85 @@ sub get_biosequence{
 sub bind_param{
    my ($self,$sth,$i,$val,@bindargs) = @_;
 
-   if($val && (length($val) > 4000)) {
+   if($val && (length($val) > 4000) && ($sth->{Statement} =~ /^update/i)) {
        my $h = @bindargs ? $bindargs[-1] : {};
        $h->{ora_field} = 'SEQ';
+       $h->{ora_type} = ORA_CLOB;
        push(@bindargs, $h) unless @bindargs;
    }
    # delegate to the inherited version
    return $self->SUPER::bind_param($sth,$i,$val,@bindargs);
+}
+
+=head2 prepare
+
+ Title   : prepare
+ Usage   :
+ Function: Prepares a SQL statement and returns a statement handle.
+
+           We override this here in order to intercept the row update
+           statement. We'll edit the statement to replace the table
+           name with the fully qualified table the former points to if
+           it is in fact a synonym, not a real table. The reason is
+           that otherwise LOB support doesn't work properly if the LOB
+           parameter is wrapped in a call to NVL() (which it is) and
+           the table is only a synonym, not a physical table.
+
+ Example :
+ Returns : the return value of the DBI::prepare() call
+ Args    : the DBI database handle for preparing the statement
+           the SQL statement to prepare (a scalar)
+           additional arguments to be passed to the dbh->prepare call
+
+
+=cut
+
+sub prepare{
+    my ($self,$dbh,$sql,@args) = @_;
+    
+    # we need to intercept the 'UPDATE biosequence' or whatever the table
+    # is called here, so in order not to hardcode the table name let's
+    # ask for it
+    my $table = uc($self->table_name("Bio::DB::BioSQL::BiosequenceAdaptor"));
+    # now is it the UPDATE we're interested in messing with?
+    if($sql =~ /^update\s+$table/i) {
+	# yes it is.
+	#
+	# first let's find out who we are
+	my $rows = $dbh->selectall_arrayref("SELECT user FROM dual");
+	my $usr = $rows->[0]->[0];
+	# now figure out what the real table is that this synonym points to,
+	# if the table name is actually a synonym (this exercise will tell us
+	# whether it is)
+	my $dictsql = 
+	    "SELECT table_owner, table_name FROM all_synonyms ".
+	    "WHERE synonym_name = ? AND owner = ?";
+	my $selsth = $dbh->prepare($dictsql) or
+	    $self->throw("failed to prepare SQL statement '$dictsql': ".
+			 $dbh->errstr);
+	# we'll now walk through the synonym chain (if it is one)
+	my $target = $table; # initialize
+	my $rv = $selsth->execute($target,$usr);
+	my $row;
+	while($rv && ($row = $selsth->fetchrow_arrayref())) {
+	    # update user and target
+	    $usr = $row->[0];
+	    $target = $row->[1];
+	    # retrieve next link in the chain (if any)
+	    $rv = $selsth->execute($target,$usr);
+	}
+	# complain about errors - there really shouldn't be any
+	if(! $rv) {
+	    $self->throw("failed to execute SQL statement '$dictsql' ".
+			 "with parameters '$target' and '$usr': ".
+			 $selsth->errstr());
+	}
+	# $usr.$target should now hold the target of the synonym if the table
+	# is in fact a synonym, and $target should be the table otherwise.
+	# We'll edit the statement now accordingly.
+	$sql =~ s/^update\s+$table/UPDATE $usr.$target/i;
+    }
+    return $dbh->prepare($sql,@args);
 }
 
 

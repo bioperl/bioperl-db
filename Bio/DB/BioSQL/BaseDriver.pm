@@ -382,11 +382,13 @@ sub new {
 
  Title   : prepare_delete_sth
  Usage   :
- Function: Creates a prepared statement with one placeholder variable suitable
-           to delete one row from the respective table the given class maps to.
+ Function: Creates a prepared statement with one placeholder variable
+           suitable to delete one row from the respective table the
+           given class maps to.
 
-           The method may throw an exception, or the database handle methods
-           involved may throw an exception.
+           The method may throw an exception, or the database handle
+           methods involved may throw an exception.
+
  Example :
  Returns : A DBI statement handle for a prepared statement with one placeholder
  Args    : The calling adaptor (basically, it needs to implement dbh()).
@@ -406,7 +408,7 @@ sub prepare_delete_sth{
     # straightforward SQL:
     my $sql = "DELETE FROM $tbl WHERE $pkname = ?";
     $adp->debug("preparing DELETE statement: $sql\n");
-    my $sth = $adp->dbh()->prepare($sql);
+    my $sth = $self->prepare($adp->dbh(),$sql);
     # done
     return $sth;
 }
@@ -442,7 +444,7 @@ sub prepare_findbypk_sth{
 	join(", ", @attrs) . " FROM $table WHERE $pkname = ?";
     $adp->debug("preparing PK select statement: $sql\n");
     # prepare statement and return
-    return $adp->dbh()->prepare($sql);
+    return $self->prepare($adp->dbh(),$sql);
 }
 
 =head2 prepare_findbyuk_sth
@@ -500,7 +502,7 @@ sub prepare_findbyuk_sth{
 	join(" AND ", map { "$_ = ?"; } @cattrs);
     $adp->debug("preparing UK select statement: $sql\n");
     # prepare statement and return
-    return $adp->dbh()->prepare($sql);
+    return $self->prepare($adp->dbh(),$sql);
 }
 
 =head2 prepare_insert_association_sth
@@ -511,7 +513,7 @@ sub prepare_findbyuk_sth{
            association between the two entities that correspond to the
            given objects.
  Example :
- Returns : TRUE on success and FALSE otherwise
+ Returns : the DBI statement handle
  Args    : The calling adaptor.
            Named parameters. Currently recognized are:
                -objs   a reference to an array of objects to be
@@ -597,7 +599,7 @@ sub prepare_insert_association_sth{
 	join(", ", @plchldrs) . ")";
     $adp->debug("preparing INSERT statement: $sql\n");
     # prepare sth and return
-    return $adp->dbh()->prepare($sql);
+    return $self->prepare($adp->dbh(),$sql);
 }
 
 =head2 prepare_delete_association_sth
@@ -608,7 +610,7 @@ sub prepare_insert_association_sth{
            association between the two entities that correspond to the
            given objects.
  Example :
- Returns : TRUE on success and FALSE otherwise
+ Returns : the DBI statement handle
  Args    : The calling adaptor.
            Named parameters. Currently recognized are:
                -objs   a reference to an array of objects the association
@@ -694,7 +696,7 @@ sub prepare_delete_association_sth{
 	join(" AND ", map { $_ . " = ?"; } @attrs);
     $adp->debug("preparing DELETE ASSOC statement: $sql\n");
     # prepare sth and return
-    return $adp->dbh()->prepare($sql);
+    return $self->prepare($adp->dbh(),$sql);
 }
 
 =head2 prepare_delete_query_sth
@@ -704,7 +706,7 @@ sub prepare_delete_association_sth{
  Function: Prepares a DBI statement handle suitable for deleting rows
            from a table that match a number of attributes.
  Example :
- Returns : TRUE on success and FALSE otherwise
+ Returns : the DBI statement handle
  Args    : The calling adaptor.
 
            Named parameters. Currently recognized are:
@@ -779,7 +781,109 @@ sub prepare_delete_query_sth{
     }
     $adp->debug("preparing DELETE QUERY statement: $sql\n");
     # prepare sth and return
-    return $adp->dbh()->prepare($sql);
+    return $self->prepare($adp->dbh(),$sql);
+}
+
+=head2 prepare_insert_sth
+
+ Title   : prepare_insert_sth
+ Usage   :
+ Function: Prepares a DBI statement handles suitable for inserting
+           a row (as values of the slots of an object) into a table.
+ Example :
+ Returns : the DBI statement handle
+ Args    : the calling adaptor (a Bio::DB::PersistenceAdaptorI object)
+           a reference to an array of object slot names
+           a reference to an array of foreign key objects (optional)
+
+
+=cut
+
+sub prepare_insert_sth{
+    my ($self,$adp,$slots,$fkobjs) = @_;
+
+    # obtain table and object slot map
+    my $table = $self->table_name($adp);
+    my $slotmap = $self->slot_attribute_map($table);
+    $self->throw("no slot/attribute map for table $table") unless $slotmap;
+    # construct INSERT statement as straightforward SQL with placeholders
+    my @attrs = ();
+    my @plchlds = ();
+    foreach my $slot (@$slots) {
+	if( ! exists($slotmap->{$slot})) {
+	    $self->throw("no mapping for slot $slot in slot-attribute map");
+	}
+	# we don't add a column nor a placeholder for unmapped slots
+	if($slotmap->{$slot} &&
+	   (substr($slotmap->{$slot},0,2) ne '=>')) {
+	    push(@attrs, $slotmap->{$slot});
+	    push(@plchlds, "?");
+	}
+    }
+    # foreign keys
+    if($fkobjs) {
+	foreach (@$fkobjs) {
+	    my $fkattr = $self->foreign_key_name($_);
+	    push(@attrs, $fkattr);
+	    push(@plchlds, "?");
+	}
+    }
+    my $sql = "INSERT INTO " . $table . " (" .
+	join(", ", @attrs) .
+	") VALUES (" .
+	join(", ", @plchlds) . ")";
+    $adp->debug("preparing INSERT statement: $sql\n");
+    return $self->prepare($adp->dbh, $sql);
+}
+
+=head2 prepare_update_sth
+
+ Title   : prepare_update_sth
+ Usage   :
+ Function: Prepares a DBI statement handle suitable for updating 
+           a row in a table where the row is identified by its
+           primary key.
+ Example :
+ Returns : the DBI statement handle
+ Args    : the calling adaptor (a Bio::DB::PersistenceAdaptorI object)
+           a reference to an array of object slot names
+           a reference to an array of foreign key objects (optional)
+
+
+=cut
+
+sub prepare_update_sth{
+    my ($self,$adp,$slots,$fkobjs) = @_;
+
+    # obtain the table name and corresponding slot map
+    my $table = $self->table_name($adp);
+    my $slotmap = $self->slot_attribute_map($table);
+    $self->throw("no slot/attribute map for table $table") unless $slotmap;
+    # construct UPDATE statement as straightforward SQL
+    my @attrs = ();
+    foreach my $slot (@$slots) {
+	if(! exists($slotmap->{$slot})) {
+	    $self->throw("no mapping for slot $_ in slot-attribute map");
+	}
+	# we don't add a column nor a placeholder for unmapped slots
+	if($slotmap->{$slot} &&
+	   (substr($slotmap->{$slot},0,2) ne '=>')) {
+	    push(@attrs, $slotmap->{$slot});
+	}
+    }
+    # foreign keys
+    if($fkobjs) {
+	foreach (@$fkobjs) {
+	    my $fkattr = $self->foreign_key_name($_);
+	    push(@attrs, $fkattr);
+	}
+    }
+    my $ifnull = $adp->dbcontext->dbi->ifnull_sqlfunc();
+    my $sql = "UPDATE $table SET " .
+	join(", ", map {"$_ = $ifnull\(?,$_\)";} @attrs) .
+	" WHERE " . $self->primary_key_name($table) . " = ?";
+    $adp->debug("preparing UPDATE statement: $sql\n");
+    return $self->prepare($adp->dbh(),$sql);
 }
 
 =head2 cascade_delete
@@ -805,36 +909,6 @@ sub cascade_delete{
     # our default assumption is that the RDBMS does support cascading deletes
     return 1;
 }
-
-=head2 bind_param
-
- Title   : bind_param
- Usage   :
- Function: Binds a parameter value to a prepared statement.
-
-           The reason this method is here is to give RDBMS-specific
-           drivers a chance to intercept the parameter binding and
-           perform additional actions, or add additional parameters to
-           the call, like data type. Certain drivers need to be helped
-           for certain types, for example DBD::Oracle for LOB
-           parameters.
-
- Example :
- Returns : the return value of the DBI::bind_param() call
- Args    : the DBI statement handle to bind to
-           the index of the column
-           the value to bind
-           additional arguments to be passed to the sth->bind_param call
-
-
-=cut
-
-sub bind_param{
-   my ($self,$sth,$i,$val,@bindargs) = @_;
-
-   return $sth->bind_param($i,$val,@bindargs);
-}
-
 
 =head2 insert_object
 
@@ -873,34 +947,7 @@ sub insert_object{
     my $dbh = $adp->dbh();
     # if not cached, create SQL and prepare statement
     if(! $sth) {
-	# construct INSERT statement as straightforward SQL with placeholders
-	my @attrs = ();
-	my @plchlds = ();
-	foreach my $slot (@slots) {
-	    if( ! exists($slotmap->{$slot})) {
-	       $self->throw("no mapping for slot $slot in slot-attribute map");
-	    }
-	    # we don't add a column nor a placeholder for unmapped slots
-	    if($slotmap->{$slot} &&
-	       (substr($slotmap->{$slot},0,2) ne '=>')) {
-		push(@attrs, $slotmap->{$slot});
-		push(@plchlds, "?");
-	    }
-	}
-	# foreign keys
-	if($fkobjs) {
-	    foreach (@$fkobjs) {
-		my $fkattr = $self->foreign_key_name($_);
-		push(@attrs, $fkattr);
-		push(@plchlds, "?");
-	    }
-	}
-	my $sql = "INSERT INTO " . $table . " (" .
-	    join(", ", @attrs) .
-	    ") VALUES (" .
-	    join(", ", @plchlds) . ")";
-	$adp->debug("preparing INSERT statement: $sql\n");
-	$sth = $dbh->prepare($sql);
+	$sth = $self->prepare_insert_sth($adp, \@slots, $fkobjs);
 	# and cache
 	$adp->sth($cache_key, $sth);
     }
@@ -962,16 +1009,9 @@ sub insert_object{
 					   $dbh, $self->sequence_name($table));
     } elsif(! $rv) { # note this is *not* equivalent to $rv == 0 !
 	# the statement failed
-	$self->warn("insert in ".ref($adp)." (driver) failed, values were (\"".
-		    join("\",\"",@$slotvals)."\") ".
-		    ($fkobjs ?
-		     "FKs (".join(",",
-				  map {
-				      $_ && ref($_) ?
-					  $_->primary_key() : "<NULL>";
-				  } @$fkobjs).
-		     ")\n" : "\n").
-		    $sth->errstr);
+	$self->report_execute_failure(-sth => $sth, -adaptor => $adp,
+				      -op => 'insert',
+				      -vals => $slotvals, -fkobjs => $fkobjs);
     }
     # done, return
     return $pk;
@@ -1012,31 +1052,7 @@ sub update_object{
     $self->throw("no slot/attribute map for table $table") unless $slotmap;
     # if not cached, create SQL and prepare statement
     if(! $sth) {
-	# construct UPDATE statement as straightforward SQL
-	my @attrs = ();
-	foreach my $slot (@slots) {
-	    if(! exists($slotmap->{$slot})) {
-		$self->throw("no mapping for slot $_ in slot-attribute map");
-	    }
-	    # we don't add a column nor a placeholder for unmapped slots
-	    if($slotmap->{$slot} &&
-	       (substr($slotmap->{$slot},0,2) ne '=>')) {
-		push(@attrs, $slotmap->{$slot});
-	    }
-	}
-	# foreign keys
-	if($fkobjs) {
-	    foreach (@$fkobjs) {
-		my $fkattr = $self->foreign_key_name($_);
-		push(@attrs, $fkattr);
-	    }
-	}
-	my $ifnull = $adp->dbcontext->dbi->ifnull_sqlfunc();
-	my $sql = "UPDATE $table SET " .
-	    join(", ", map {"$_ = $ifnull\(?,$_\)";} @attrs) .
-	    " WHERE " . $self->primary_key_name($table) . " = ?";
-	$adp->debug("preparing UPDATE statement: $sql\n");
-	$sth = $adp->dbh()->prepare($sql);
+	$sth = $self->prepare_update_sth($adp, \@slots, $fkobjs);
 	# and cache
 	$adp->sth($cache_key, $sth);
     }
@@ -1079,21 +1095,14 @@ sub update_object{
 	    $j++;
 	}
     }
-    # bind the primary key (which is in the WHERE clause)
-    $sth->bind_param($j, $obj->primary_key());
+    # bind the primary key (which is in the WHERE clause and hence the last)
+    $self->bind_param($sth, $j, $obj->primary_key());
     # execute
     my $rv = $sth->execute();
     if(! $rv) {
-	$self->warn("update in ".ref($adp)." (driver) failed, values were (\"".
-		    join("\",\"",@$slotvals)."\") ".
-		    ($fkobjs ?
-		     "FKs (".join(",",
-				  map {
-				      $_ && ref($_) ?
-					  $_->primary_key() : "<NULL>";
-				  } @$fkobjs).
-		     ")\n" : "\n").
-		    $sth->errstr);
+	$self->report_execute_failure(-sth => $sth, 
+				      -adaptor => $adp, -op => 'update',
+				      -vals => $slotvals, -fkobjs => $fkobjs);
     }
     # done, return
     return $rv;
@@ -1637,9 +1646,12 @@ sub association_entity_map{
     return $self->{'association_entity_map'};
 }
 
-=head1 Methods for transactional control
+=head1 DBI calls for possible interception
 
-   Rollback and commit
+These will usually delegate straightforward DBI calls on the supplied
+handle, but can also be used by an inheriting adaptor driver to
+intercept the call and add additional parameters, for example a hash
+reference with named parameters.
 
 =cut
 
@@ -1651,7 +1663,7 @@ sub association_entity_map{
            supports transactions.
  Example :
  Returns : TRUE
- Args    : The database connection for which to commit.
+ Args    : The database connection handle for which to commit.
 
 
 =cut
@@ -1677,6 +1689,111 @@ sub commit{
 sub rollback{
     my ($self, $dbh) = @_;
     return $dbh->rollback();
+}
+
+=head2 bind_param
+
+ Title   : bind_param
+ Usage   :
+ Function: Binds a parameter value to a prepared statement.
+
+           The reason this method is here is to give RDBMS-specific
+           drivers a chance to intercept the parameter binding and
+           perform additional actions, or add additional parameters to
+           the call, like data type. Certain drivers need to be helped
+           for certain types, for example DBD::Oracle for LOB
+           parameters.
+
+ Example :
+ Returns : the return value of the DBI::bind_param() call
+ Args    : the DBI statement handle to bind to
+           the index of the column
+           the value to bind
+           additional arguments to be passed to the sth->bind_param call
+
+
+=cut
+
+sub bind_param{
+    my ($self,$sth,$i,$val,@bindargs) = @_;
+    
+    return $sth->bind_param($i,$val,@bindargs);
+}
+
+=head2 prepare
+
+ Title   : prepare
+ Usage   :
+ Function: Prepares a SQL statement and returns a statement handle.
+
+           The reason this method is here is the same as for
+           bind_param.
+
+ Example :
+ Returns : the return value of the DBI::prepare() call
+ Args    : the DBI database handle for preparing the statement
+           the SQL statement to prepare (a scalar)
+           additional arguments to be passed to the dbh->prepare call
+
+
+=cut
+
+sub prepare{
+    my ($self,$dbh,$sql,@args) = @_;
+    
+    return $dbh->prepare($sql,@args);
+}
+
+=head1 Utility methods
+
+=cut
+
+=head2 report_execute_failure
+
+ Title   : report_execute_failure
+ Usage   :
+ Function: Report the failure to execute a SQL statement.
+
+           The reporting by default uses warn() but may be requested
+           to throw().
+
+ Example : 
+ Returns : 
+ Args    : Named paramaters. Currently recognized are
+           -sth     the statement handle whose execution failed
+           -adaptor the calling adaptor 
+                    (a Bio::DB::PersistenceAdaptorI object)
+           -op      the type of operation that failed ('insert',
+                    'update',...)
+           -vals    a reference to an array of values that were bound
+           -fkobjs  a reference to an array of foreign key objects
+                    that were bound (optional)
+           -report_func the name of the method to call for reporting
+                    the message (optional, default is 'warn')
+
+
+=cut
+
+sub report_execute_failure{
+    my $self = shift;
+    my ($sth,$adp,$op,$slotvals,$fkobjs,$reportfunc) =
+	$self->_rearrange([qw(STH
+			      ADAPTOR
+			      OP
+			      VALS
+			      FKOBJS
+			      REPORT_FUNC
+			      )], @_);
+
+    $reportfunc = "warn" unless $reportfunc;
+    my $msg = "$op in ".ref($adp)." (driver) failed, values were (\"".
+	join("\",\"",@$slotvals)."\")";
+    if($fkobjs) {
+	$msg .= " FKs (" . join(",", map { 
+	    $_ && ref($_) ? $_->primary_key() : "<NULL>";
+	} @$fkobjs) . ")";
+    }
+    $self->$reportfunc("$msg\n".$sth->errstr);
 }
 
 1;

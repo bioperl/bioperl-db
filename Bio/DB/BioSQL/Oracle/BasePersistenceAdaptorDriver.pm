@@ -253,38 +253,6 @@ sub new {
     return $self;
 }
 
-=head2 bind_param
-
- Title   : bind_param
- Usage   :
- Function: Binds a parameter value to a prepared statement.
-
-           The reason this method is here is to give RDBMS-specific
-           drivers a chance to intercept the parameter
-           binding. DBD::Oracle needs to be helped for LOB parameters.
-
- Example :
- Returns : the return value of the DBI::bind_param() call
- Args    : the DBI statement handle to bind to
-           the index of the column
-           the value to bind
-           additional arguments to be passed to the sth->bind_param call
-
-
-=cut
-
-sub bind_param{
-   my ($self,$sth,$i,$val,@bindargs) = @_;
-
-   if($val && (length($val) > 4000)) {
-       my $h = @bindargs ? $bindargs[-1] : {};
-       $h->{ora_type} = ORA_CLOB;
-       push(@bindargs, $h) unless @bindargs;
-   }
-   return $sth->bind_param($i,$val,@bindargs);
-}
-
-
 =head2 primary_key_name
 
  Title   : primary_key_name

@@ -54,13 +54,11 @@ of the bugs and their resolution. Bug reports can be submitted via
 email or the web:
 
   bioperl-bugs@bioperl.org
-  http://bioperl.org/bioperl-bugs/
+  http://bugzilla.bioperl.org/
 
 =head1 AUTHOR - Hilmar Lapp
 
 Email hlapp at gmx.net
-
-Describe contact details here
 
 =head1 CONTRIBUTORS
 

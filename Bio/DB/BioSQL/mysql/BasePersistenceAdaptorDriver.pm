@@ -54,13 +54,11 @@ of the bugs and their resolution. Bug reports can be submitted via
 email or the web:
 
   bioperl-bugs@bioperl.org
-  http://bioperl.org/bioperl-bugs/
+  http://bugzilla.bioperl.org/
 
 =head1 AUTHOR - Hilmar Lapp
 
 Email hlapp at gmx.net
-
-Describe contact details here
 
 =head1 CONTRIBUTORS
 
@@ -102,8 +100,8 @@ my %object_entity_map = (
 		"Bio::DB::BioSQL::BiosequenceAdaptor" => "biosequence",
 		"Bio::SeqFeatureI"                    => "seqfeature",
 		"Bio::DB::BioSQL::SeqFeatureAdaptor"  => "seqfeature",
-		"Bio::Species"                        => "taxon",
-		"Bio::DB::BioSQL::SpeciesAdaptor"     => "taxon",
+		"Bio::Species"                        => "taxon_name",
+		"Bio::DB::BioSQL::SpeciesAdaptor"     => "taxon_name",
 		"Bio::LocationI"                      => "seqfeature_location",
 		"Bio::DB::BioSQL::LocationAdaptor"    => "seqfeature_location",
 		"Bio::DB::BioSQL::BioNamespaceAdaptor"=> "biodatabase",
@@ -122,7 +120,7 @@ my %object_entity_map = (
 		   );
 my %association_entity_map = (
 	 "bioentry" => {
-	     "dbxref"         => "bioentry_dblink",
+	     "dbxref"         => "bioentry_dbxref",
 	     "reference"      => "bioentry_reference",
 	     "ontology_term"  => "bioentry_qualifier_value",
 	     "bioentry"       => {
@@ -138,7 +136,7 @@ my %association_entity_map = (
 	     }
 	 },
 	 "dbxref"   => {
-	     "bioentry"       => "bioentry_dblink",
+	     "bioentry"       => "bioentry_dbxref",
 	     "seqfeature"     => undef,
 	 },
 	 "reference"   => {
@@ -155,20 +153,21 @@ my %slot_attribute_map = (
 	     "namespace"      => "name",
 	     "authority"      => "authority",
 	 },
-	 "taxon" => {
-	     "classification" => "full_lineage",
-	     "common_name"    => "common_name",
+	 "taxon_name" => {
+	     "classification" => undef,
+	     "common_name"    => undef,
 	     "ncbi_taxid"     => "ncbi_taxon_id",
-	     "binomial"       => "binomial",
-	     "variant"        => "variant",
+	     "binomial"       => "name",
+	     "variant"        => undef,
 	 },
 	 "bioentry" => {
-	     "display_id"     => "display_id",
+	     "display_id"     => "name",
 	     "primary_id"     => "identifier",
 	     "accession_number" => "accession",
 	     "desc"           => "description",
 	     "description"    => "description",
-	     "version"        => "entry_version",
+	     "version"        => "version",
+	     "division"       => "division",
 	     "bionamespace"   => "biodatabase_id",
 	     "parent"         => "parent_bioentry_id",
 	     "child"          => "child_bioentry_id",
@@ -176,13 +175,13 @@ my %slot_attribute_map = (
 	 "bioentry_relationship" => {
 	     "parent"         => "parent_bioentry_id",
 	     "child"          => "child_bioentry_id",
+	     "rank"           => "rank",
 	 },
 	 "biosequence" => {
-	     "seq_version"    => "seq_version",
-	     "length"         => "seq_length",
-	     "seq"            => "biosequence_str",
+	     "seq_version"    => "version",
+	     "length"         => "length",
+	     "seq"            => "seq",
 	     "alphabet"       => "alphabet",
-	     "division"       => "division",
 	     "primary_seq"    => "bioentry_id",
 	 },
 	 "dbxref" => {
@@ -190,60 +189,67 @@ my %slot_attribute_map = (
 	     "primary_id"     => "accession",
 	     "version"        => "version",
 	 },
-	 "bioentry_dblink" => {
-	     "rank"           => undef,
+	 "bioentry_dbxref" => {
+	     "rank"           => "rank",
 	 },
 	 "reference" => {
-	     "authors"        => "reference_authors",
-	     "title"          => "reference_title",
-	     "location"       => "reference_location",
-	     "medline"        => "reference_identifier",
-	     "doc_id"         => "reference_crc",
+	     "authors"        => "authors",
+	     "title"          => "title",
+	     "location"       => "location",
+	     "medline"        => "dbxref_id",
+	     "doc_id"         => "crc",
 	     "start"          => "=>bioentry_reference.start",
 	     "end"            => "=>bioentry_reference.end",
 	 },
 	 "bioentry_reference" => {
-	     "start"          => "reference_start",
-	     "end"            => "reference_end",
-	     "rank"           => "reference_rank",
+	     "start"          => "start_pos",
+	     "end"            => "end_pos",
+	     "rank"           => "rank",
 	 },
 	 "comment"            => {
 	     "text"           => "comment_text",
-	     "rank"           => "comment_rank",
+	     "rank"           => "rank",
 	     "Bio::DB::BioSQL::SeqFeatureAdaptor" => undef,
 	 },
          "ontology_term"      => {
-	     "identifier"     => "term_identifier",
-             "name"           => "term_name",
-	     "tagname"        => "term_name",
-             "definition"     => "term_definition",
-             "category"       => "category_id",
+	     "identifier"     => "identifier",
+             "name"           => "name",
+	     "tagname"        => "name",
+             "definition"     => "definition",
+             #"category"       => "category_id",
 	     "value"          => "=>{bioentry_qualifier_value,seqfeature_qualifier_value}.value",
 	 },
          "bioentry_qualifier_value" => {
-	     "value"          => "qualifier_value",
-	     "rank"           => "qualifier_rank",
+	     "value"          => "value",
+	     "rank"           => "rank",
 	 },
 	 "seqfeature"         => {
-	     "display_name"   => undef,
-	     "rank"           => "seqfeature_rank",
-	     "primary_tag"    => "ontology_term_id",
-	     "source_tag"     => "seqfeature_source_id",
+	     "display_name"   => "display_name",
+	     "rank"           => "rank",
+	     "primary_tag"    => "type_term_id",
+	     "source_tag"     => "source_term_id",
 	     "entire_seq"     => "bioentry_id",
+	     "parent"         => "parent_seqfeature_id",
+	     "child"          => "child_seqfeature_id",
 	 },
 	 "seqfeature_location" => {
-	     "start"          => "seq_start",
-	     "end"            => "seq_end",
-	     "strand"         => "seq_strand",
-	     "rank"           => "location_rank",
+	     "start"          => "start_pos",
+	     "end"            => "end_pos",
+	     "strand"         => "strand",
+	     "rank"           => "rank",
 	 },
 	 "seqfeature_qualifier_value" => {
-	     "value"          => "qualifier_value",
-	     "rank"           => "qualifier_rank",
+	     "value"          => "value",
+	     "rank"           => "rank",
+	 },
+	 "seqfeature_relationship" => {
+	     "parent"         => "parent_seqfeature_id",
+	     "child"          => "child_seqfeature_id",
+	     "rank"           => "rank",
 	 },
 			   );
 my %dont_select_attrs = (
-	 "biosequence.biosequence_str" => 1,
+	 "biosequence.seq" => 1,
 			);
 
 

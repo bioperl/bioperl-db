@@ -1737,8 +1737,8 @@ sub attach_foreign_key_objects{
            Usually, those child objects will reference the given object as
            a foreign key. 
 
-           The implementation can assume that all of the child objects already
-           Bio::DB::PersistentObjectI.
+           The implementation can assume that all of the child objects
+           are already Bio::DB::PersistentObjectI.
 
            While obtaining and looping over all child objects could have been
            implemented as a generic business logic method, supplying the right

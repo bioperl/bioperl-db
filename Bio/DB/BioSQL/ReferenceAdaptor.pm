@@ -55,7 +55,7 @@ Report bugs to the Bioperl bug tracking system to help us keep track
  Bug reports can be submitted via email or the web:
 
   bioperl-bugs@bio.perl.org
-  http://bio.perl.org/bioperl-bugs/
+  http://bugzilla.bioperl.org/
 
 =head1 AUTHOR - Elia Stupka, Hilmar Lapp
 
@@ -113,8 +113,6 @@ sub new{
 
            Slots should be methods callable without an argument.
 
-           This is a strictly abstract method. A derived class MUST override
-           it to return something meaningful.
  Example :
  Returns : an array of method names constituting the serializable slots
  Args    : the object about to be inserted or updated
@@ -125,7 +123,7 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("authors","title","location","medline","doc_id","start","end");
+    return ("authors","title","location","doc_id","start","end");
 }
 
 =head2 get_persistent_slot_values
@@ -159,7 +157,6 @@ sub get_persistent_slot_values {
     my @vals = ($obj->authors(),
 		$obj->title(),
 		$obj->location(),
-		$obj->medline(),
 		$self->_crc64($obj),
 		$obj->start(),
 		$obj->end()
@@ -171,14 +168,20 @@ sub get_persistent_slot_values {
 
  Title   : get_foreign_key_objects
  Usage   :
- Function: Gets the objects referenced by this object, and which therefore need
-           to be referenced as foreign keys in the datastore.
+ Function: Gets the objects referenced by this object, and which
+           therefore need to be referenced as foreign keys in the
+           datastore.
 
-           Bio::Annotation::DBLink has no FKs, therefore this version just
-           returns an empty array.
+           Bio::Annotation::DBLink has a virtual dbxref as foreign
+           key. Virtual means that in the object model there is no
+           such reference, but there is in the BioSQL schema.
+
  Example :
  Returns : an array of Bio::DB::PersistentObjectI implementing objects
- Args    : The object about to be inserted or updated.
+ Args    : The object about to be inserted or updated, or undef if the call
+           is for a SELECT query. In the latter case return class or interface
+           names that are mapped to the foreign key tables.
+
            Optionally, additional named parameters. A common parameter will
            be -fkobjs, with a reference to an array of foreign key objects
            that are not retrievable from the persistent object itself.
@@ -187,18 +190,62 @@ sub get_persistent_slot_values {
 =cut
 
 sub get_foreign_key_objects{
-    return ();
+    my $self = shift;
+    my $obj = shift;
+    my $fk = "Bio::Annotation::DBLink";
+
+    if($obj) {
+	$fk = Bio::Annotation::DBLink->new(-database => "MEDLINE",
+					   -primary_id => $obj->medline);
+    }
+    return $fk;
+}
+
+=head2 attach_foreign_key_objects
+
+ Title   : attach_foreign_key_objects
+ Usage   :
+ Function: Attaches foreign key objects to the given object as far as
+           necessary.
+
+           This method is called after find_by_XXX() queries, not for INSERTs
+           or UPDATEs.
+
+           Bio::Annotation::DBLink has a dbxref as virtual foreign key
+           Virtual means that in the object model there is no such
+           reference, but there is in the BioSQL schema.
+
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The object to which to attach foreign key objects.
+           A reference to an array of foreign key values, in the order of
+           foreign keys returned by get_foreign_key_objects().
+
+
+=cut
+
+sub attach_foreign_key_objects{
+    my ($self,$obj,$fks) = @_;
+    my $ok = 1;
+    
+    if($fks && @$fks && $fks->[0]) {
+	my $dbl = $self->_dbxref_adaptor->find_by_primary_key($fks->[0]);
+	if($dbl) {
+	    $obj->medline($dbl->primary_id());
+	} else {
+	    $ok = 0;
+	}
+    }
+    return $ok;
 }
 
 =head2 store_children
 
  Title   : store_children
  Usage   :
- Function: Inserts or updates the child entities of the given object in the 
-           datastore.
+ Function: Inserts or updates the child entities of the given object in
+           the datastore.
 
-           Bio::Annotation::DBLink has no children,
-           so this version just returns TRUE.
  Example :
  Returns : TRUE on success, and FALSE otherwise
  Args    : The Bio::DB::PersistentObjectI implementing object for which the
@@ -221,7 +268,8 @@ sub store_children{
  Usage   :
  Function: This method is to cascade deletes in maintained objects.
 
-           We just return TRUE here.
+           We just return TRUE here, because the dbxref child is only
+           virtual.
 
  Example :
  Returns : TRUE on success and FALSE otherwise
@@ -301,9 +349,8 @@ sub populate_from_row{
 	$obj->authors($row->[1]) if $row->[1];
 	$obj->title($row->[2]) if $row->[2];
 	$obj->location($row->[3]) if $row->[3];
-	$obj->medline($row->[4]) if $row->[4] && ($row->[4] !~ /^CRC/);
-	$obj->start($row->[6]) if $row->[6];
-	$obj->end($row->[7]) if $row->[7];
+	$obj->start($row->[5]) if $row->[5];
+	$obj->end($row->[6]) if $row->[6];
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($row->[0]);
 	}
@@ -336,9 +383,13 @@ sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
     my $uk_h = {};
 
-    # UK is the combination of accession and database
+    # UK is either the dbxref foreign key, or the (computed) identifier
+    # for this object
     if($obj->medline()) {
-	$uk_h->{'medline'} = $obj->medline();
+	my $dbl = Bio::Annotation::DBLink->new(-database => "MEDLINE",
+					     -primary_id => $obj->medline);
+	$dbl = $self->_dbxref_adaptor->find_by_unique_key($dbl);
+	$uk_h->{'medline'} = $dbl ? $dbl->primary_key() : undef;
     } elsif($obj->authors()) {
 	$uk_h->{'doc_id'} = $self->_crc64($obj);
     }
@@ -409,7 +460,40 @@ sub add_association{
 
 =head1 Internal methods
 
+ These are mostly private or 'protected.' Methods which are in the
+ latter class have this explicitly stated in their
+ documentation. 'Protected' means you may call these from derived
+ classes, but not from outside.
+
 =cut
+
+=head2 _dbxref_adaptor
+
+ Title   : _dbxref_adaptor
+ Usage   : $obj->_dbxref_adaptor($newval)
+ Function: Get/set cached persistence adaptor for a bioperl DBLink object.
+
+           In OO speak, consider the access class of this method protected.
+           I.e., call from descendants, but not from outside.
+ Example : 
+ Returns : value of _dbxref_adaptor (a Bio::DB::PersistenceAdaptorI
+	   instance)
+ Args    : new value (a Bio::DB::PersistenceAdaptorI instance, optional)
+
+
+=cut
+
+sub _dbxref_adaptor{
+    my ($self,$adp) = @_;
+    if( defined $adp) {
+	$self->{'_dbxref_adaptor'} = $adp;
+    }
+    if(! exists($self->{'_dbxref_adaptor'})) {
+	$self->{'_dbxref_adaptor'} =
+	    $self->db()->get_object_adaptor("Bio::Annotation::DBLink");
+    }
+    return $self->{'_dbxref_adaptor'};
+}
 
 =head2 _crc64
 

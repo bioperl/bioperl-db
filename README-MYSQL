@@ -1,0 +1,34 @@
+BioSQL  notes:
+
+If you want InnoDB compiled in MySQL 3.23 you need to download either the latest stable MySQL 3 (3.23 currently) MAX version (MAX is the MySQL version that has InnoDB compiled), or the stable (though officially gamma) MySQL 4 version.
+
+If you have installed MySQL 3.23 MAX in order to activate InnoDB in your server you need to uncomment InnoDB related lines in the my.cnf MySQL configuration file. 
+
+By default there is no configuration file, so if you don't have one you need to copy one of the sample files in the supporting_files/ directory to /etc/. There is four my.cnf files called my-small.cnf, my-medium.cnf, my-large.cnf, my-huge.cnf corresponding to predefined defaults for small, medium and large databases respectively. Pick any of them (you can modify it later and copy it to /etc/
+
+for example:
+cp /usr/local/mysql/support-files/my-small.cf /etc/my.cnf
+
+Then edit the /etc/my.cnf to uncomment lines referring to InnoDB, specifically the following lines
+
+innodb_data_home_dir = /usr/local/mysql/var/
+innodb_data_file_path = ibdata1:10M:autoextend
+innodb_log_group_home_dir = /usr/local/mysql/var/
+innodb_log_arch_dir = /usr/local/mysql/var/
+set-variable = innodb_buffer_pool_size=16M
+set-variable = innodb_additional_mem_pool_size=2M
+set-variable = innodb_log_file_size=5M
+set-variable = innodb_log_buffer_size=8M
+innodb_flush_log_at_trx_commit=1
+set-variable = innodb_lock_wait_timeout=50
+
+Finally you need to make sure the innodb_data_home_dir exists and is owned by the mysql user, e.g.
+
+mkdir /usr/local/mysql/var/
+chown mysql /usr/local/mysql/var/
+
+Finally start the mysql server as per normal:
+safe_mysqld &
+
+(or mysqld_safe & depending on version)
+

@@ -39,10 +39,10 @@ MySQL, Oracle, and Postgres (coming, ask if you need this).
 
 	a) MySQL: downloads and installation instructions are at
 	http://www.mysql.com/. You must have at least version 3.23.52
-	installed and InnoDB enabled (see the MySQL documentation for
-	how to do this; it is _not_ enabled by default. You can check
-	your .err log for your MySQL host - it will conclusively tell
-	whether InnoDB is enabled or not).
+	installed and InnoDB enabled (see the README-MYSQL file for 
+        instructions on how to do this; it is _not_ enabled by default. 
+        You can type 'show variables' in your MySQL client or check your 
+        .err log for your MySQL host - it will conclusively tell whether InnoDB        is enabled or not).
 
 	b) Postgres: see http://www.postgresql.org/
 

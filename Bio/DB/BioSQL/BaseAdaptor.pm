@@ -64,7 +64,7 @@ sub new {
 
  Title   : prepare
  Usage   : $sth = $adaptor->prepare("select yadda from blabla")
- Function: provides a DBI statement handle from the adaptor. A convience
+ Function: provides a DBI statement handle from the adaptor. A convenience
            function so you do not have to write $adaptor->db->prepare all the
            time
  Example :
@@ -78,6 +78,27 @@ sub prepare{
    my ($self,$string) = @_;
 
    return $self->db->prepare($string);
+}
+
+=head2 quote
+
+ Title   : quote
+ Usage   : $sql_string = $adaptor->quote($string)
+ Function: A convenience function so you do not have to write 
+           $adaptor->db->_db_handle->quote all the  time
+ Example :
+ Returns : 
+ Args    :
+
+=cut
+
+sub quote {
+   my ($self,$string) = @_;
+
+   if( !defined $self->db ) {
+      $self->throw("Database object has lost its database handle! getting otta here!");
+   }
+   return $self->db->_db_handle->quote($string);
 }
 
 

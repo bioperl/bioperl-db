@@ -1,15 +1,17 @@
 # $Id$
+#
 # This is a closure that may be used as an argument to the --mergeobjs
 # option of load-seqdatabase.pl.
 #
 # The goal is to retain existing features and annotation, avoid updates of
 # those, but add from the new object all features and annotation that wasn't
 # yet on the database object.
+#
 sub {
     my ($old,$new,$db) = @_;
 
     # merge annotation objects
-    if($old->can('annotation')) {
+    if($old->isa("Bio::AnnotatableI")) {
 	# remove the old ones from the object (this doesn't remove them
 	# from the database, nor does it remove the associations)
 	my @anns = $old->annotation->remove_Annotations();

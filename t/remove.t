@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 51;
+    plan tests => 59;
 }
 
 use DBTestHarness;
@@ -87,15 +87,36 @@ eval {
     @arr = $pseq->annotation()->get_Annotations("reference");
     ok (scalar(@arr), 0);
 
-    # all feature qualifier/value pairs
-    @arr = ();
-    foreach my $feat ($pseq->top_SeqFeatures()) {
-	foreach ($feat->all_tags()) {
-	    push(@arr, $feat->each_tag_value($_));
-	}
-    }
-    ok (scalar(@arr), 0);
+    # test removing associations:
 
+    # add the same comment to both seq0 and seq1
+    my $cmt = Bio::Annotation::Comment->new(
+					-tagname => "comment",
+					-text => "this is a simple comment");
+    # add the same simple value to both seq0 and seq1
+    my $sv = Bio::Annotation::SimpleValue->new(-tagname => "Fancy",
+					       -value => "a simple value");
+    $seqs[0]->annotation->add_Annotation($cmt);
+    $seqs[0]->annotation->add_Annotation($sv);
+    $seqs[1]->annotation->add_Annotation($cmt);
+    $seqs[1]->annotation->add_Annotation($sv);
+    ok $seqs[0]->store();
+    ok $seqs[1]->store();
+    # delete all annotation from seq0 (also shares a reference with seq1)
+    ok $seqs[0]->annotation->remove(-fkobjs => [$seqs[0]]);
+
+    # now re-fetch seq0 and seq1 by primary key
+    $pseq = $seqadp->find_by_primary_key($seqs[0]->primary_key);
+    my $pseq1 = $seqadp->find_by_primary_key($seqs[1]->primary_key);
+    # test annotation counts and whether seq1 was unaffected
+    ok (scalar($pseq->annotation->get_Annotations()), 0);
+    ok (scalar($pseq1->annotation->get_Annotations("reference")), 3);
+    ok (scalar($pseq1->annotation->get_Annotations("comment")), 1);
+    my ($cmt1) = $pseq1->annotation->get_Annotations("comment");
+    ok ($cmt1->text, $cmt->text);
+    ok (scalar($pseq1->annotation->get_Annotations("Fancy")), 1);
+    my ($sv1) = $pseq1->annotation->get_Annotations("Fancy");
+    ok ($sv1->value, $sv->value);
 };
 
 print STDERR $@ if $@;

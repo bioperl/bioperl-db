@@ -237,8 +237,9 @@ sub prepare_findbyuk_sth{
 
  Title   : prepare_insert_association_sth
  Usage   :
- Function: Stores or updates the association between the two entities that
-           correspond to the given objects.
+ Function: Prepares a DBI statement handle suitable for inserting the
+           association between the two entities that correspond to the
+           given objects.
  Example :
  Returns : TRUE on success and FALSE otherwise
  Args    : The calling adaptor.
@@ -325,6 +326,103 @@ sub prepare_insert_association_sth{
 	join(", ", @attrs) . ") VALUES (".
 	join(", ", @plchldrs) . ")";
     $adp->debug("preparing INSERT statement: $sql\n");
+    # prepare sth and return
+    return $adp->dbh()->prepare($sql);
+}
+
+=head2 prepare_delete_association_sth
+
+ Title   : prepare_delete_association_sth
+ Usage   :
+ Function: Prepares a DBI statement handle suitable for deleting the
+           association between the two entities that correspond to the
+           given objects.
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : The calling adaptor.
+           Named parameters. Currently recognized are:
+               -objs   a reference to an array of objects the association
+                       between which is to be deleted
+               -values a reference to a hash the keys of which are
+                       column names and the values are values of
+                       columns other than the ones for foreign keys to
+                       the entities to be associated
+               -contexts optional; if given it denotes a reference
+                       to an array of context keys (strings), which
+                       allow the foreign key name to be determined
+                       through the association map rather than through
+                       foreign_key_name().  This may be necessary if
+                       more than one object of the same type takes
+                       part in the association. The array must be in
+                       the same order as -objs, and have the same
+                       number of elements. Put undef for objects
+                       for which there are no multiple contexts.
+
+  Caveats: Make sure you *always* give the objects to be associated in the
+           same order.
+
+
+=cut
+
+sub prepare_delete_association_sth{
+    my ($self,$adp,@args) = @_;
+    my ($i);
+
+    # get arguments
+    my ($objs, $values, $contexts) =
+	$self->_rearrange([qw(OBJS VALUES CONTEXTS)], @args);
+    # obtain column map for non-fk columns
+    my $table = $self->association_table_name($objs);
+    if(! $table) {
+	$self->throw("no object-relational map for association between ".
+		     "classes (".
+		     join(",", map {
+			 ref($_) ?
+			     ($_->isa("Bio::DB::PersistentObjectI") ?
+			      ref($_->obj()) : ref($_)) :
+			      $_;
+		     } @$objs) .
+		     ")");
+    }
+    my $columnmap = $self->slot_attribute_map($table);
+    my $attr;
+    my @attrs = ();
+    # first, gather the foreign key names
+    $i = 0;
+    while($i < @$objs) {
+	my $obj = $objs->[$i];
+	if(ref($obj) && $obj->isa("Bio::DB::PersistentObjectI")) {
+	    my $fktable = $self->table_name($obj);
+	    if(! $fktable) {
+		$self->throw("no object-relational map for class ".
+			     ref($obj));
+	    }
+	    if($contexts && $contexts->[$i]) {
+		$attr = $columnmap->{$contexts->[$i]};
+	    } else {
+		$attr = $self->foreign_key_name($obj);
+	    }
+	    if(! $attr) {
+		$self->throw("unable to determine column for FK to class ".
+			     ref($obj));
+	    }
+	    push(@attrs, $attr);
+	}
+	$i++;
+    }
+    # now add the columns for values if any
+    if($values) {
+	foreach my $colkey (keys %$values) {
+	    $self->throw("unmapped association column $colkey")
+		unless exists($columnmap->{$colkey});
+	    $attr = $columnmap->{$colkey};
+	    push(@attrs, $attr) if $attr;
+	}
+    }
+    # construct SQL straightforwardly
+    my $sql = "DELETE FROM $table WHERE ".
+	join(" AND ", map { $_ . " = ?"; } @attrs);
+    $adp->debug("preparing DELETE ASSOC statement: $sql\n");
     # prepare sth and return
     return $adp->dbh()->prepare($sql);
 }

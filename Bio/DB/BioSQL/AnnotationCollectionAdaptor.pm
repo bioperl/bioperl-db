@@ -302,17 +302,45 @@ sub attach_children{
 
 sub remove{
     my ($self,$obj,@args) = @_;
+    my $ok = 1;
 
-    $self->throw("Object of class ".ref($obj)." does not implement ".
-		 "Bio::DB::PersistentObjectI. Bad, cannot remove.")
-	if ! $obj->isa("Bio::DB::PersistentObjectI");
     # first off, delete from cache
     $self->_remove_from_obj_cache($obj);
-    # the rest is not implemented yet
-    $self->throw_not_implemented();
-    # undefine the objects primary key - it doesn't exist in the datastore any
-    # longer
+    # get the annotation type map
+    my $annotmap = $self->_supported_annotation_map();
+    # if we need to remove associations, we need to know with whom we are
+    # associated
+    my $fkobjs = $self->_rearrange([qw(FKOBJS)], @args);
+    # we need to remove the contained annotations
+    foreach my $ann ($obj->get_Annotations()) {
+	# if it's a persistent object then remove it, otherwise ignore
+	if($ann->isa("Bio::DB::PersistentObjectI")) {
+	    my $key = $self->_annotation_map_key($annotmap,$ann);
+	    # if this is a child relationship by FK, we remove the
+	    # annotation object itself
+	    if($annotmap->{$key}->{"link"} eq "child") {
+		$ok = $ann->remove(@args) && $ok;
+	    } else {
+		# otherwise we remove the association between the
+		# annotation object and the foreign key object(s)
+		my $adp = $ann->adaptor();
+		if(! $fkobjs) {
+		    $self->throw("no -fkobjs provided: ".
+				 "cannot remove association between ".
+				 ref($ann->obj).
+				 " and an unknown object");
+		}
+		my %params = (-objs => [$ann, @$fkobjs]);
+		$params{-values} = { 'rank' => $ann->rank } if $ann->rank;
+		$ok = $adp->remove_association(%params);
+	    }
+	}
+    }
+    # undefine the objects primary key - it doesn't exist in the datastore
+    # any longer
     $obj->primary_key(undef);
+    # done - we hope
+    return $ok;
 }
 
 =head2 find_by_primary_key
@@ -586,10 +614,16 @@ sub remove_children{
 
  Title   : _anntype_assoc_args
  Usage   :
- Function:
+ Function: Get the arguments to be passed to the annotation object
+           adaptor''s add_association method, based on the type of
+           annotation to be associated.
+
+           This is an internal method.
+
  Example :
- Returns : 
- Args    :
+ Returns : an array of arguments in the format of named parameters
+ Args    : the adaptor for the annotation object
+           the type of the annotation object (a string)
 
 
 =cut

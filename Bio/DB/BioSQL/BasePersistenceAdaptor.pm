@@ -120,6 +120,16 @@ sub new {
     return $self;
 }
 
+=head1 Methods for managing persistence
+
+This comprises of creating an object in the database (equivalent to an
+insert), storing an object in the database (equivalent to an update),
+removing an object from the database (equivalent to a delete), and
+adding and removing associations between objects when the underlying
+schema supports such associations.
+
+=cut
+
 =head2 create
 
  Title   : create
@@ -348,7 +358,8 @@ sub add_association{
     # have we been called in error? If so, be graceful and return an error.
     return undef unless $objs && @$objs;
     # construct key for cached statement
-    my $cache_key = "INSERT ASSOC " .
+    my $cache_key = "INSERT ASSOC [" .
+	($values ? scalar(keys %$values) : 0) . "] " .
 	join(";", map {
 	    $_->isa("Bio::DB::PersistentObjectI") ? ref($_->obj) : ref($_);
 	} @$objs);
@@ -392,6 +403,111 @@ sub add_association{
     # and return result
     return $rv;    
 }
+
+=head2 remove_association
+
+ Title   : remove_assocation
+ Usage   :
+ Function: Removes the association between the given objects in
+           the datastore.
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : Named parameters. At least the following must be recognized:
+               -objs   a reference to an array of objects the association
+                       between which is to be removed
+               -values a reference to a hash the keys of which are
+                       abstract column names and the values are values
+                       of those columns.  These columns are generally
+                       those other than the ones for foreign keys to
+                       the entities to be associated. Supplying this
+                       is only necessary if those columns participate
+                       in a unique key by which to find those
+                       associations to be removed.
+               -contexts optional; if given it denotes a reference
+                       to an array of context keys (strings), which
+                       allow the foreign key name to be determined
+                       through the slot-to-column map rather than through
+                       foreign_key_name().  This may be necessary if
+                       more than one object of the same type takes
+                       part in the association. The array must be in
+                       the same order as -objs, and have the same
+                       number of elements. Put undef for objects
+                       for which there are no multiple contexts.
+  Caveats: Make sure you *always* give the objects to be associated in the
+           same order.
+
+
+=cut
+
+sub remove_association{
+    my ($self,@args) = @_;
+    my ($i);
+
+    # get arguments
+    my ($objs, $values) =
+	$self->_rearrange([qw(OBJS VALUES)], @args);
+    # have we been called in error? If so, be graceful and return an error.
+    return undef unless $objs && @$objs;
+    # construct key for cached statement
+    my $cache_key = "DELETE ASSOC [" .
+	($values ? scalar(keys %$values) : 0) . "] " .
+	join(";", map {
+	    ref($_) ? "OBJ=".
+		($_->isa("Bio::DB::PersistentObjectI") ?
+		 ref($_->obj) : ref($_)) :
+		 $_;
+	} @$objs);
+    # statement cached?
+    my $sth = $self->sth($cache_key);
+    if(! $sth) {
+	# no, we need to get this one from the driver
+	$sth = $self->dbd()->prepare_delete_association_sth($self, @args);
+	# and cache for future use
+	$self->sth($cache_key, $sth);
+    }
+    # bind columns: first objects
+    $i = 1;
+    foreach my $obj (@$objs) {
+	if(ref($obj) && $obj->isa("Bio::DB::PersistentObjectI")) {
+	    $self->debug(substr(ref($self),rindex(ref($self),"::")+2).
+			 "::remove_assoc: ".
+			 "binding column $i to \"".$obj->primary_key().
+			 "\" (FK to ".ref($obj->obj()).")\n");
+	    $sth->bind_param($i, $obj->primary_key());
+	    $i++;
+	}
+    }
+    # then values if any, but be careful not to bind values for columns
+    # that the schema actually doesn't support
+    if($values) {
+	my $dbd = $self->dbd();
+	my $columnmap = $dbd->slot_attribute_map(
+				         $dbd->association_table_name($objs));
+	foreach my $valkey (keys %$values) {
+	    if($columnmap->{$valkey}) {
+		$self->debug(substr(ref($self),rindex(ref($self),"::")+2).
+			     "::remove_assoc: ".
+			     "binding column $i to \"",
+			     $values->{$valkey}, "\" ($valkey)\n");
+		$sth->bind_param($i, $values->{$valkey});
+		$i++;
+	    }
+	}
+    }
+    # execute
+    my $rv = $sth->execute();
+    # and return result
+    return $rv;    
+}
+
+=head1 Making objects persistent objects
+
+The DBAdaptorI factory mandates this operation, but it will in most
+cases conduct the operation by first finding the appropriate
+persistence adaptor and then asking the adaptor to do the
+operation. Hence, here is where the real stuff happens.
+
+=cut
 
 =head2 create_persistent
 
@@ -525,6 +641,13 @@ sub _create_persistent {
     # done -- I hope
     return $obj;
 }
+
+=head1 Finding objects by some property
+
+This comprises of finding by primary key, finding by unique key
+(alternative key), finding by association, and finding by query.
+
+=cut
 
 =head2 find_by_primary_key
 
@@ -1039,6 +1162,16 @@ sub _build_object{
     return $obj;
 }
 
+=head1 Transaction control methods
+
+This comprises of rollback and commit. The point to have those here
+even though they merely delegate to the driver is that the caller
+doesn't need to distinguish whether the RDBMS driver supports
+transactions or not. If the DBI driver doesn't then simply the adaptor
+driver won't do anything.
+
+=cut
+
 =head2 commit
 
  Title   : commit
@@ -1075,6 +1208,13 @@ sub rollback{
     return $self->dbd->rollback($self->dbh, @_);
 }
 
+=head1 Database Context and Adaptor Driver
+
+These are published attributes for convenient perusal by derived
+adaptors.
+
+=cut
+
 =head2 dbcontext
 
  Title   : dbcontext
@@ -1096,36 +1236,15 @@ sub dbcontext{
     return $self->{'dbcontext'};
 }
 
-=head2 sth
-
- Title   : sth
- Usage   : $obj->sth($key, $prepared_sth)
- Function: caches prepared statements
- Example : 
- Returns : a DBI statement handle cached under the key, or all statement
-           handles in the cache if no key is supplied
- Args    : the key for the cached prepared statement handle, and optionally
-           on set the new statement handle to be cached, or undef to
-           remove the handle from the cache
-
-
-=cut
-
-sub sth{
-    my $self = shift;
-    my $key = shift;
-
-    $self->{'_sth'} = {} if ! exists($self->{'_sth'});
-    return $self->{'_sth'}->{$key} = shift if @_;
-    return $self->{'_sth'}->{$key} if $key;
-    return values %{$self->{'_sth'}};
-}
-
 =head2 dbh
 
  Title   : dbh
  Usage   : $obj->dbh($newval)
- Function: 
+ Function: Get/set the DBI connection handle.
+
+           If you set this from outside, you should know exactly what
+           you are doing. 
+
  Example : 
  Returns : value of dbh (a database handle)
  Args    : on set, the new value (a database handle, optional)
@@ -1156,7 +1275,18 @@ sub dbh{
 
  Title   : dbd
  Usage   : $obj->dbd($newval)
- Function: 
+ Function: Get/set the driver for this adaptor.
+
+           The driver will usually be an instance of a class derived
+           from L<Bio::DB::BioSQL::BaseDriver>. It will usually also
+           have to implement L<Bio::DB::Persistent::ObjectRelMapperI>.
+
+           If you set this from outside, you should know exactly what
+           you are doing. If the value is requested in get-mode but no
+           value has been set yet, the driver will be auto-loaded. Most
+           if not all of the adaptors will in fact use this
+           auto-loading feature.
+
  Example : 
  Returns : value of dbd (a scalar)
  Args    : new value (a scalar, optional)
@@ -1242,6 +1372,31 @@ sub db{
     return shift->dbcontext()->dbadaptor();
 }
 
+=head2 sth
+
+ Title   : sth
+ Usage   : $obj->sth($key, $prepared_sth)
+ Function: caches prepared statements
+ Example : 
+ Returns : a DBI statement handle cached under the key, or all statement
+           handles in the cache if no key is supplied
+ Args    : the key for the cached prepared statement handle, and optionally
+           on set the new statement handle to be cached, or undef to
+           remove the handle from the cache
+
+
+=cut
+
+sub sth{
+    my $self = shift;
+    my $key = shift;
+
+    $self->{'_sth'} = {} if ! exists($self->{'_sth'});
+    return $self->{'_sth'}->{$key} = shift if @_;
+    return $self->{'_sth'}->{$key} if $key;
+    return values %{$self->{'_sth'}};
+}
+
 =head2 sql_generator
 
  Title   : sql_generator
@@ -1267,57 +1422,6 @@ sub sql_generator{
     return $self->{'sql_generator'};
 }
 
-=head2 finish
-
- Title   : finish
- Usage   : $objectadp->finish()
- Function: Finishes the resources used by this object. Note that this will
-           not disconnect the database handle, but it will remove the reference
-           to it.
-
-           This behaviour is needed because the connection handle may be shared
-           between multiple objects.
-
-           Note that given the implementation here you may continue to use the
-           adaptor after calling this method, since a new db handle will be
-           obtained automatically if needed, and objects removed from the cache
-           will be rebuilt.
-
-           Basically, this method will reset the object cache if any and finish
-           all cached statement handles and reset the statement handle cache.
-
-           Note that this method will not throw an exception even if finishing
-           the resources causes an error. It will issue a warning though, and
-           if verbose() >= 1 warnings become exceptions.
- Example :
- Returns : none
- Args    : none
-
-
-=cut
-
-sub finish{
-    my ($self) = @_;
-    
-    if($self->{'_dbh'}) {
-	# finish all statement handles
-	foreach my $sth ($self->sth()) {
-	    next unless ref($sth); # some statements may be disabled
-	    eval {
-		$sth->finish();
-	    };
-	    $self->warn("error while closing statement handle: " . $@) if($@);
-	}
-	# remove the reference to the database handle
-	$self->{'_dbh'} = undef;
-    }
-    # reset the cache of statement handles
-    delete $self->{'_sth'};
-    # reset the object cache if any
-    delete $self->{'_obj_cache'} if $self->{'_obj_cache'};
-    # done
-}
-
 =head2 caching_mode
 
  Title   : caching_mode
@@ -1327,8 +1431,8 @@ sub finish{
 
            See obj_cache() for documentation on how to use the object cache.
 
-           If disable caching through this method, the entire cache will
-           be flushed as a side effect.
+           If you disable caching through this method, the entire
+           cache will be flushed as a side effect.
 
  Example : 
  Returns : TRUE if caching of objects is enabled and FALSE otherwise
@@ -1397,6 +1501,61 @@ sub _remove_from_obj_cache{
     foreach (@delkeys) {
 	delete $self->{'_obj_cache'}->{$_};
     }
+}
+
+=head1 Object Lifespan-related methods
+
+=cut
+
+=head2 finish
+
+ Title   : finish
+ Usage   : $objectadp->finish()
+ Function: Finishes the resources used by this object. Note that this will
+           not disconnect the database handle, but it will remove the reference
+           to it.
+
+           This behaviour is needed because the connection handle may be shared
+           between multiple objects.
+
+           Note that given the implementation here you may continue to use the
+           adaptor after calling this method, since a new db handle will be
+           obtained automatically if needed, and objects removed from the cache
+           will be rebuilt.
+
+           Basically, this method will reset the object cache if any and finish
+           all cached statement handles and reset the statement handle cache.
+
+           Note that this method will not throw an exception even if finishing
+           the resources causes an error. It will issue a warning though, and
+           if verbose() >= 1 warnings become exceptions.
+ Example :
+ Returns : none
+ Args    : none
+
+
+=cut
+
+sub finish{
+    my ($self) = @_;
+    
+    if($self->{'_dbh'}) {
+	# finish all statement handles
+	foreach my $sth ($self->sth()) {
+	    next unless ref($sth); # some statements may be disabled
+	    eval {
+		$sth->finish();
+	    };
+	    $self->warn("error while closing statement handle: " . $@) if($@);
+	}
+	# remove the reference to the database handle
+	$self->{'_dbh'} = undef;
+    }
+    # reset the cache of statement handles
+    delete $self->{'_sth'};
+    # reset the object cache if any
+    delete $self->{'_obj_cache'} if $self->{'_obj_cache'};
+    # done
 }
 
 =head2 DESTROY

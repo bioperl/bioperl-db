@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;
-    plan tests => 153;
+    plan tests => 160;
 }
 
 use DBTestHarness;
@@ -94,6 +94,23 @@ eval {
 	ok ($dbmems[$i]->namespace, $mems[$i]->namespace);
 	$i++;
     }
+
+    # test cluster member association removal
+    my $assoctype = $adp->_ontology_term('cluster member',
+					 'Relationship Type Ontology',
+					 'FIND IT');
+    ok $assoctype;
+    ok $assoctype->primary_key;
+    ok $adp->remove_association(-objs => [$dbclu, "Bio::SeqI", $assoctype],
+				-contexts => ["parent","child",undef]);
+    # re-fetch and test members
+    $dbclu = $adp->find_by_primary_key($dbid);
+    ok $dbclu;
+    ok (scalar($dbclu->get_members()), 0);
+    # but the members should be still there (just not associated anymore)
+    my $seq = $dbmems[0]->adaptor->find_by_primary_key($dbmems[0]->primary_key);
+    ok $seq;
+    ok ($seq->accession_number, $dbmems[0]->accession_number);
 };
 
 print STDERR $@ if $@;

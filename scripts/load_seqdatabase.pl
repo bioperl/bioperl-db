@@ -16,7 +16,14 @@ options to do with where the bioperl-db database is (ie, hostname,
 user for database, password, database name) followed by the database
 name you wish to load this into and then any number of files. The
 files are assumed to be SeqIO formatted files with the format given
-in the -format flag
+in the -format flag.
+
+Loading large numbers of e.g. embl files can take a long time
+(many hours).  A boolean flag has been added, '-bulk',which allows
+you to load the flatfile into a tab-delimited set of output files
+in your /tmp/ folder (*.bulk) which may then be imported en masse
+using e.g. mysqlimport
+
 
 =head1 ARGUMENTS
    

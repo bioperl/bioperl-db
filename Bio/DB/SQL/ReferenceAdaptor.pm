@@ -171,18 +171,26 @@ sub store_if_needed{
    }
    
    if ($self->db->bulk_import){
-		# unfortunately, medlineid is not a reliable value to search by... that sucks!
-		# this in-memory hash is going to get huge!!
+		# unfortunately, medlineid is not a reliable value... that sucks!
+		# this means that we can potentially have hundreds of duplicates of some data
+		# with identical author, title, and location, if they don't have a medline id
+		#  ugh... I hate redundancy!!  :-(
 		
-      if ($self->{_knownRefs}->{"$authors"."_"."$title"."_"."$location"}){
-			return $self->{_knownRefs}->{"$authors"."_"."$title"."_"."$location"}
-		} else {
-			my $id = $self->_nextid;
-			my $fh = $self->db->{"__reference"};
-			print $fh "$id\t$location\t$title\t$authors\t$med\n";
-			$self->{_knownRefs}->{"$authors"."_"."$title"."_"."$location"} = $id;
-			return $id;
+      if ($med){  # if there is a medline id
+			if ($self->{"_knownRefs"}->{$med}){  # have we ever seen it
+				return $self->{"_knownRefs"}->{$med}  #E if so, then return its id
+			}
 		}
+		
+		# if we have never seen it before, or if it has no medline id
+		my $id = $self->_nextid;  # then create a reference id for it
+		my $fh = $self->db->{"__reference"};
+		print $fh "$id\t$location\t$title\t$authors\t$med\n";  # write it out as a new entry
+		if ($med){  # and if it does have a medline id, then record that we know this id
+			$self->{"_knownRefs"}->{$med} = $id;
+		}
+		return $id;  # and return this id
+	
    } else {
 
 		if ($med) {

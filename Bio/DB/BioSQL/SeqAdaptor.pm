@@ -499,8 +499,8 @@ sub store{
 		foreach my $ref ( $seq->annotation->get_Annotations('reference') ) {
 			 my $rid = $rdp->store_if_needed($ref);
 
-			 my $start='NULL';
-			 my $end='NULL';
+			 my $start='NULL';  
+			 my $end='NULL';    
 			 if ($ref->start) {
 			$start=$ref->start;
 			 }
@@ -600,8 +600,8 @@ sub _storeText {
 	foreach my $ref ( $seq->annotation->get_Annotations('reference') ) {
 		my $rid = $rdp->store_if_needed($ref);
 
-		my $start='NULL';
-		my $end='NULL';
+		my $start='\N';  # note that this keeps the text file
+		my $end='\N';    # compatible with the SQL text, which converts NULL to '0' upon insertion.
 		if ($ref->start) {
 			$start=$ref->start;
 		}

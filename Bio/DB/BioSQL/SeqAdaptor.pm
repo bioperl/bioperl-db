@@ -87,11 +87,11 @@ use Bio::DB::SQL::BaseAdaptor;
 sub fetch_by_dbID{
    my ($self,$id) = @_;
 
-   my $sth = $self->prepare("select en.display_id,en.accession,length(bs.biosequence_str),bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
+   my $sth = $self->prepare("select en.display_id,en.accession,en.entry_version,length(bs.biosequence_str),bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
 
    $sth->execute;
 
-   my ($display,$acc,$len,$mol,$div) = $sth->fetchrow_array;
+   my ($display,$acc,$version,$len,$mol,$div) = $sth->fetchrow_array;
 
    if( !defined $display ) {
        $self->throw("Bioentry id $id does not have a biosequence or bioentry ");
@@ -100,6 +100,7 @@ sub fetch_by_dbID{
    return Bio::DB::Seq->new( -primary_id => $id,
 			     -display_id => $display,
 			     -accession  => $acc,
+			     -version    => $version,
 			     '-length'   => $len,
 			     -moltype   => $mol,
 			     -division   => $div,
@@ -178,24 +179,6 @@ sub store{
    $sth->execute;
    my($id) = $sth->fetchrow_array();
 
-   #my $moltype='XXX';
-   #if (defined $seq->molecule) {
-   #    my $mol =$seq->molecule;
-   #    if ($mol =~ /DNA/) {
-#	   $moltype='dna';
-#       }
-#       elsif ($mol =~ /RNA/) {
-#	   $moltype='rna';
-#       }
-#       elsif ($mol =~ /AA/) {
-#	   $moltype='protein';
-#       }
-#       else {
-#	   $self->warn("Cannot recognise molecule $mol");
-#	   
-#       }
-#   }
-#   $seq->primary_seq->moltype($moltype);
    $self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
 
    my $desc = $seq->desc;
@@ -205,7 +188,10 @@ sub store{
        $sth->execute;
    }
 
-
+   foreach my $date ($seq->get_dates) {
+       $sth = $self->prepare("insert into bioentry_date (bioentry_id,date) VALUES ($id,'$date')");
+       $sth->execute;
+   }
    my $species = $seq->species;
 
    if( defined $species ) {
@@ -232,6 +218,33 @@ sub store{
        $adp->store($dblink,$id);
    }
 
+}
+
+=head2 get_dates
+
+ Title   : get_dates
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_dates{
+    my ($self,$bioentry_id) = @_;
+    
+    my $sth = $self->prepare("select date from bioentry_date where bioentry_id = $bioentry_id");
+    $sth->execute();
+    my @dates;
+    my $seen=0;
+    while (my ($date) = $sth->fetchrow_array()) {
+	push (@dates,$date);
+	$seen=1;
+    }
+    $seen || return undef;
+    return @dates;
 }
 
 =head2 get_taxa_id

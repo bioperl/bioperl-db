@@ -54,6 +54,14 @@ CREATE TABLE bioentry (
   PRIMARY KEY(bioentry_id)
 );
 
+#Bioentries should have one or more dates
+
+CREATE TABLE bioentry_date (
+  bioentry_id int(10) NOT NULL,
+  date varchar(200) NOT NULL,
+  PRIMARY KEY(bioentry_id,date)
+);
+
 # not all entries have a taxa, but many do.
 # one bioentry only has one taxa! (weirdo chimerias are not handled. tough)
 

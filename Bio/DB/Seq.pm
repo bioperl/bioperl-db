@@ -79,8 +79,8 @@ sub new {
     my $self = {};
     bless $self,$class;
 
-    my($primary_id,$display_id,$accession,$adaptor,$length,$division) = 
-	$self->_rearrange([qw(PRIMARY_ID DISPLAY_ID ACCESSION ADAPTOR LENGTH DIVISION)],@args);
+    my($primary_id,$display_id,$accession,$version,$adaptor,$length,$division) = 
+	$self->_rearrange([qw(PRIMARY_ID DISPLAY_ID ACCESSION VERSION ADAPTOR LENGTH DIVISION)],@args);
 
     if( !defined $primary_id || !defined $display_id || !defined $accession || !defined $adaptor || !defined $length) {
 	$self->throw("Not got one of the arguments in DB::Seq new [$primary_id,$display_id,$accession,$adaptor,$length]");
@@ -89,6 +89,7 @@ sub new {
     $self->primary_id($primary_id);
     $self->display_id($display_id);
     $self->accession($accession);
+    $self->version($version);
     $self->adaptor($adaptor);
     $self->length($length);
     $self->division($division);
@@ -239,6 +240,31 @@ sub division{
 
 }
 
+=head2 get_dates
+
+ Title   : get_dates
+ Usage   : $obj->get_dates($newval)
+ Function: Getset for get_dates value
+ Returns : value of get_dates
+ Args    : newvalue (optional)
+
+
+=cut
+
+sub get_dates{
+    my ($self,@args)=@_;
+    
+    if( !defined $self->{'_date_array'} ) {
+	my @dates = $self->adaptor->get_dates($self->primary_id);
+	if( defined @dates ) {
+	    push (@{$self->{'_date_array'}},@dates);
+	} else {
+	    return undef;
+	}
+    }
+    return @{$self->{'_date_array'}};
+}
+
 
 =head2 species
 
@@ -383,6 +409,48 @@ sub accession{
     return $obj->{'accession'};
 
 }
+
+=head2 version
+
+ Title   : version
+ Usage   : $obj->version($newval)
+ Function: Getset for version value
+ Returns : value of version
+ Args    : newvalue (optional)
+
+
+=cut
+
+sub version{
+   my $obj = shift;
+   if( @_ ) {
+      my $value = shift;
+      $obj->{'version'} = $value;
+    }
+    return $obj->{'version'};
+
+}
+
+=head2 seq_version
+
+ Title   : seq_version
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub seq_version{
+   my ($self,@args) = @_;
+
+   my $string = $self->accession.".".$self->version;
+   return $string;
+
+}
+
 
 =head2 adaptor
 

@@ -450,6 +450,47 @@ sub find_by_association{
 	Bio::DB::Query::PrebuiltResult->new(-objs => []);
 }
 
+=head2 remove_children
+
+ Title   : remove_children
+ Usage   :
+ Function: This method is to cascade deletes in maintained objects.
+
+           We need to undefine the primary keys of all contained
+           children objects here.
+
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : The persistent object that was just removed from the database.
+           Additional (named) parameter, as passed to remove().
+
+
+=cut
+
+sub remove_children{
+    my $self = shift;
+    my $ac = shift;
+
+    # get the annotation type map
+    my $annotmap = $self->_supported_annotation_map();
+    # check annotation for each key
+    foreach my $annkey ($ac->get_all_annotation_keys()) {
+	foreach my $ann ($ac->get_Annotations($annkey)) {
+	    if($ann->isa("Bio::DB::PersistentObjectI")) {
+		# undef the PK if this is a child relationship by FK
+		my $key = $self->_annotation_map_key($annotmap,$ann);
+		if($annotmap->{$key}->{"link"} eq "child") {
+		    $ann->primary_key(undef);
+		    # cascade through in case the object needs it
+		    $ann->adaptor->remove_children($ann);
+		}
+	    }
+	}
+    }
+    # done
+    return 1;
+}
+
 =head2 _supported_annotation_map
 
  Title   : _supported_annotation_map

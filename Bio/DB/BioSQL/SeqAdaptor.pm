@@ -283,6 +283,45 @@ sub instantiate_from_row{
     return $obj;
 }
 
+=head2 remove_children
+
+ Title   : remove_children
+ Usage   :
+ Function: This method is to cascade deletes in maintained objects.
+
+           We need to undefine the primary keys of all contained
+           feature objects here.
+
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : The persistent object that was just removed from the database.
+           Additional (named) parameter, as passed to remove().
+
+
+=cut
+
+sub remove_children{
+    my $self = shift;
+    my $obj = shift;
+
+    # features
+    foreach my $feat ($obj->top_SeqFeatures()) {
+	if($feat->isa("Bio::DB::PersistentObjectI")) {
+	    $feat->primary_key(undef);
+	    # cascade to feature's children
+	    $self->_feat_adaptor->remove_children($feat);
+	}
+    }
+    # annotation collection
+    my $ac = $obj->annotation();
+    if($ac->isa("Bio::DB::PersistentObjectI")) {
+	$ac->primary_key(undef);
+	$ac->adaptor()->remove_children($ac);
+    }
+    # done
+    return 1;
+}
+
 =head2 _feat_adaptor
 
  Title   : _feat_adaptor

@@ -208,13 +208,15 @@ sub get_foreign_key_objects{
  Function: Attaches foreign key objects to the given object as far as
            necessary.
 
-           This method is called after find_by_XXX() queries, not for INSERTs
-           or UPDATEs.
+           This method is called after find_by_XXX() queries, not for
+           INSERTs or UPDATEs.
 
-           SeqFeatureIs have a bioentry, a key and a source as foreign keys
-           (the two latter are ontology terms). We don''t fetch the bioentry
-           for seqfeatures, as that may easily result in infinite loops (the
-           seq will look for its features etc).
+           SeqFeatureIs have a bioentry, a key and a source as foreign
+           keys (the two latter are ontology terms). We don''t fetch
+           the bioentry for seqfeatures, as that may easily result in
+           infinite loops (because the seq will look for its
+           features).
+
  Example :
  Returns : TRUE on success, and FALSE otherwise.
  Args    : The object to which to attach foreign key objects.
@@ -663,6 +665,36 @@ sub _featann_adaptor{
 	$self->{'_featann_adaptor'} = $ac;
     }
     return $self->{'_featann_adaptor'};
+}
+
+=head2 remove_children
+
+ Title   : remove_children
+ Usage   :
+ Function: This method is to cascade deletes in maintained objects.
+
+           We need to undefine the primary keys of location objects
+           here.
+
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : The persistent object that was just removed from the database.
+           Additional (named) parameter, as passed to remove().
+
+
+=cut
+
+sub remove_children{
+    my $self = shift;
+    my $obj = shift;
+    my $loc = $obj->location();
+    my @locs = 
+	$loc->isa("Bio::Location::SplitLocationI") ?
+	$loc->sub_Location() : ($loc);
+    foreach (@locs) {
+	$_->primary_key(undef) if $_->isa("Bio::DB::PersistentObjectI");
+    }
+    return 1;
 }
 
 1;

@@ -301,6 +301,9 @@ sub remove{
     # undefine the objects primary key - it doesn't exist in the datastore any
     # longer
     $obj->primary_key(undef);
+    # take care of the children
+    $rv = $self->remove_children($obj,@args) ? $rv : 0;
+    # done
     return $rv;
 }
 
@@ -1533,6 +1536,36 @@ sub store_children{
 
 sub attach_children{
     return 1;
+}
+
+=head2 remove_children
+
+ Title   : remove_children
+ Usage   :
+ Function: This method is to cascade deletes in maintained objects.
+
+           Child records in the database will usually be cascaded by
+           the RDBMS. In order to cascade removals to persistent child
+           objects, you must override this method. Usually you will
+           need to undefine the primary key of child objects, and
+           possibly remove them from caches if they are cached.
+
+           Because failure to do so may result in serious and often
+           non-obvious bugs, there is no default provided here. You
+           *must* override this method in a derived adaptor as
+           evidence that you know what you are doing, even if all you
+           do is just return TRUE.
+
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : The persistent object that was just removed from the database.
+           Additional (named) parameter, as passed to remove().
+
+
+=cut
+
+sub remove_children{
+    shift->throw_not_implemented();
 }
 
 =head2 instantiate_from_row

@@ -170,17 +170,23 @@ sub get_persistent_slot_values {
 
 sub get_foreign_key_objects{
     my ($self,$obj,@args) = @_;
+    my ($feat,$dblink);
 
     # Bio::LocationI doesn't have a pointer to the feature. Hence, we need to
     # get this from the arguments.
     my ($fkobjs) = $self->_rearrange([qw(FKOBJS)], @args);
-    my $feat;
     if($fkobjs && @$fkobjs) {
-	($feat) = grep { $_->isa("Bio::SeqFeatureI"); } @$fkobjs;
+	($feat) = grep { ref($_) && $_->isa("Bio::SeqFeatureI"); } @$fkobjs;
+	if(ref($obj) && $obj->is_remote()) {
+	    # construct DBLink on-the-fly
+	    $dblink = $self->_seq_id_as_dblink($obj, $feat);
+	}
     }
     $feat = "Bio::SeqFeatureI" unless $feat;
+    # default for dblink is this is not a remote location
+    $dblink = "Bio::Annotation::DBLink" unless $dblink;
 
-    return ($feat);
+    return ($feat,$dblink);
 }
 
 =head2 attach_foreign_key_objects
@@ -190,16 +196,17 @@ sub get_foreign_key_objects{
  Function: Attaches foreign key objects to the given object as far as
            necessary.
 
-           This method is called after find_by_XXX() queries, not for INSERTs
-           or UPDATEs.
+           This method is called after find_by_XXX() queries, not for
+           INSERTs or UPDATEs.
 
-           LocationIs don''t really have a foreign key object attached -- it
-           would be the SeqFeatureI if they had one.
+           LocationIs don''t really have a foreign key object attached
+           -- it would be the SeqFeatureI if they had one.
+
  Example :
  Returns : TRUE on success, and FALSE otherwise.
  Args    : The object to which to attach foreign key objects.
-           A reference to an array of foreign key values, in the order of
-           foreign keys returned by get_foreign_key_objects().
+           A reference to an array of foreign key values, in the order
+           of foreign keys returned by get_foreign_key_objects().
 
 
 =cut
@@ -207,7 +214,15 @@ sub get_foreign_key_objects{
 sub attach_foreign_key_objects{
     my ($self,$obj,$fks) = @_;
     my $ok = 1;
-    
+
+    # remote location reference?
+    if($fks->[1]) {
+	my $dbl = $self->_dblink_adaptor->find_by_primary_key($fks->[1]);
+	$obj->is_remote(1);
+	$obj->seq_id($dbl->namespace_string) if $dbl;
+	$ok = $dbl && $ok;
+    }
+
     return $ok;
 }
 
@@ -231,6 +246,26 @@ sub attach_foreign_key_objects{
 sub store_children{
     my ($self,$obj) = @_;
 
+    return 1;
+}
+
+=head2 remove_children
+
+ Title   : remove_children
+ Usage   :
+ Function: This method is to cascade deletes in maintained objects.
+
+           We just return TRUE here.
+
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : The persistent object that was just removed from the database.
+           Additional (named) parameter, as passed to remove().
+
+
+=cut
+
+sub remove_children{
     return 1;
 }
 
@@ -377,14 +412,59 @@ sub get_unique_key_query{
     return $uk_h;
 }
 
+=head2 _seq_id_as_dblink
+
+ Title   : _seq_id_as_dblink
+ Usage   :
+ Function: 
+ Example :
+ Returns : L<Bio::Annotation::DBLink> object
+ Args    : L<Bio::LocationI> object, L<Bio::SeqFeatureI> object
+
+
+=cut
+
+sub _seq_id_as_dblink{
+    my ($self,$loc,$feat) = @_;
+    my $seqid = $loc->seq_id;
+    my ($ns,$v);
+
+    my $i = index($seqid, ':');
+    if($i >= 0) {
+	$ns = substr($seqid, 0, $i);
+	$seqid = substr($seqid, $i+1);
+    }
+    $i = rindex($seqid, '.');
+    if($i >= 0) {
+	$v = substr($seqid, $i+1);
+	$seqid = substr($seqid, 0, $i);
+    }
+    if(! $ns) {
+	if(! $feat) {
+	    $self->throw("need feature FK for remote location on ".
+			 $loc->seq_id());
+	}
+	# default namespace is the one from the attached seq
+	$ns = $feat->entire_seq()->namespace();
+    }
+    # create DBLink object
+    my $dblink =  Bio::Annotation::DBLink->new(-database => $ns,
+					       -primary_id => $seqid);
+    $dblink->version($v);
+    # return the persistent version of it
+    return $self->_dblink_adaptor->create_persistent($dblink);
+}
+
 =head2 _feat_adaptor
 
  Title   : _feat_adaptor
  Usage   : $obj->_feat_adaptor($newval)
  Function: Get/set cached persistence adaptor for a bioperl feature object.
 
-           In OO speak, consider the access class of this method protected.
-           I.e., call from descendants, but not from outside.
+           In OO speak, consider the access class of this method
+           protected.  I.e., call from descendants, but not from
+           outside.
+
  Example : 
  Returns : value of _feat_adaptor (a Bio::DB::PersistenceAdaptorI
 	   instance)
@@ -403,6 +483,36 @@ sub _feat_adaptor{
 	    $self->db()->get_object_adaptor("Bio::SeqFeatureI");
     }
     return $self->{'_feat_adaptor'};
+}
+
+=head2 _dblink_adaptor
+
+ Title   : _dblink_adaptor
+ Usage   : $obj->_dblink_adaptor($newval)
+ Function: Get/set cached persistence adaptor for a bioperl DBLink object.
+
+           In OO speak, consider the access class of this method
+           protected.  I.e., call from descendants, but not from
+           outside.
+
+ Example : 
+ Returns : value of _dblink_adaptor (a Bio::DB::PersistenceAdaptorI
+	   instance)
+ Args    : new value (a Bio::DB::PersistenceAdaptorI instance, optional)
+
+
+=cut
+
+sub _dblink_adaptor{
+    my ($self,$adp) = @_;
+    if( defined $adp) {
+	$self->{'_dblink_adaptor'} = $adp;
+    }
+    if(! exists($self->{'_dblink_adaptor'})) {
+	$self->{'_dblink_adaptor'} =
+	    $self->db()->get_object_adaptor("Bio::Annotation::DBLink");
+    }
+    return $self->{'_dblink_adaptor'};
 }
 
 1;

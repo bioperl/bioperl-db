@@ -133,7 +133,7 @@ sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
     my @vals = ($obj->display_id(),
 		$obj->primary_id() =~ /=(HASH|ARRAY)\(0x/ ?
-		 "=".$obj->accession_number() : $obj->primary_id(),
+		    undef : $obj->primary_id(),
 		$obj->accession_number(),
 		$obj->description(),
 		$obj->version() || 0);
@@ -229,6 +229,26 @@ sub store_children{
     return $self->_bioseq_adaptor()->store($obj);
 }
 
+=head2 remove_children
+
+ Title   : remove_children
+ Usage   :
+ Function: This method is to cascade deletes in maintained objects.
+
+           We just return TRUE here.
+
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : The persistent object that was just removed from the database.
+           Additional (named) parameter, as passed to remove().
+
+
+=cut
+
+sub remove_children{
+    return 1;
+}
+
 =head2 attach_children
 
  Title   : attach_children
@@ -322,8 +342,7 @@ sub populate_from_row{
     }
     if($rows && @$rows) {
 	$obj->display_id($rows->[1]) if $rows->[1];
-	$obj->primary_id($rows->[2])
-	    if $rows->[2] && substr($rows->[2],0,1) != '=';
+	$obj->primary_id($rows->[2]) if $rows->[2];
 	$obj->accession_number($rows->[3]) if $rows->[3];
 	$obj->desc($rows->[4]) if $rows->[4];
 	$obj->version($rows->[5]) if $rows->[5];

@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 25;
+    plan tests => 40;
 }
 
 use DBTestHarness;
@@ -70,6 +70,7 @@ eval {
     ok ($dbf->location->start, $feat->location->start);
     ok ($dbf->location->end, $feat->location->end);
     ok ($dbf->location->strand, $feat->location->strand);
+    ok ! $dbf->location->is_remote;
     
     ok (scalar($dbf->get_tag_values('tag12')), 2);
     
@@ -98,6 +99,34 @@ eval {
     ($value) = $dbf->get_tag_values('tag13');
     ok( $value , 'value for tag13');
 
+    # test remote feature locations
+    # without explicit namespace:
+    ok ($pfeat->remove(), 1);
+    $pfeat->location->is_remote(1);
+    $pfeat->location->seq_id('AB123456');
+    $pfeat->create();
+    # re-retrieve and test
+    $dbf = $fadp->find_by_primary_key($pfeat->primary_key());
+    ok $dbf;
+    ok ($dbf->primary_key, $pfeat->primary_key);
+    ok ($dbf->start, 1);
+    ok ($dbf->end, 10);
+    ok $dbf->location->is_remote;
+    ok ($dbf->location->seq_id, "mytestnamespace:AB123456");
+    # without explicit namespace:
+    ok ($pfeat->remove(), 1);
+    $pfeat->location->is_remote(1);
+    $pfeat->location->seq_id('XZ:AB123456.4');
+    $pfeat->create();
+    # re-retrieve and test
+    $dbf = $fadp->find_by_primary_key($pfeat->primary_key());
+    ok $dbf;
+    ok ($dbf->primary_key, $pfeat->primary_key);
+    ok ($dbf->start, 1);
+    ok ($dbf->end, 10);
+    ok $dbf->location->is_remote;
+    ok ($dbf->location->seq_id, "XZ:AB123456.4");
+    
 };
 
 print STDERR $@ if $@;

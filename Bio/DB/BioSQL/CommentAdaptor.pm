@@ -200,6 +200,26 @@ sub attach_foreign_key_objects{
     return 1;
 }
 
+=head2 remove_children
+
+ Title   : remove_children
+ Usage   :
+ Function: This method is to cascade deletes in maintained objects.
+
+           We just return TRUE here.
+
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : The persistent object that was just removed from the database.
+           Additional (named) parameter, as passed to remove().
+
+
+=cut
+
+sub remove_children{
+    return 1;
+}
+
 =head2 instantiate_from_row
 
  Title   : instantiate_from_row

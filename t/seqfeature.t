@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 19;
+    plan tests => 25;
 }
 
 use DBTestHarness;
@@ -31,13 +31,9 @@ $pseq->namespace("mytestnamespace");
 
 # set up feature and its location
 $feat = Bio::SeqFeature::Generic->new;
-$loc = Bio::Location::Simple->new();
-
-$loc->start(1);
-$loc->end(10);
-$loc->strand(-1);
-
-$feat->location($loc);
+$feat->start(1);
+$feat->end(10);
+$feat->strand(-1);
 
 $feat->primary_tag('tag1');
 $feat->source_tag('some-source');
@@ -75,11 +71,33 @@ eval {
     ok ($dbf->location->end, $feat->location->end);
     ok ($dbf->location->strand, $feat->location->strand);
     
-    ok (scalar($dbf->each_tag_value('tag12')), 2);
+    ok (scalar($dbf->get_tag_values('tag12')), 2);
     
-    ($value) = $dbf->each_tag_value('another-tag');
-    
+    ($value) = $dbf->get_tag_values('another-tag');
     ok( $value , 'something else');
+
+    print STDERR "\n------------\n".
+	"be prepared to see 3 failed statement warnings, ".
+	"and one Bioperl-style warning\ntrust me, this is OK ...\n".
+	"------------\n";
+    # add a tag value and update
+    $dbf->add_tag_value('tag13','value for tag13');
+    $dbf->attach_seq($pseq); # we need a FK seq to successfully update
+    ok ! $dbf->store(); # this works but still should return FALSE due to
+                        # caught UK violations (only 1 tag/value is new!)
+    # re-retrieve by seq
+    my $dbseq = $db->get_object_adaptor("Bio::SeqI")->find_by_primary_key(
+						           $pseq->primary_key);
+    ok $dbseq;
+    ($dbf) = grep { $_->primary_tag eq 'tag1'; } $dbseq->top_SeqFeatures();
+    ok $dbf;
+    # check previous tags and for added tag
+    ok (scalar($dbf->get_tag_values('tag12')), 2);
+    ($value) = $dbf->get_tag_values('another-tag');
+    ok( $value , 'something else');
+    ($value) = $dbf->get_tag_values('tag13');
+    ok( $value , 'value for tag13');
+
 };
 
 print STDERR $@ if $@;

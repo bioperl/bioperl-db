@@ -150,9 +150,11 @@ sub create{
     # been stored already
     foreach (@fkobjs) {
 	next unless $_ && ref($_);
-	$self->throw("All foreign key objects must implement ".
-		     "Bio::DB::PersistentObjectI. Found one that doesn't.")
-	    unless $_->isa("Bio::DB::PersistentObjectI");
+	if(! $_->isa("Bio::DB::PersistentObjectI")) {
+	    $self->throw("All foreign key objects must implement ".
+			 "Bio::DB::PersistentObjectI. This one doesn't: ".
+			 ref($_));
+	}
 	# no cascading updates of FK objects through create()
 	$_->create() unless $_->primary_key();
     }
@@ -230,6 +232,18 @@ sub store{
     $self->create_persistent($obj);
     # obtain foreign key objects either from arguments or from object
     my @fkobjs = $self->get_foreign_key_objects($obj, @args);
+    # make sure the foreign key objects are all persistent objects and have
+    # a primary key
+    foreach (@fkobjs) {
+	next unless $_ && ref($_);
+	if(! $_->isa("Bio::DB::PersistentObjectI")) {
+	    $self->throw("All foreign key objects must implement ".
+			 "Bio::DB::PersistentObjectI. This one doesn't: ".
+			 ref($_));
+	}
+	# no cascading updates of FK objects - only create()
+	$_->create() unless $_->primary_key();
+    }
     # update
     my $rv = $self->dbd()->update_object($self, $obj, \@fkobjs);
     # update children

@@ -82,7 +82,27 @@ use Bio::DB::PersistentObjectI;
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
 
-# we'd have to override new() here to enable caching - but we don't want that
+=head2 new
+
+ Title   : new
+ Usage   :
+ Function: Instantiates the persistence adaptor.
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub new{
+   my ($class,@args) = @_;
+
+   # we want to enable object caching
+   push(@args, "-cache_objects", 1) unless grep { /cache_objects/i; } @args;
+   my $self = $class->SUPER::new(@args);
+
+   return $self;
+}
 
 =head2 get_persistent_slots
 
@@ -139,7 +159,7 @@ sub get_persistent_slot_values {
     my @vals = ($obj->authors(),
 		$obj->title(),
 		$obj->location(),
-		$obj->medline(),
+		$obj->medline() ? $obj->medline : $self->_crc64($obj),
 		$obj->start(),
 		$obj->end()
 		);
@@ -280,7 +300,7 @@ sub populate_from_row{
 	$obj->authors($row->[1]) if $row->[1];
 	$obj->title($row->[2]) if $row->[2];
 	$obj->location($row->[3]) if $row->[3];
-	$obj->medline($row->[4]) if $row->[4];
+	$obj->medline($row->[4]) if $row->[4] && ($row->[4] !~ /^CRC/);
 	$obj->start($row->[5]) if $row->[5];
 	$obj->end($row->[6]) if $row->[6];
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
@@ -319,9 +339,7 @@ sub get_unique_key_query{
     if($obj->medline()) {
 	$uk_h->{'medline'} = $obj->medline();
     } elsif($obj->authors()) {
-	$uk_h->{'authors'} = $obj->authors();
-	$uk_h->{'title'} = $obj->title();
-	$uk_h->{'location'} = $obj->location();
+	$uk_h->{'medline'} = $self->_crc64($obj);
     }
     
     return $uk_h;
@@ -388,5 +406,74 @@ sub add_association{
     return $self->SUPER::add_association(@args);
 }
 
+=head1 Internal methods
+
+=cut
+
+=head2 _crc64
+
+ Title   : _crc64
+ Usage   :
+ Function: Computes and returns the CRC64 checksum for a given string.
+
+           This is basically ripped out of the swissprot parser.
+
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub _crc64{
+    my ($self, $obj) = @_;
+    my $POLY64REVh = 0xd8000000;
+    my @CRCTableh;
+    my @CRCTablel;
+    
+    if (exists($self->{'_CRCtableh'})) {
+	@CRCTableh = @{$self->{'_CRCtableh'}};
+	@CRCTablel = @{$self->{'_CRCtablel'}};
+    } else {
+	@CRCTableh = 256;
+	@CRCTablel = 256;
+	for (my $i=0; $i<256; $i++) {
+	    my $partl = $i;
+	    my $parth = 0;
+	    for (my $j=0; $j<8; $j++) {
+		my $rflag = $partl & 1;
+		$partl >>= 1;
+		$partl |= (1 << 31) if $parth & 1;
+		$parth >>= 1;
+		$parth ^= $POLY64REVh if $rflag;
+	    }
+	    $CRCTableh[$i] = $parth;
+	    $CRCTablel[$i] = $partl;
+	}
+	$self->{'_CRCtableh'} = \@CRCTableh;
+	$self->{'_CRCtablel'} = \@CRCTablel;
+    }
+
+    my $str =
+	(defined($obj->authors) ? $obj->authors : "<undef>") .
+	(defined($obj->title) ? $obj->title : "<undef>") .
+	(defined($obj->location) ? $obj->location : "<undef>");	
+    
+    my $crcl = 0;
+    my $crch = 0;
+
+    foreach (split '', $str) {
+	my $shr = ($crch & 0xFF) << 24;
+	my $temp1h = $crch >> 8;
+	my $temp1l = ($crcl >> 8) | $shr;
+	my $tableindex = ($crcl ^ (unpack "C", $_)) & 0xFF;
+	$crch = $temp1h ^ $CRCTableh[$tableindex];
+	$crcl = $temp1l ^ $CRCTablel[$tableindex];
+    }
+    my $crc64 = sprintf("%08X%08X", $crch, $crcl);
+        
+    return 'CRC-'.$crc64;
+      
+}
 
 1;

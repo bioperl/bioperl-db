@@ -81,8 +81,12 @@ use strict;
 
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
 use Bio::DB::Persistent::BioNamespace;
+use Bio::BioEntry;
 use Bio::Ontology::Ontology;
+use Bio::Ontology::Term;
+use Bio::Annotation::SimpleValue;
 use Bio::Cluster::UniGene;
+use Bio::Cluster::ClusterFactory;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 

@@ -1,5 +1,39 @@
+# $Id$
 
-Bio::EnsemblLite - Deprecated
+This directory contains code from the bioperl-db CVS repository. 
+===================================================================
+There are currently 2 logical projects contained within here, a system
+for sequence file storage in a relational (currently only mysql)
+database and a system for storage of marker and map information within
+a relational database (currently only mysql supported).
+
+
+Information about Bio::DB Interface with a mysql Sequence database.
+===================================================================
+
+This project was started by Ewan Birney with major work by Elia Stupka
+with continued support by the bioperl community.  It's purpose is a
+standalone sequence database with little external dependancies and
+tight integration with bioperl.  Support for more databases and
+bindings in java and python by Biojava and Biopython projects are
+welcomed.  All questions and comments should be directed to the
+bioperl list <bioperl-l@bioperl.org> and more information can be found
+about the related projects at http://bio.perl.org and
+http://www.open-bio.org.
+
+Currently the necessary modules for this project are in the Bio/DB
+directory with the necessary sql in the sql/basicseqdb-ARCH (where
+ARCH is db architecture supported - currently only mysql). 
+
+Related scripts located in the scripts directory:
+
+load_seqdatabase.pl     - example of how to load seqs in the
+		          database
+bioentry2flat.pl        - dump sequence data into rich sequence
+		          format flatfile representation
+caching_corba_server.pl - setup a corba sequence caching server
+test_bioenv.pl          - test the bioenv of a running server
+bioenv_server.pl        - setup a CORBA sequence server
 
 
 Hard and Fast install instructions.
@@ -8,12 +42,12 @@ Hard and Fast install instructions.
 
 2) an account on the server
 
-Running 'make test' should now work. To set the options for the test suite, look
-into t/DBTestHarness.pm and make a file called DBTestHarness.conf
+Running 'make test' should now work. To set the options for the test
+suite, look into t/DBTestHarness.pm and make a file called
+DBTestHarness.conf
 
 3) Make a single SQL database. In general many biological 
    "databases" will go into a single SQL instance
-
 
 4) do the following (substituting your db name where appropriate)
 
@@ -23,8 +57,62 @@ into t/DBTestHarness.pm and make a file called DBTestHarness.conf
 
 6) write down any problems, complaints and send them to bioperl ;)
 
+Information about Bio::DB::Map modules and database interface
+===================================================================
+
+These modules are Copyright Jason Stajich 2001 and are licensed
+according to the perl Artistic license (see
+http://www.perl.com/pub/language/misc/Artistic.html).
+
+This project was started by Jason Stajich as an attempt to build a
+single normalized repository for marker and map data to facilitate map
+integration and exploring comparative genomic questions.  All queries
+should be addressed to Jason Stajich <jason@chg.mc.duke.edu> or the
+bioperl list <bioperl-l@bioperl.org>.  More information about this and
+related projects can be found at http://bio.perl.org and
+http://www.open-bio.org.
+
+Currently the necessary modules for this project are in the Bio/DB/Map
+directory with the necessary sql in the sql/markerdb-ARCH (where
+ARCH is db architecture supported - currently only mysql). 
+
+This project is very much in development.  In the planning stages are
+cgi scripts to interface with modules and allow researchers to
+integrate different map locations with sequence data.  
+
+Scripts for loading private genetic and marker maps are also to be
+provided.
+
+Related scripts located in the scripts directory:
+
+
+download_marker_data.pl - automate downloading of marker information
+			  for local testing and faster installation
+
+load_marshfield_map.pl - load marshfield genetic map data from
+			 published data and associated marker primers
+			 from NCBI STS repository, either from local
+			 data or directly from the primary source
+			 (requires live internet connection).
+
+load_whitehead_markers.pl - load whitehead STS markers and related RH
+			    map information from 1997 publication,
+			    either from local data or directly from
+			    the primary source (requires live internet
+			    connection).
+
+load_genethon_data.pl - load genethon CA repeat markers and genetic
+			map from 1995 Nature publication, either from
+			local data or directly from the primary source
+			(requires live internet connection).
+
+load_genemap_data.pl - load genemap99 markers and map information from
+		       NCBI repository of the March 1999 published
+		       data, either from local data or directly from
+		       the primary source (requires live internet connection).
 
 
 
-
-
+Information about modules formerly contained within this CVS module
+===================================================================
+Bio::EnsemblLite - Deprecated

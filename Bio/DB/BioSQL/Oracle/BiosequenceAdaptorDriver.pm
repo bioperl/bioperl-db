@@ -296,10 +296,18 @@ sub prepare{
 	# copy the sql and edit to remove the NVL() for the SEQ column
 	my $sql2 = $sql;
 	$sql2 =~ s/seq\s+=\s+nvl\(\s*\?\s*,\s*seq\s*\)/seq = \?/i;
-	# prepare the edited version in addition to the default one for
-	# later reuse
-	my $sth2 = $dbh->prepare($sql2);
-	$self->_upd_sth2($sth2);
+        # In the third version we edit away the NVL clause and replace
+        # it with a CONCAT clause. This is to be used if the parameter
+        # is NULL; concatenating NULL to an existing CLOB doesn't
+        # change it, and the return type of CONCAT preserves the type
+        # of the first argument.
+        my $sql3 = $sql;
+        $sql3 =~ s/seq\s+=\s+nvl\(\s*\?\s*,\s*seq\s*\)/seq = CONCAT(seq, \?)/i;
+        # prepare both and cache for later use
+        $self->debug("first alternative UPDATE biosequence: $sql2\n");
+        $self->debug("second alternative UPDATE biosequence: $sql3\n");
+	$self->_upd_sth2($dbh->prepare($sql2));
+	$self->_upd_sth3($dbh->prepare($sql3));
     }
     return $dbh->prepare($sql,@args);
 }
@@ -342,20 +350,32 @@ sub prepare{
 
 sub get_sth{
     my ($self,$adp,$obj,$fkobjs,$key,$op) = @_;
+    my ($sth,$meth);
 
     # check whether we have to return the statement here for the edited
     # update statement
-    if(($op eq "update_object") &&
-       (grep { $_ && (length($_) > 4000);
-	   } @{$adp->get_persistent_slot_values($obj, $fkobjs)})) {
-	$key .= " clob-compat";
-	# we like to get this statement into the cache as well in order
-	# for it to be automatically finished etc when the connection goes
-	# away
-	my $sth = $adp->sth($key) || $adp->sth($key, $self->_upd_sth2);
-	return $sth;
+    if ($op eq "update_object") {
+        my $vals = $adp->get_persistent_slot_values($obj, $fkobjs);
+        my @cols = $adp->get_persistent_slots($obj, $fkobjs);
+        # we need both (new) seq(uence) and (original) length in
+        # order to determine whether either old or new sequence is
+        # longer than 4000 chars
+        my @i = 0..(scalar(@cols)-1);
+        my ($i_l) = grep { $cols[$_] eq "length"; } @i;
+        my ($i_s) = grep { $cols[$_] eq "seq"; } @i;
+        if (defined($vals->[$i_s]) && (length($vals->[$i_s]) > 4000)) {
+            $key .= " clob-compat";
+            $meth = "_upd_sth2";
+            $adp->debug("UPDATE biosequence: using first alternative\n");
+        } elsif ((!defined($vals->[$i_s])) && ($vals->[$i_l] > 4000)) {
+            $key .= " clob-compat2";
+            $meth = "_upd_sth3";
+            $adp->debug("UPDATE biosequence: using second alternative\n");
+        }
     }
-    return $adp->sth($key);
+    $sth = $adp->sth($key);
+    $sth = $adp->sth($key, $self->$meth) unless $sth || !defined($meth);
+    return $sth;
 }
 
 =head2 _upd_sth2
@@ -386,6 +406,36 @@ sub _upd_sth2{
 
     return $self->{'_upd_sth2'} = shift if @_;
     return $self->{'_upd_sth2'};
+}
+
+=head2 _upd_sth3
+
+ Title   : _upd_sth3
+ Usage   : $obj->_upd_sth3($newval)
+ Function: Get/set the third version of the update row statement
+           as a prepared statement handle.
+
+           The 'third version' differs from the default in that the
+           parameter for the SEQ column is not used for updating at
+           all, but instead is placed into the WHERE-section as a
+           dummy clause that always evaluates to true. This is needed
+           to protect existing LOB values longer than 4000 chars from
+           being updated to NULL, due to a bug in NVL().
+
+           This is a private method. Do not use from outside.
+
+ Example : 
+ Returns : value of _upd_sth3 (a DBI statement handle)
+ Args    : on set, new value (a DBI statement handle or undef, optional)
+
+
+=cut
+
+sub _upd_sth3{
+    my $self = shift;
+
+    return $self->{'_upd_sth3'} = shift if @_;
+    return $self->{'_upd_sth3'};
 }
 
 1;

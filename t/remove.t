@@ -9,88 +9,103 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 20;
+    plan tests => 51;
 }
 
-use BioSQLBase;
-use Bio::DB::BioSQL::DBAdaptor;
+use DBTestHarness;
 use Bio::SeqIO;
+use Bio::Root::IO;
 
-$biosql = BioSQLBase->new();
-ok $biosql;
+$biosql = DBTestHarness->new("biosql");
+$db = $biosql->get_DBAdaptor();
+ok $db;
+$db->verbose(1) if $ENV{HARNESS_VERBOSE};
 
 my $seqio = Bio::SeqIO->new('-format' => 'genbank',
-			    '-file' => Bio::Root::IO->catfile('t','data',
-							      'test.genbank'));
+			    '-file' => Bio::Root::IO->catfile(
+						   't','data','test.genbank'));
 
-my $seq;
+my ($seq, $pseq);
 my @seqs = ();
 my @arr = ();
 
 eval {
-    while($seq = $biosql->store_seq($seqio, "mytestnamespace")) {
-	push(@seqs, $seq);
-	ok $seq->primary_id();
+    my $pk = -1;
+    while($seq = $seqio->next_seq()) {
+	$pseq = $db->create_persistent($seq);
+	$pseq->namespace("mytestnamespace");
+	$pseq->create();
+	ok $pseq->primary_key();
+	ok $pseq->primary_key() != $pk;
+	$pk = $pseq->primary_key();
+	push(@seqs, $pseq);
     }
     ok (scalar(@seqs), 4);
-    $seq = @seqs[$#seqs];
+    $pseq = @seqs[$#seqs];
 
-    $seqadaptor = $biosql->db()->get_SeqAdaptor;
-    ok $seqadaptor;
+    $seqadp = $db->get_object_adaptor("Bio::SeqI");
+    ok $seqadp;
 
+    # re-fetch from database
+    $pseq = $seqadp->find_by_primary_key($pseq->primary_key());
+    
     # features
-    my $sfadp = $biosql->db()->get_SeqFeatureAdaptor();
-    ok $sfadp;
-
-    @arr = $sfadp->fetch_by_bioentry_id($seq->primary_id());
+    @arr = $pseq->top_SeqFeatures();
     ok (scalar(@arr), 26);
 
     # references
-    my $rfadp = $biosql->db()->get_ReferenceAdaptor();
-    ok $rfadp;
-
-    @arr = $rfadp->fetch_by_bioentry_id($seq->primary_id());
+    @arr = $pseq->annotation()->get_Annotations("reference");
     ok (scalar(@arr), 1);
 
-    # qualifier/value
-    @arr = $seqadaptor->each_tag_value_pair($seq->primary_id());
-    ok (scalar(@arr), 2);
+    # all feature qualifier/value pairs
+    @arr = ();
+    foreach my $feat ($pseq->top_SeqFeatures()) {
+	foreach ($feat->all_tags()) {
+	    push(@arr, $feat->each_tag_value($_));
+	}
+    }
+    ok (scalar(@arr), 38);
 
-    # checking whether sequence can be deleted by dbID
-    ok ($seqadaptor->remove_by_dbID($seq->primary_id()), 1);
+    # delete all features
+    foreach my $feat ($pseq->top_SeqFeatures()) {
+	ok ($feat->remove(), 1);
+    }
 
-    # should be no features anymore
-    @arr = $sfadp->fetch_by_bioentry_id($seq->primary_id());
-    ok (scalar(@arr), 0);
+    # delete all references
+    foreach my $ref ($pseq->annotation()->get_Annotations("reference")) {
+	ok ($ref->remove(), 1);
+    }
 
-    # should be no references anymore
-    @arr = $rfadp->fetch_by_bioentry_id($seq->primary_id());
-    ok (scalar(@arr), 0);
+    # re-fetch sequence and retest
+    $pseq = $seqadp->find_by_primary_key($pseq->primary_key());
     
-    # should be no qualifier/values anymore
-    @arr = $seqadaptor->each_tag_value_pair($seq->primary_id());
+    # features
+    @arr = $pseq->top_SeqFeatures();
     ok (scalar(@arr), 0);
 
-#  $sth = $dba->prepare("select taxa_id from bioentry_taxa br where br.bioentry_id=$dbID"); 
-#  $sth->execute(); 
-#  @arr = $sth->fetchrow_array();  
+    # references
+    @arr = $pseq->annotation()->get_Annotations("reference");
+    ok (scalar(@arr), 0);
 
-#  ok (!@arr); 
-
-#  $sth = $dba->prepare("select biosequence_id from biosequence br where br.bioentry_id=$dbID"); 
-#  $sth->execute(); 
-#  @arr = $sth->fetchrow_array();  
-
-#  ok (!@arr); 
+    # all feature qualifier/value pairs
+    @arr = ();
+    foreach my $feat ($pseq->top_SeqFeatures()) {
+	foreach ($feat->all_tags()) {
+	    push(@arr, $feat->each_tag_value($_));
+	}
+    }
+    ok (scalar(@arr), 0);
 
 };
 
 print STDERR $@ if $@;
 
-# delete seqs
-pop @seqs;
-foreach $seq (@seqs) {
-    ok ($biosql->delete_seq($seq), 1);
+# delete seq
+foreach $pseq (@seqs) {
+    ok ($pseq->remove(), 1);
 }
-ok ($biosql->delete_biodatabase("mytestnamespace"), 1);
+my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pseq);
+ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);
+ok $ns->primary_key();
+ok ($ns->remove(), 1);
 

@@ -260,21 +260,23 @@ sub remove{
 
     $self->throw("Object of class ".ref($obj)." does not implement ".
 		 "Bio::DB::PersistentObjectI. Bad, cannot remove.")
-	if ! $obj->isa("Bio::DB::PersistentObjectI");
+	unless $obj->isa("Bio::DB::PersistentObjectI");
     # first off, delete from cache
     $self->_remove_from_obj_cache($obj);
-    # primary key
+    # obtain primary key
     my $pk = $obj->primary_key();
     # prepared delete statement cached?
-    my $sth = $self->sth('DELETE '.ref($obj));
+    my $cache_key = 'DELETE '.ref($obj->obj());
+    my $sth = $self->sth($cache_key);
     if(! $sth) {
 	# need to create one
 	$sth = $self->dbd()->prepare_delete_sth($self, @args);
 	# and cache
-	$self->sth('DELETE '.ref($obj));
+	$self->sth($cache_key, $sth);
     }
     # execute
     my ($rv, $rv2);
+    $self->debug("DELETING ".ref($obj->obj())." object (pk=$pk)\n");
     $rv = $sth->execute($pk);
     # we may need to cascade in software -- ugly
     $rv2 = $self->dbd()->cascade_delete($self->dbcontext(), $obj) if $rv;

@@ -67,7 +67,7 @@ eval {
     ok $fadp;
     $dbf = $fadp->find_by_primary_key($pfeat->primary_key());
     ok $dbf;
-    ok ($dbf->primary_key, $feat->primary_key);
+    ok ($dbf->primary_key, $pfeat->primary_key);
     ok ($dbf->primary_tag, $feat->primary_tag);
     ok ($dbf->source_tag, $feat->source_tag);
     

@@ -181,6 +181,9 @@ sub store_children{
     }
     # store the features
     # re-sync the attached seq of the features with this seq object
+    if(! $obj->primary_seq->isa("Bio::DB::PersistentObjectI")) {
+	$self->throw("XXXXXXXXXXXX HAVOC XXXXXXXXXXXXXX");
+    }
     $obj->add_SeqFeature($obj->flush_SeqFeatures());
     # loop over the seqfeatures and store
     my $i = 0;

@@ -179,7 +179,7 @@ sub get_foreign_key_objects{
 	$bioentry = $obj->entire_seq();
 	if(! ($bioentry && $bioentry->isa("Bio::DB::PersistentObjectI") &&
 	      $bioentry->primary_key())) {
-	    $bioentry = "Bio::SeqI";
+	    $bioentry = "Bio::PrimarySeqI";
 	}
 	if($obj->primary_tag()) {
 	    $sfkey = $self->_ontology_term_fk("primary_tag",
@@ -194,7 +194,7 @@ sub get_foreign_key_objects{
 	    $sfsrc = ref($self)."::source_tag";
 	}
     } else {
-	$bioentry = "Bio::SeqI";
+	$bioentry = "Bio::PrimarySeqI";
 	$sfkey = ref($self)."::primary_tag";
 	$sfsrc = ref($self)."::source_tag";
     }
@@ -346,7 +346,7 @@ sub attach_children{
     my $ac = $self->_featann_adaptor();
     $ac->feature($obj);
     # now have the adaptor find by association
-    my $qres = $annadp->find_by_association(-objs => [$ac,$obj]);
+    $qres = $annadp->find_by_association(-objs => [$ac,$obj]);
     # no need to attach the annotation collection to the feature - the
     # annotation adaptor added everything to the feature transparently
     $qres->next_object(); # remove it from the stack, just to be sure

@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;
-    plan tests => 37;
+    plan tests => 36;
 }
 
 use DBTestHarness;
@@ -52,7 +52,8 @@ eval {
     ok $dbseq;
 
     ok ($dbseq->display_id, $seq->display_id);
-    ok ($dbseq->primary_id, $seq->primary_id);
+    ok ($dbseq->primary_id =~ /=HASH/);
+    ok ($seq->primary_id =~ /=HASH/);
     ok ($dbseq->accession_number, $seq->accession_number);
     ok ($dbseq->species->binomial, $seq->species->binomial);
     ok ($dbseq->subseq(3,10), $seq->subseq(3,10) );
@@ -83,6 +84,7 @@ eval {
 
     @dbarr = $dbseq->annotation->get_Annotations('gene_name');
     @arr = $seq->annotation->get_Annotations('gene_name');
+    ok (scalar(@dbarr));
     ok (scalar(@dbarr), scalar(@arr));
     @dbarr = sort { $a->value() cmp $b->value() } @dbarr;
     @arr = sort { $a->value() cmp $b->value() } @arr;

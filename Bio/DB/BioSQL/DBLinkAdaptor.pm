@@ -86,7 +86,28 @@ use Bio::BioEntry;
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
 
-# we'd have to override new() here to enable caching - but we don't want that
+=head2 new
+
+ Title   : new
+ Usage   :
+ Function: Instantiates the persistence adaptor.
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub new{
+   my ($class,@args) = @_;
+
+   # we want to enable object caching
+   push(@args, "-cache_objects", 1) unless grep { /cache_objects/i; } @args;
+   my $self = $class->SUPER::new(@args);
+
+   return $self;
+}
+
 
 =head2 get_persistent_slots
 

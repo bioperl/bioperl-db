@@ -459,7 +459,7 @@ sub _bionamespace_adaptor{
     }
     if(! exists($self->{'_bions_adaptor'})) {
 	$self->{'_bions_adaptor'} =
-	   $self->dbcontext()->dbadaptor()->get_object_adaptor("BioNamespace");
+	    $self->db->get_object_adaptor("BioNamespace");
     }
     return $self->{'_bions_adaptor'};
 }

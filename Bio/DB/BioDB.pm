@@ -94,6 +94,14 @@ BEGIN {
                           encapsulating adaptor is sought (biosql|markerdb)
              -dbcontext   a Bio::DB::DBContextI implementing object
 
+           Instead of -dbcontext, you can also pass all parameters
+           accepted by Bio::DB::SimpleDBContext::new(), and this
+           module will create the context for you and set the
+           dbadaptor property to the returned value. Note that if you
+           do pass in your own DBContextI object, as a side effect the
+           dbadaptor() property will be changed by this method to
+           reflect the created adaptor.
+
 
 =cut
 
@@ -115,9 +123,9 @@ sub new {
     }
     my $mydbc = $dbc || Bio::DB::SimpleDBContext->new(@args);
     my $dbadp = $dbadp_class->new(-dbcontext => $mydbc);
-    # store the adaptor in the context if we created it ourselves, and the
-    # adaptor hasn't set it itself 
-    $mydbc->dbadaptor($dbadp) if (! $dbc) && (! $mydbc->dbadaptor()); 
+    # store the adaptor in the context
+    $mydbc->dbadaptor($dbadp);
+    # success - we hope
     return $dbadp;
 }
 

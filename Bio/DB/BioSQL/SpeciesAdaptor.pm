@@ -133,7 +133,8 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("common_name", "classification", "ncbi_taxid", "binomial");
+    return ("common_name", "classification",
+	    "ncbi_taxid", "binomial", "variant");
 }
 
 =head2 get_persistent_slot_values
@@ -167,7 +168,8 @@ sub get_persistent_slot_values {
     my @vals = ($obj->common_name(),
 		join(":", $obj->classification()),
 		$obj->ncbi_taxid(),
-		$obj->binomial('full')
+		$obj->binomial('full'),
+		$obj->variant() ? $obj->variant() : "-"
 		);
     return \@vals;
 }
@@ -236,8 +238,9 @@ sub populate_from_row{
     }
     if($rows && @$rows) {
 	$obj->common_name($rows->[1]) if $rows->[1];
-	$obj->classification(split(/:/,$rows->[2])) if $rows->[2];
+	$obj->classification([split(/:/,$rows->[2])], "FORCE") if $rows->[2];
 	$obj->ncbi_taxid($rows->[3]) if $rows->[3];
+	$obj->variant($rows->[4]) if $rows->[5] && ($rows->[5] ne "-");
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($rows->[0]);
 	}
@@ -270,16 +273,13 @@ sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
     my $uk_h = {};
 
-    # UKs for species are common_name, full binomial, and ncbi_taxid
+    # UKs for species are full binomial with variant, and ncbi_taxid
     if($obj->ncbi_taxid()) {
 	$uk_h->{'ncbi_taxid'} = $obj->ncbi_taxid();
     } elsif($obj->binomial()) {
 	$uk_h->{'binomial'} = $obj->binomial('full');
-    } elsif($obj->common_name()) {
-	$uk_h->{'common_name'} = $obj->common_name();
-    } elsif($obj->classification()) {
-	$uk_h->{'classification'} = join(":", $obj->classification());
-    }
+	$uk_h->{'variant'} = $obj->variant() ? $obj->variant() : "-";
+    } 
     
     return $uk_h;
 }

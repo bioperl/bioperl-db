@@ -414,8 +414,16 @@ sub add_association{
     # have we been called in error? If so, be graceful and return an error.
     return undef unless $objs && @$objs;
     # figure out which one of the objects is the reference
-    my ($obj) = grep { ref($_) &&
-			   $_->isa("Bio::Annotation::SimpleValue"); } @$objs;
+    my $obj;
+    my $svidx = 0;
+    while($svidx < @$objs) {
+	if($objs->[$svidx]->isa("Bio::Annotation::SimpleValue")) {
+	    $obj = $objs->[$svidx];
+	    last;
+	}
+	$svidx++;
+    }
+    # make sure we include the value for the association
     if($obj) {
 	$values->{'value'} = $obj->value();
 	if(! $obj->primary_key()) {

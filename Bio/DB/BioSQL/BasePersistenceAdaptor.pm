@@ -190,11 +190,12 @@ sub create{
 	$obj->primary_key($pk);
     }
     # insert child records if any
-    if(! $self->store_children($obj, \@fkobjs)) {
-	# ideally he don't get here but were thrown out by an exception in
-	# case of failure
-	$self->throw("failed to store child objects for an instance of class ".
-		     ref($obj->obj()). ", primary key " . $obj->primary_key());
+    my $ok = $self->store_children($obj, \@fkobjs);
+    if((! defined($ok)) || ($ok <= 0)) {
+	$self->warn("failed to store ".
+		    ($ok ? -$ok : "one or more").
+		    " child objects for an instance of class ".
+		    ref($obj->obj()). " (PK=".$obj->primary_key().")");
     }
     # done
     return $obj;
@@ -232,11 +233,12 @@ sub store{
     # update
     my $rv = $self->dbd()->update_object($self, $obj, \@fkobjs);
     # update children
-    if(! $self->store_children($obj, \@fkobjs)) {
-	# ideally he don't get here but were thrown out by an exception in
-	# case of failure
-	$self->throw("failed to store child objects for an instance of class ".
-		     ref(obj->obj()). ", primary key " . $obj->primary_key());
+    $rv = $self->store_children($obj, \@fkobjs);
+    if((! defined($rv)) || ($rv <= 0)) {
+	$self->warn("failed to store ".
+		    ($rv ? -$rv : "one or more").
+		    " child objects for an instance of class ".
+		    ref($obj->obj()). " (PK=".$obj->primary_key().")");
     }
     # done
     return $rv;
@@ -353,8 +355,8 @@ sub add_association{
 				         $dbd->association_table_name($objs));
 	foreach my $valkey (keys %$values) {
 	    if($columnmap->{$valkey}) {
-		$self->debug("binding column $i to \"".
-			     $values->{$valkey}."\" ($valkey)\n");
+		$self->debug("binding column $i to \"",
+			     $values->{$valkey}, "\" ($valkey)\n");
 		$sth->bind_param($i, $values->{$valkey});
 		$i++;
 	    }
@@ -439,6 +441,7 @@ sub _create_persistent {
 		# if the wrapped object is persistent too, we assume the object
 		# knows what it's doing and terminate this recursion
 		return $obj if $obj->obj()->isa("Bio::DB::PersistentObjectI");
+		# otherwise we go for the wrapped object instead
 		$o = $obj->obj();
 		$o_class = ref($o);
 	    } elsif($obj->isa("Bio::DB::PersistenceAdaptorI")) {
@@ -447,10 +450,9 @@ sub _create_persistent {
 	    } else {
 		# if we can find a persistence adaptor for it, let that one
 		# do the recursive work
-		my $db = $self->dbcontext()->dbadaptor();
 		my $objadp;
 		eval {
-		    $objadp = $db->get_object_adaptor($obj);
+		    $objadp = $self->db->get_object_adaptor($obj);
 		};
 		$self->debug("no adaptor found for class $class\n") if($@);
 		if($objadp) {
@@ -458,9 +460,13 @@ sub _create_persistent {
 		    # cache this recursion to prevent infinite loops if we
 		    # meet it again
 		    if(! $self->{'_pers_recurs_cache'}->{$obj}) {
-			$self->{'_pers_recurs_cache'}->{$obj} = 1;
+			my $key = $obj;
+			$self->{'_pers_recurs_cache'}->{$key} = 1;
 			$obj = $objadp->create_persistent($obj, $pwrapper);
-			delete $self->{'_pers_recurs_cache'}->{$obj};
+			delete $self->{'_pers_recurs_cache'}->{$key};
+		    } else {
+			$self->warn("recursion detected for ".ref($obj).
+				    " object");
 		    }
 		    return $obj;
 		} else {
@@ -473,16 +479,11 @@ sub _create_persistent {
 	    $o = $obj;
 	    $o_class = $class;
 	}	
-	# if we already know the persistent equivalent of this object, then
-	# return that in order to avert infinite loops
-	if(exists($self->{'_pers_cache'}->{$o})) {
-	    return $self->{'_pers_cache'}->{$o};
-	}
-	# we haven't met this one yet ...
+	# loop over the elements
 	if(($o_class eq "HASH") || ($is_blessed && $o->isa("HASH"))) {
 	    foreach my $key (keys %$o) {
 		my $child = $o->{$key};
-		next if (! $child) || (! ref($child));
+		next if ! ($child && ref($child));
 		$o->{$key} = $self->_create_persistent($child, $pwrapper);
 	    }
 	} elsif(($o_class eq "ARRAY") || ($is_blessed && $o->isa("ARRAY"))) {

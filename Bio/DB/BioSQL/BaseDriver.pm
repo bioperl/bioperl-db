@@ -167,6 +167,7 @@ our %association_entity_map;
 	     "common_name"    => "common_name",
 	     "ncbi_taxid"     => "ncbi_taxon_id",
 	     "binomial"       => "binomial",
+	     "variant"        => "variant",
 	 },
 	 "bioentry" => {
 	     "display_id"     => "display_id",
@@ -590,8 +591,8 @@ sub insert_object{
     while($i < @slots) {
 	if($slotmap->{$slots[$i]} &&
 	   (substr($slotmap->{$slots[$i]},0,2) ne '=>')) {
-	    $adp->debug("binding column $j to \"" .
-			$slotvals->[$i] . "\" ($slots[$i])\n");
+	    $adp->debug("binding column $j to \"", $slotvals->[$i],
+			"\" ($slots[$i])\n");
 	    $sth->bind_param($j, $slotvals->[$i]);
 	    $j++;
 	}
@@ -600,13 +601,12 @@ sub insert_object{
     # bind foreign key values
     if($fkobjs) {
 	foreach my $o (@$fkobjs) {
-	    # If it's an object, the value to bind is the primary key. If it's
-	    # numeric, the value is the number. Otherwise bind undef.
-	    my $fk = ref($o) ?
-		$o->primary_key() :
-		$o =~ /^\d+$/ ? $o : undef;
-	    $adp->debug("binding column $j to \"$fk\" (FK to " .
-			(ref($o) ? ref($o->obj()) : "<unknown>") . ")\n");
+	    # If it's an object, the value to bind is the primary key.
+	    # Otherwise bind undef.
+	    my $fk = $o && ref($o) ? $o->primary_key() : undef;
+	    $adp->debug("binding column $j to \"", $fk, "\" (FK to ",
+			($o ? (ref($o) ? ref($o->obj()) : $o) : "<unknown>"),
+			")\n");
 	    $sth->bind_param($j, $fk);
 	    $j++;
 	}

@@ -332,13 +332,18 @@ sub add_association{
     my $objs = $params{-objs} || $params{-OBJS};
     # separate objects to be associated into AnnotationCollectionIs and others
     my $ac;
-    while(my $i < @$objs) {
+    my $i = 0;
+    while($i < @$objs) {
 	if($objs->[$i]->isa("Bio::AnnotationCollectionI")) {
 	    $ac = $objs->[$i];
 	    splice(@$objs, $i, 1); # remove the AnnotationCollection
 	    last;
 	}
 	$i++;
+    }
+    if(! $ac) {
+	$self->throw("This adaptor wants to associate with ".
+		     "AnnotationCollectionIs, but there is none. Too bad.");
     }
     # get annotation type map
     my $annotmap = $self->_supported_annotation_map();
@@ -389,14 +394,13 @@ sub add_association{
 
 sub find_by_association{
     my ($self,@args) = @_;
-    my $i;
 
     # get arguments; we only need -objs and keep the rest untouched
     my %params = @args;
     my $objs = $params{-objs} || $params{-OBJS};
     # separate objects to be associated into AnnotationCollectionI and others
     my $ac;
-    $i = 0;
+    my $i = 0;
     while($i < @$objs) {
 	if($objs->[$i]->isa("Bio::AnnotationCollectionI") ||
 	   $objs->[$i]->isa(ref($self)) ||

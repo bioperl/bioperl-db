@@ -15,7 +15,7 @@ Bio::DB::Query::SqlGenerator - Object representing an SQL Query
 
     use Bio::DB::Query::BioQuery;
     use Bio::DB::Query::SqlGenerator;
- 
+
     # get a Bio::DB::Query::AbstractQuery or derived query somehow
     my $query = Bio::DB::Query::BioQuery->new(-tables => ["table1, table2"]);
     $query->where(["and",
@@ -39,15 +39,16 @@ Query.
 
 =head1 AUTHOR Chris Mungall, Hilmar Lapp
 
-Chris Mungall <cmungall@fruitfly.org>
-Hilmar Lapp <hlapp at gmx.net>
+Chris Mungall, cmungall@fruitfly.org
+Hilmar Lapp, hlapp at gmx.net
 
 This is essentially code ripped out of SqlQuery.pm and AbstractQuery.pm 
 (both by Chris Mungall), put into its own module as a strategy pattern.
 
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object
+methods. Internal methods are usually preceded with a _
 
 =cut
 
@@ -106,8 +107,8 @@ sub query{
   Usage:  $sqlstmt = $sqlgen->generate_sql; $dbh->do($sqlstmt);
           $sqlstmt = $sqlgen->generate_sql($query); $dbh->do($sqlstmt);
 
-flattens query object into a SQL statement
- 
+Flattens query object into a SQL statement.
+
 =cut
 
 sub generate_sql {

@@ -50,12 +50,12 @@ There is no parser to turn statements like
 into a BioQuery object; objects have to be built manually
 
 At the moment, everything in this object apart from the query
-constraints (the $bioquery->where() method) are ignored.
+constraints (the $bioquery-E<gt>where() method) are ignored.
 
 
 =head1 CONTACT
 
-Chris Mungall <cmungall@fruitfly.org>
+Chris Mungall, cmungall@fruitfly.org
 
 =head1 APPENDIX
 
@@ -125,7 +125,7 @@ sub new {
            Optionally, a reference to an empty hash. If provided, upon
            return it will hold a mapping from tables to aliases.
 
-Contact Hilmar Lapp <hlapp at gmx.net> for questions, bugs, flames,
+Contact Hilmar Lapp, hlapp at gmx.net, for questions, bugs, flames,
 praises etc.
 
 Off records, this implementation has grown hideous. It needs to be

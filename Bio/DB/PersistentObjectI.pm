@@ -308,7 +308,7 @@ sub rank{
            is not required to use it, and everyone else other than the intended
            sender and recipient should know what he/she is doing before
            tampering with it.
-           
+
  Example : 
  Returns : value of foreign_key_slot (a scalar)
  Args    : new value (a scalar or undef, optional)

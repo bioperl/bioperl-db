@@ -14,7 +14,7 @@ Bio::DB::BioSQL::DBAdapter - Object representing an instance of a bioperl databa
         -host   => 'caldy',
         -driver => 'mysql',
 	);
-    
+
     $db = Bio::DB::BioSQL::DBAdaptor->new(
         -dbcontext => $dbcontext
     );
@@ -31,9 +31,8 @@ Bio::DB::BioSQL::DBAdapter - Object representing an instance of a bioperl databa
 =head1 DESCRIPTION
 
 This object represents a database that is implemented somehow (you
-shouldn\'t care much as long as you can get the object). From the
+shouldn't care much as long as you can get the object). From the
 object you can pull out other adapters, such as the BioSeqAdapter,
-
 
 =head1 CONTACT
 
@@ -41,11 +40,12 @@ Describe contact details here
 
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object
+methods. Internal methods are usually preceded with a _
 
 =cut
 
-
+#'
 # Let the code begin...
 
 

@@ -30,16 +30,16 @@ Bio::DB::DBI::base - base class for drivers implementing Bio::DB::DBI
 
 =head1 DESCRIPTION
 
-Don't instantiate this module directly. Instead instantiate one of the derived
-classes.
+Don't instantiate this module directly. Instead instantiate one of the
+derived classes.
 
 =head1 FEEDBACK
 
 =head2 Mailing Lists
 
 User feedback is an integral part of the evolution of this and other
-Bioperl modules. Send your comments and suggestions preferably to
-the Bioperl mailing list.  Your participation is much appreciated.
+Bioperl modules. Send your comments and suggestions preferably to the
+Bioperl mailing list.  Your participation is much appreciated.
 
   bioperl-l@bioperl.org              - General discussion
   http://bioperl.org/MailList.shtml  - About the mailing lists
@@ -163,24 +163,27 @@ sub build_dsn{
 
  Title   : get_connection
  Usage   :
- Function: Obtains a connection handle to the database represented by the
-           the DBContextI object, passing additional args to the DBI->connect()
-           method if a new connection is created.
-           
-           Contrary to new_connection(), this method will return shared
-           connections from a pool. The implementation makes sure though
-           that the returned handle was opened with the given parameters.
+ Function: Obtains a connection handle to the database represented by
+           the the DBContextI object, passing additional args to the
+           DBI->connect() method if a new connection is created.
 
-           In addition, the caller must not disconnect the obtained handle
-           deliberately. Instead, the implementing object will disconnect and
-           dispose of open handles once it is being garbage collected, or once
-           disconnect() is called with the same or no parameters.
+           Contrary to new_connection(), this method will return
+           shared connections from a pool. The implementation makes
+           sure though that the returned handle was opened with the
+           given parameters.
 
-           Specific drivers usually won''t need to override this method but
-           rather build_dsn().
+           In addition, the caller must not disconnect the obtained
+           handle deliberately. Instead, the implementing object will
+           disconnect and dispose of open handles once it is being
+           garbage collected, or once disconnect() is called with the
+           same or no parameters.
 
-           This implementation will call new_connection() to actually get a
-           new connection if needed.
+           Specific drivers usually won''t need to override this
+           method but rather build_dsn().
+
+           This implementation will call new_connection() to actually
+           get a new connection if needed.
+
  Example :
  Returns : an open DBI database handle
  Args    : A Bio::DB::DBContextI implementing object. Additional hashref

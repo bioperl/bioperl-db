@@ -54,24 +54,25 @@ Bio::DB::Query::QueryConstraint - a constraint on a variable value in a query
 
 =head1 DESCRIPTION
 
-represents the constraints in a query; either the whole constraints or
+Represents the constraints in a query; either the whole constraints or
 a part of; see the composite design patern.
 
-the qc is a leaf node (eg Col=Val) or a composite node
-(eg (AND cons1, cons2, cons3, ....)
+the qc is a leaf node (eg Col=Val) or a composite node (eg (AND cons1,
+cons2, cons3, ....)
 
 composite nodes have name=composite
 
-should we split this into two classes ala composite design pattern?
-cramming both into one works for now.
+Should we split this into two classes ala composite design pattern?
+Cramming both into one works for now.
 
 =head1 CONTACT
 
-Chris Mungall <cmungall@fruitfly.org>
+Chris Mungall, cmungall@fruitfly.org
 
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object
+methods. Internal methods are usually preceded with a _
 
 =cut
 
@@ -258,11 +259,10 @@ sub neg {
   Usage:  $qc->is_composite($val);       # setting
        OR   return $qc->is_composite();  # getting
 
-boolean
+  Returns: boolean
 
-set if the constraint is a composite constraint
-
-(in this case the sub constraints go in $qc->values)
+et if the constraint is a composite constraint
+(in this case the sub constraints go in $qc-E<gt>values)
 
 =cut
 

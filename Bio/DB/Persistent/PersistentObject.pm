@@ -32,7 +32,7 @@ Bio::DB::Persistent::PersistentObject - makes a given object persistent
 
     # obtain a PersistentObject somehow, e.g.
     $pobj = $dbadaptor->create_persistent("Bio::Seq");
-    
+
     # manipulate and query as if it were the wrapped object itself
     print $pobj->isa("Bio::PrimarySeqI"), "\n";
     $pobj->display_id("O238356");

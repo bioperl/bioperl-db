@@ -1,54 +1,69 @@
+# $Id$
 # Adaptor for Multiple BioSQL databases.
 # By Juguang Xiao <juguang@tll.org.sg> 
 
 =head1 NAME
 
-    Bio::DB::BioSQL::MultiDB
+Bio::DB::BioSQL::MultiDB
+
+=head1 SYNOPSIS
+
+  use Bio::DB::BioSQL::MultiDB;
+
+  # create the common biosql db adaptors
+  my $swissprot_db;  # Physical databases may be located on different servers
+  my $embl_db;       # or accessible by different users.
+
+  # register them by bio-database
+  my $multiDB = Bio::DB::BioSQL::MultiDB->new(
+      'swissprot' => $swissprot_db,
+      'embl' => $embl_db
+  );
+
+  # Each time before you want to create a persistent object for
+  # Bio::Seq, assign the 'namescape' sub of seq object first, as the
+  # biodatabase name.
+  my $seq;    # for either store or fetch.
+  $seq->namespace('swissprot');
+
+  # OR you need to assign the default namespace for multiDB
+  $multiDB->namespace('swissport');
+
+  my $pseq = $multiDB->create_persistent($seq);
+  $pseq->store;
+
+
+  # If you want to fetch a seq, then you have to specify namespace for
+  # multiDB first
+  $multiDB->namespace('swissport');
+  $pseq = $multiDB->get_object_adaptor->find_by_unique_key($seq);
 
 =head1 DESCRIPTION
 
-The scalability issue will arise, when multiple huge bio databases are loaded
-in a single database in RDBMS, due to the scalability of the RDBMS. So one 
-solution to solve it is simply to distribute them into multiple physical 
-database, while a user expects to manage them by one logic adaptor.
+The scalability issue will arise, when multiple huge bio databases are
+loaded in a single database in RDBMS, due to the scalability of the
+RDBMS. So one solution to solve it is simply to distribute them into
+multiple physical database, while a user expects to manage them by one
+logic adaptor.
 
-So here you go, MultiDB aims at such issue to solve. The way to apply that is
-pretty simple. You, first, load data from different biodatabase, such as 
-swissprot or embl, into physical RDBMS databases; then create a db adaptor 
-for each simple physical biosql db; finally register these adaptors into 
-MultiDB and use it as that was a normal dbadaptor.
+So here you go, MultiDB aims at such issue to solve. The way to apply
+that is pretty simple. You, first, load data from different
+biodatabase, such as swissprot or embl, into physical RDBMS databases;
+then create a db adaptor for each simple physical biosql db; finally
+register these adaptors into MultiDB and use it as that was a normal
+dbadaptor.
 
-=head1 USAGE
+=head1 CONTACT
 
-use Bio::DB::BioSQL::MultiDB;
+Juguang Xiao, juguang@tll.org.sg
 
-# create the common biosql db adaptors
-my $swissprot_db;  # Physical databases may be located on different servers
-my $embl_db;       # or accessible by different users.
+=head1 APPENDIX
 
-# register them by bio-database
-my $multiDB = Bio::DB::BioSQL::MultiDB->new(
-    'swissprot' => $swissprot_db,
-    'embl' => $embl_db
-);
-
-# Each time before you want to create a persistent object for Bio::Seq,
-# assign the 'namescape' sub of seq object first, as the biodatabase name.
-my $seq;    # for either store or fetch.
-$seq->namespace('swissprot');
-
-# OR you need to assign the default namespace for multiDB
-$multiDB->namespace('swissport');
-
-my $pseq = $multiDB->create_persistent($seq);
-$pseq->store;
+The rest of the documentation details each of the object
+methods. Internal methods are usually preceded with a _
 
 
-# If you want to fetch a seq, then you have to specify namespace for multiDB first
-$multiDB->namespace('swissport');
-$pseq = $multiDB->get_object_adaptor->find_by_unique_key($seq);
-
-=cut 
+=cut
 
 package Bio::DB::BioSQL::MultiDB;
 
@@ -90,11 +105,11 @@ sub _namespace_dbs{
 
 =head2 create_persistent
 
-This method offers the same interface as Bio::DB::BioSQL::DBAdaptor, hence the
-usage is same as well.
+This method offers the same interface as Bio::DB::BioSQL::DBAdaptor,
+hence the usage is same as well.
 
-NOTE: You need to assign $obj->namespace as the biodatabase name, such as embl,
-before you invoke this method.
+NOTE: You need to assign $obj-E<gt>namespace as the biodatabase name,
+such as embl, before you invoke this method.
 
 =cut
 
@@ -214,9 +229,7 @@ sub _find_by_unique_key{
     return $adaptor->find_by_unique_key($key);
 }
 
-=head2
-
-Get/Set for default namespace
+=head2 Get/Set for default namespace
 
 =cut
 

@@ -13,8 +13,8 @@ Bio::DB::Query::AbstractQuery - Abstract Query class
 
 =head1 SYNOPSIS
 
-Don\'t use this class directly; use one of the subclasses (eg SqlQuery,
-BioQuery)
+  # Don\'t use this class directly; use one of the subclasses (eg
+  # SqlQuery, BioQuery)
 
   $q = $queryclass->new;
   $q->datacollections(["table1 t1", "table2 t2"]);
@@ -24,30 +24,31 @@ BioQuery)
 
 =head1 DESCRIPTION
 
-core methods for representing some kind of query - eg a query
+Core methods for representing some kind of query - eg a query
 expressed in an human type language, an SQL query, an object oriented
 query.
 
-abstracted attribute names have been used; eg a query is assumed to be
+Abstracted attribute names have been used; eg a query is assumed to be
 over some kind of collection of data. the query is performed over a
 subset of this data, a set of datacollections. These datacollections
 are equivalent to tables in SQL and object adaptors when forming an OO
 query.
 
-the where clause / constraints is represented by the QueryConstraint
+The where clause / constraints is represented by the QueryConstraint
 composite object
 
 =head1 CONTACT
 
-Chris Mungall <cmungall@fruitfly.org>
+Chris Mungall, cmungall@fruitfly.org
 
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object
+methods. Internal methods are usually preceded with a _
 
 =cut
 
-
+#'
 # Let the code begin...
 
 package Bio::DB::Query::AbstractQuery;
@@ -136,7 +137,7 @@ sub add_datacollection {
                                      "x=1", "y=2", "z like blah*"],
                               ["AND",
                                      "x=5", "y=7", "z like wow*"]]);
- 
+
       OR   $qc = $query->where();  # getting
 
  of type Bio::DB::Query::QueryConstraint

@@ -51,7 +51,8 @@ Describe contact details here
 
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object
+methods. Internal methods are usually preceded with a _
 
 =cut
 
@@ -315,7 +316,9 @@ sub get_Seq_by_primary_id {
 
 
 
-=head2 Get/Sets for attributed stored in this object
+=head2 Get/Sets for attributes stored in this object
+
+=cut
 
 =head2 seq_adaptor
 

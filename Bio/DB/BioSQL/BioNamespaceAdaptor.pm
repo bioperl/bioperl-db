@@ -34,24 +34,23 @@ Give standard usage here
 
 =head1 DESCRIPTION
 
-BioNamespace DB adaptor 
+BioNamespace DB adaptor
 
 =head1 FEEDBACK
 
 =head2 Mailing Lists
 
-User feedback is an integral part of the evolution of this
-and other Bioperl modules. Send your comments and suggestions preferably
- to one of the Bioperl mailing lists.
-Your participation is much appreciated.
+User feedback is an integral part of the evolution of this and other
+Bioperl modules. Send your comments and suggestions preferably to one
+of the Bioperl mailing lists.  Your participation is much appreciated.
 
   bioperl-l@bio.perl.org
 
 =head2 Reporting Bugs
 
 Report bugs to the Bioperl bug tracking system to help us keep track
- the bugs and their resolution.
- Bug reports can be submitted via email or the web:
+the bugs and their resolution.  Bug reports can be submitted via email
+or the web:
 
   bioperl-bugs@bio.perl.org
   http://bio.perl.org/bioperl-bugs/
@@ -59,13 +58,16 @@ Report bugs to the Bioperl bug tracking system to help us keep track
 =head1 AUTHOR - Hilmar Lapp
 
 Email hlapp at gmx.net
-Based in idea on Bio:DB::BioSQL::BioDatabase by Ewan Birney <birney@ebi.ac.uk>
+
+Based in idea on Bio:DB::BioSQL::BioDatabase by Ewan Birney,
+birney@ebi.ac.uk
 
 Describe contact details here
 
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object
+methods. Internal methods are usually preceded with a _
 
 =cut
 

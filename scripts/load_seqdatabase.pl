@@ -55,11 +55,11 @@ use Bio::SeqIO;
 
 
 my $host = "localhost";
-my $sqlname = "bioperl_db";
+my $sqlname = "biosql";
 my $dbuser = "root";
 my $driver = 'mysql';
 my $dbpass = undef;
-my $format = 'embl';
+my $format = 'genbank';
 my $removeflag = '';
 #If safe is turned on, the script doesn't die because of one bad entry..
 my $safe = 0;

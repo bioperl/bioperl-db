@@ -169,7 +169,7 @@ sub fetch_BioSeqDatabase_by_name{
 sub fetch_Seq_by_display_id{
    my ($self,$dbid,$id) = @_;
 
-   my $sth = $self->prepare("select bioentry_id from bioentry where biodatabase_id = $dbid and display_name = '$id'");
+   my $sth = $self->prepare("select bioentry_id from bioentry where biodatabase_id = $dbid and display_id = '$id'");
    $sth->execute;
    my ($bid) = $sth->fetchrow_array();
 

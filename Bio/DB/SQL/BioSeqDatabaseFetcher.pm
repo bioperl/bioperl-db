@@ -63,7 +63,6 @@ package Bio::DB::SQL::BioSeqDatabaseFetcher;
 use vars qw(@ISA);
 use strict;
 
-use Bio::DB::BioSeqDatabase;
 use Bio::DB::SQL::DBAdaptor;
 
 @ISA = qw(Bio::Root::Root);
@@ -84,16 +83,18 @@ sub new{
    my ($class, %conf) = @_;
    my $self = $class->SUPER::new(%conf);
    my $db = Bio::DB::SQL::DBAdaptor->new(
-					 -DBNAME=>$conf{'dbname'},
-	                                 -HOST=>$conf{'location'},
-	                                 -DRIVER=>$conf{'driver'},
-					 -USER=>$conf{'user'},
-	                                 -PASS=>$conf{'pass'},
-					 -PORT=>$conf{'port'}
-					 );
-   $self->db($db);
+						-DBNAME=>$conf{'dbname'},
+						-HOST=>$conf{'location'},
+						-DRIVER=>$conf{'driver'},
+						-USER=>$conf{'user'},
+						-PASS=>$conf{'pass'},
+						-PORT=>$conf{'port'}
+						);
+   my $bda = Bio::DB::SQL::BioDatabaseAdaptor->new($db);
+
+   $self->db($bda);
    my $id = $self->fetch_by_name($conf{'biodbname'});
-   my $bioseqdb = Bio::DB::BioSeqDatabase->new( -adaptor => $self,
+   my $bioseqdb = Bio::DB::BioSeqDatabase->new( -adaptor => $bda,
 						-dbid    => $id);
    
    $bioseqdb->name($conf{'biodbname'});

@@ -446,6 +446,7 @@ sub version{
 sub seq_version{
    my ($self,@args) = @_;
 
+   #This creates the SV line in EMBL/Genbank
    my $string = $self->accession.".".$self->version;
    return $string;
 

@@ -1,5 +1,10 @@
 #!/usr/local/bin/perl
 #
+# You may distribute this module under the same terms as perl itself.
+# Refer to the Perl Artistic License (see the license accompanying this
+# software package, or see http://www.perl.com/language/misc/Artistic.html)
+# for the terms under which you may use, modify, and redistribute this module.
+#
 # $Id$
 #
 
@@ -63,6 +68,18 @@ left untouched if the object to be submitted has it set already.
 
 flag to look-up by unique key first, converting the insert into an
 update if the object is found
+
+=item --flatlookup
+
+Similar to --lookup, but only the 'flat' row for the object is looked
+up, meaning no children will be fetched and attached to the
+object. This is potentially much faster than a full recursive object
+retrieval, but as a result the retrieved object lacks all association
+properties (e.g., a flat Bio::SeqI object would lack all features and
+all annotation, but still have display_id, accession, version
+etc.). This option is therefore most useful if you want to delete
+found objects (--remove), as then any time spent on retrieving more
+than the row together with the primary key is wasted.
 
 =item --noupdate
 
@@ -246,6 +263,7 @@ my $pipeline;            # see Bio::Factory::SequenceProcessorI
 # flags
 my $remove_flag = 0;     # remove object before creating?
 my $lookup_flag = 0;     # look up object before creating, update if found?
+my $flat_flag = 0;       # don't attach children (when doing a lookup)?
 my $no_update_flag = 0;  # do not update if found on look up?
 my $help = 0;            # WTH?
 my $debug = 0;           # try it ...
@@ -260,9 +278,9 @@ my $uncompress = 0;      # whether to pipe through gunzip
 # map of I/O type to the next_XXXX method name
 #
 my %nextobj_map = (
-		   'Bio::SeqIO'     => 'next_seq',
-		   'Bio::ClusterIO' => 'next_cluster',
-		   );
+                   'Bio::SeqIO'     => 'next_seq',
+                   'Bio::ClusterIO' => 'next_cluster',
+                   );
 
 ####################################################################
 # End of defaults
@@ -272,29 +290,30 @@ my %nextobj_map = (
 # get options from commandline 
 #
 my $ok = GetOptions( 'host=s'         => \$host,
-		     'driver=s'       => \$driver,
-		     'dbname=s'       => \$dbname,
-		     'dbuser=s'       => \$dbuser,
-		     'dbpass=s'       => \$dbpass,
-		     'format=s'       => \$format,
-		     'fmtargs=s'      => \$fmtargs,
-		     'seqfilter:s'    => \$seqfilter,
-		     'namespace=s'    => \$namespace,
-		     'pipeline:s'     => \$pipeline,
-		     'mergeobjs:s'    => \$mergefunc,
-		     'safe'           => \$safe_flag,
-		     'remove'         => \$remove_flag,
-		     'lookup'         => \$lookup_flag,
-		     'noupdate'       => \$no_update_flag,
-		     'debug'          => \$debug,
-		     'testonly'       => \$testonly_flag,
-		     'u|z|uncompress' => \$uncompress,
-		     'h|help'         => \$help
-		     );
+                     'driver=s'       => \$driver,
+                     'dbname=s'       => \$dbname,
+                     'dbuser=s'       => \$dbuser,
+                     'dbpass=s'       => \$dbpass,
+                     'format=s'       => \$format,
+                     'fmtargs=s'      => \$fmtargs,
+                     'seqfilter:s'    => \$seqfilter,
+                     'namespace=s'    => \$namespace,
+                     'pipeline:s'     => \$pipeline,
+                     'mergeobjs:s'    => \$mergefunc,
+                     'safe'           => \$safe_flag,
+                     'remove'         => \$remove_flag,
+                     'lookup'         => \$lookup_flag,
+                     'flatlookup'     => \$flat_flag,
+                     'noupdate'       => \$no_update_flag,
+                     'debug'          => \$debug,
+                     'testonly'       => \$testonly_flag,
+                     'u|z|uncompress' => \$uncompress,
+                     'h|help'         => \$help
+                     );
 
 if((! $ok) || $help) {
     if(! $ok) {
-	print STDERR "missing or unsupported option(s) on commandline\n";
+        print STDERR "missing or unsupported option(s) on commandline\n";
     }
     system("perldoc $0");
     exit($ok ? 0 : 2);
@@ -307,6 +326,9 @@ if((! $ok) || $help) {
 my $throw = $safe_flag ?
     ($debug > 0 ? \&Carp::cluck : \&Carp::carp) :
     ($debug > 0 ? \&Carp::confess : \&Carp::croak);
+
+# set the lookup flag in addition if only --flatlookup specified
+$lookup_flag = $flat_flag if ($flat_flag);
 
 #
 # load and/or parse condition if supplied
@@ -345,9 +367,9 @@ my @fmtargs = split(/,/,$fmtargs,-1);
 my $i = 0;
 while($i+1 < @fmtargs) {
     if($fmtargs[$i] =~ s/\\$//) {
-	splice(@fmtargs, $i, 2, $fmtargs[$i].",".$fmtargs[$i+1]);
+        splice(@fmtargs, $i, 2, $fmtargs[$i].",".$fmtargs[$i+1]);
     } else {
-	$i++;
+        $i++;
     }
 }
 
@@ -357,23 +379,23 @@ while($i+1 < @fmtargs) {
 my @pipemods = ();
 if($pipeline) {
     if($objio ne "Bio::SeqIO") {
-	die "pipelining sequence processors not supported for non-SeqIOs\n";
+        die "pipelining sequence processors not supported for non-SeqIOs\n";
     }
     @pipemods = setup_pipeline($pipeline);
     warn "you specified -pipeline, but no processor modules resulted\n"
-	unless @pipemods;
+        unless @pipemods;
 }
 
 #
 # create the DBAdaptorI for our database
 #
 my $db = Bio::DB::BioDB->new(-database => "biosql",
-			     -host     => $host,
-			     -dbname   => $dbname,
-			     -driver   => $driver,
-			     -user     => $dbuser,
-			     -pass     => $dbpass,
-			     );
+                             -host     => $host,
+                             -dbname   => $dbname,
+                             -driver   => $driver,
+                             -user     => $dbuser,
+                             -pass     => $dbpass,
+                             );
 $db->verbose($debug) if $debug > 0;
 
 # declarations
@@ -389,92 +411,93 @@ foreach $file ( @files ) {
 
     # create a handle if it's not one already
     if(! ref($fh)) {
-	$fh = gensym;
-	my $fspec = $uncompress ? "gunzip -c $file |" : "<$file";
-	if(! open($fh, $fspec)) {
-	    warn "unable to open $file for reading, skipping: $!\n";
-	    next;
-	}
-	print STDERR "Loading $file ...\n";
+        $fh = gensym;
+        my $fspec = $uncompress ? "gunzip -c $file |" : "<$file";
+        if(! open($fh, $fspec)) {
+            warn "unable to open $file for reading, skipping: $!\n";
+            next;
+        }
+        print STDERR "Loading $file ...\n";
     }
     # create stream
     $seqin = $objio->new(-fh => $fh,
-			 $format ? (-format => $format) : (),
-			 @fmtargs);
+                         $format ? (-format => $format) : (),
+                         @fmtargs);
 
     # establish filter if provided
     if($condition) {
-	if(! $seqin->can('sequence_builder')) {
-	    $seqin->throw("object IO parser ".ref($seqin).
-			  " does not support control by ObjectBuilderIs");
-	}
-	$seqin->sequence_builder->add_object_condition($condition);
+        if(! $seqin->can('sequence_builder')) {
+            $seqin->throw("object IO parser ".ref($seqin).
+                          " does not support control by ObjectBuilderIs");
+        }
+        $seqin->sequence_builder->add_object_condition($condition);
     }
 
     # chain to pipeline if pipelining is requested
     if(@pipemods) {
-	$pipemods[0]->source_stream($seqin);
-	$seqin = $pipemods[$#pipemods];
+        $pipemods[0]->source_stream($seqin);
+        $seqin = $pipemods[$#pipemods];
     }
 
     # loop over the stream
     while( my $seq = $seqin->$nextobj ) {
-	# we can't store the structure for structured values yet, so
-	# flatten them
-	if($seq->isa("Bio::AnnotatableI")) {
-	    flatten_annotations($seq->annotation);
-	}
-	# don't forget to add namespace if the parser doesn't supply one
-	$seq->namespace($namespace) unless $seq->namespace();
-	# look up or delete first?
-	my $lseq;
-	if($lookup_flag || $remove_flag) {
-	    # look up
-	    $adp = $db->get_object_adaptor($seq);
-	    $lseq = $adp->find_by_unique_key($seq,
-					     -obj_factory =>
-					     $seqin->object_factory());
-	    # found?
-	    if($lseq) {
-		# merge old and new if a function for this is provided
-		$seq = &$merge_objs($lseq, $seq, $db) if $merge_objs;
-		# the return value may indicate to skip to the next
-		next unless $seq;
-	    }
-	}
-	# try to serialize
-	eval {
-	    # set the adaptor variable before any operation which may throw
-	    # us out of the eval block
-	    $adp = $lseq ? $lseq->adaptor() : $db->get_object_adaptor($seq);
-	    # delete first if requested
-	    $lseq->remove() if $remove_flag && $lseq;
-	    # on update, skip the rest if we are not supposed to update
-	    if(! ($lseq && $no_update_flag)) {
-		# create a persistent object out of the seq if it's
-		# not one already (merge_objs may have touched it)
-		$pseq = $db->create_persistent($seq)
-		    unless $seq->isa("Bio::DB::PersistentObjectI");
-		# store the primary key of what we found by lookup (this
-		# is going to be an udate then)
-		if($lseq && $lseq->primary_key) {
-		    $pseq->primary_key($lseq->primary_key);
-		}
-		$pseq->store(); # inserts if primary key not set
-	    }
-	    $adp->commit() unless $testonly_flag;
-	};
-	if ($@) {
-	    my $msg = "Could not store ".$seq->object_id().": $@\n";
-	    if($adp) {
-		$adp->rollback();
-	    } else {
-		$msg .= "\nFailed to load adaptor for ".ref($seq).
-		    " - not good. You may want to ctrl-c your run ".
-		    "if you had --safe switched on.";
-	    }
-	    &$throw($msg);
-	}
+        # we can't store the structure for structured values yet, so
+        # flatten them
+        if($seq->isa("Bio::AnnotatableI")) {
+            flatten_annotations($seq->annotation);
+        }
+        # don't forget to add namespace if the parser doesn't supply one
+        $seq->namespace($namespace) unless $seq->namespace();
+        # look up or delete first?
+        my $lseq;
+        if($lookup_flag || $remove_flag) {
+            # look up
+            $adp = $db->get_object_adaptor($seq);
+            $lseq = $adp->find_by_unique_key($seq,
+                                             -obj_factory => 
+                                             $seqin->object_factory(),
+                                             -flat_only => $flat_flag);
+            # found?
+            if($lseq) {
+                # merge old and new if a function for this is provided
+                $seq = &$merge_objs($lseq, $seq, $db) if $merge_objs;
+                # the return value may indicate to skip to the next
+                next unless $seq;
+            }
+        }
+        # try to serialize
+        eval {
+            # set the adaptor variable before any operation which may throw
+            # us out of the eval block
+            $adp = $lseq ? $lseq->adaptor() : $db->get_object_adaptor($seq);
+            # delete first if requested
+            $lseq->remove() if $remove_flag && $lseq;
+            # on update, skip the rest if we are not supposed to update
+            if(! ($lseq && $no_update_flag)) {
+                # create a persistent object out of the seq if it's
+                # not one already (merge_objs may have touched it)
+                $pseq = $db->create_persistent($seq)
+                    unless $seq->isa("Bio::DB::PersistentObjectI");
+                # store the primary key of what we found by lookup (this
+                # is going to be an udate then)
+                if($lseq && $lseq->primary_key) {
+                    $pseq->primary_key($lseq->primary_key);
+                }
+                $pseq->store(); # inserts if primary key not set
+            }
+            $adp->commit() unless $testonly_flag;
+        };
+        if ($@) {
+            my $msg = "Could not store ".$seq->object_id().": $@\n";
+            if($adp) {
+                $adp->rollback();
+            } else {
+                $msg .= "\nFailed to load adaptor for ".ref($seq).
+                    " - not good. You may want to ctrl-c your run ".
+                    "if you had --safe switched on.";
+            }
+            &$throw($msg);
+        }
     }
     $seqin->close();
 }
@@ -493,16 +516,16 @@ sub parse_code{
 
     # file or subroutine?
     if(-r $src) {
-	if(! (($code = do $src) && (ref($code) eq "CODE"))) {
-	    die "error in parsing code block $src: $@" if $@;
-	    die "unable to read file $src: $!" if $!;
-	    die "failed to run $src, or it failed to return a closure";
-	}
+        if(! (($code = do $src) && (ref($code) eq "CODE"))) {
+            die "error in parsing code block $src: $@" if $@;
+            die "unable to read file $src: $!" if $!;
+            die "failed to run $src, or it failed to return a closure";
+        }
     } else {
-	$code = eval $src;
-	die "error in parsing code block \"$src\": $@" if $@;
-	die "\"$src\" fails to return a closure"
-	    unless ref($code) eq "CODE";
+        $code = eval $src;
+        die "error in parsing code block \"$src\": $@" if $@;
+        die "\"$src\" fails to return a closure"
+            unless ref($code) eq "CODE";
     }
     return $code;
 }
@@ -517,21 +540,21 @@ sub setup_pipeline{
     my $loader = Bio::Root::Root->new();
     # load and instantiate each one, then concatenate
     foreach my $mod (@mods) {
-	# separate module name from potential arguments
-	my $modname = $mod;
-	my @modargs = ();
-	if($modname =~ /^(.+)[\(<](.*)[>\)]$/) {
-	    $modname = $1;
-	    @modargs = split(/,/, $2);
-	}
-	$loader->_load_module($modname);
-	my $proc = $modname->new(@modargs);
-	if(! $proc->isa("Bio::Factory::SequenceProcessorI")) {
-	    die "Pipeline processing module $modname does not implement ".
-		"Bio::Factory::SequenceProcessorI. Bummer.\n";
-	}
-	$proc->source_stream($pipemods[$#pipemods]) if @pipemods;
-	push(@pipemods, $proc);
+        # separate module name from potential arguments
+        my $modname = $mod;
+        my @modargs = ();
+        if($modname =~ /^(.+)[\(<](.*)[>\)]$/) {
+            $modname = $1;
+            @modargs = split(/,/, $2);
+        }
+        $loader->_load_module($modname);
+        my $proc = $modname->new(@modargs);
+        if(! $proc->isa("Bio::Factory::SequenceProcessorI")) {
+            die "Pipeline processing module $modname does not implement ".
+                "Bio::Factory::SequenceProcessorI. Bummer.\n";
+        }
+        $proc->source_stream($pipemods[$#pipemods]) if @pipemods;
+        push(@pipemods, $proc);
     }
     return @pipemods;
 }
@@ -539,14 +562,14 @@ sub setup_pipeline{
 sub flatten_annotations {
     my $anncoll = shift;
     foreach my $ann ($anncoll->remove_Annotations()) {
-	if($ann->isa("Bio::Annotation::StructuredValue")) {
-	    foreach my $val ($ann->get_all_values()) {
-		$anncoll->add_Annotation(Bio::Annotation::SimpleValue->new(
-					   -value => $val,
-					   -tagname => $ann->tagname()));
-	    }
-	} else {
-	    $anncoll->add_Annotation($ann);
-	}
+        if($ann->isa("Bio::Annotation::StructuredValue")) {
+            foreach my $val ($ann->get_all_values()) {
+                $anncoll->add_Annotation(Bio::Annotation::SimpleValue->new(
+                                           -value => $val,
+                                           -tagname => $ann->tagname()));
+            }
+        } else {
+            $anncoll->add_Annotation($ann);
+        }
     }
 }

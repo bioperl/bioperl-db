@@ -22,8 +22,8 @@ ok $db;
 $db->verbose(1) if $ENV{HARNESS_VERBOSE};
 
 my $seqio = Bio::SeqIO->new('-format' => 'genbank',
-			    '-file' => Bio::Root::IO->catfile(
-						   't','data','test.genbank'));
+                            '-file' => Bio::Root::IO->catfile(
+                                                   't','data','test.genbank'));
 
 my ($seq, $pseq);
 my @seqs = ();
@@ -32,16 +32,16 @@ my @arr = ();
 eval {
     my $pk = -1;
     while($seq = $seqio->next_seq()) {
-	$pseq = $db->create_persistent($seq);
-	$pseq->namespace("mytestnamespace");
-	$pseq->create();
-	ok $pseq->primary_key();
-	ok $pseq->primary_key() != $pk;
-	$pk = $pseq->primary_key();
-	push(@seqs, $pseq);
+        $pseq = $db->create_persistent($seq);
+        $pseq->namespace("mytestnamespace");
+        $pseq->create();
+        ok $pseq->primary_key();
+        ok $pseq->primary_key() != $pk;
+        $pk = $pseq->primary_key();
+        push(@seqs, $pseq);
     }
     ok (scalar(@seqs), 4);
-    $pseq = @seqs[$#seqs];
+    $pseq = $seqs[@seqs-1];
 
     $seqadp = $db->get_object_adaptor("Bio::SeqI");
     ok $seqadp;
@@ -60,20 +60,20 @@ eval {
     # all feature qualifier/value pairs
     @arr = ();
     foreach my $feat ($pseq->top_SeqFeatures()) {
-	foreach ($feat->all_tags()) {
-	    push(@arr, $feat->each_tag_value($_));
-	}
+        foreach ($feat->all_tags()) {
+            push(@arr, $feat->each_tag_value($_));
+        }
     }
     ok (scalar(@arr), 38);
 
     # delete all features
     foreach my $feat ($pseq->top_SeqFeatures()) {
-	ok ($feat->remove(), 1);
+        ok ($feat->remove(), 1);
     }
 
     # delete all references
     foreach my $ref ($pseq->annotation()->get_Annotations("reference")) {
-	ok ($ref->remove(), 1);
+        ok ($ref->remove(), 1);
     }
 
     # re-fetch sequence and retest
@@ -91,11 +91,11 @@ eval {
 
     # add the same comment to both seq0 and seq1
     my $cmt = Bio::Annotation::Comment->new(
-					-tagname => "comment",
-					-text => "this is a simple comment");
+                                        -tagname => "comment",
+                                        -text => "this is a simple comment");
     # add the same simple value to both seq0 and seq1
     my $sv = Bio::Annotation::SimpleValue->new(-tagname => "Fancy",
-					       -value => "a simple value");
+                                               -value => "a simple value");
     $seqs[0]->annotation->add_Annotation($cmt);
     $seqs[0]->annotation->add_Annotation($sv);
     $seqs[1]->annotation->add_Annotation($cmt);

@@ -829,6 +829,10 @@ sub find_by_primary_key{
                       specified, the passed object will be populated
                       rather than creating a new object.
 
+            -flat_only do not retrieve and attach children (objects
+                       having a foreign key to the entity handled by
+                       this adaptor) if value evaluates to true
+                       (default: false)
 
 =cut
 
@@ -840,15 +844,17 @@ sub find_by_unique_key{
     my @fkobjs = $self->get_foreign_key_objects($obj,@args);
     # get slots and their values for the most appropriate UK
     my @ukqueries = $self->get_unique_key_query($obj,\@fkobjs);
-    # factory provided? We need to retrieve that here in order to pass it
-    # to the wrapped method.
-    my ($fact) = $self->_rearrange([qw(OBJ_FACTORY)], @args);
+    # We need to retrieve additional parameters here in order to
+    # pass them on to the wrapped method. 
+    my ($fact, $flatonly) = 
+        $self->_rearrange([qw(OBJ_FACTORY FLAT_ONLY)], @args);
     # now loop over all queries, and terminate once a match is found
     foreach my $ukquery (@ukqueries) {
 	# is this a meaningful query?
 	next unless $ukquery && %$ukquery;
 	# pass on to the single-query method to do the work
-	$match = $self->_find_by_unique_key($obj,$ukquery,\@fkobjs,$fact);
+	$match = $self->_find_by_unique_key($obj, $ukquery, \@fkobjs,
+                                            $fact, $flatonly);
 	# terminate if found
 	last if $match;
     }
@@ -895,6 +901,11 @@ sub find_by_unique_key{
              matching row is found. Optional; if not specified the
              passed object will be populated with the found values
              rather than a new object created.
+
+           - A flag indicating whether to not to retrieve and attach
+             children (objects having a foreign key to the object to
+             build). Defaults to false if omitted, meaning children
+             will be attached.
 
 
 =cut
@@ -1249,9 +1260,10 @@ sub find_by_query{
  Function: Build and populate an object or populate a prepuilt object from
            a row from the database.
 
-           This is a private method primarily to centralize the code for this
-           task from the various find_by_XXXX methods. Don't call from
-           outside unless you know what you're doing. 
+           This is a private method primarily to centralize the code
+           for this task from the various find_by_XXXX methods. Don't
+           call from outside unless you know what you're doing.
+
  Example :
  Returns : A persistent object (implements Bio::DB::PersistentObjectI)
  Args    : Named parameters. Currently supported are:
@@ -1259,11 +1271,14 @@ sub find_by_query{
              -row       a reference to an array of column values (mandatory)
              -pk        the primary key to be associated with the new object
                         (optional)
-             -num_fks   the number of foreign key instances which need to be
-                        associated with the object to be built (optional,
-                        defaults to 0)
-             -obj_factory an object factory to be used for instantiating the 
-                        object if it needs to be created
+             -num_fks   the number of foreign key instances which need
+                        to be associated with the object to be built
+                        (optional, defaults to 0)
+             -obj_factory an object factory to be used for instantiating
+                        the object if it needs to be created
+             -flat_only do not retrieve and attach children (objects
+                        having a foreign key to the object to build)
+                        if value evaluates to true (default: false)
 
 =cut
 
@@ -1271,8 +1286,14 @@ sub _build_object{
     my ($self,@args) = @_;
 
     # get arguments
-    my ($obj,$row,$fact,$pk,$numfks) =
-	$self->_rearrange([qw(OBJ ROW OBJ_FACTORY PK NUM_FKS)], @args);
+    my ($obj,$row,$fact,$pk,$numfks,$flatonly) =
+	$self->_rearrange([qw(OBJ 
+                              ROW 
+                              OBJ_FACTORY 
+                              PK 
+                              NUM_FKS
+                              FLAT_ONLY)], 
+                          @args);
     
     # build the object, or just populate it if it's been prebuilt
     if(ref($obj)) {
@@ -1306,9 +1327,11 @@ sub _build_object{
     }
     # attach child objects (those that reference this entity as foreign
     # key)
-    if(! $self->attach_children($obj)) {
-	$self->warn("failed to attach all child objects (pk=".
-		    $obj->primary_key().")");
+    if (! $flatonly) {
+        if(! $self->attach_children($obj)) {
+            $self->warn("failed to attach all child objects (pk=".
+                        $obj->primary_key().")");
+        }
     }
     # mark it as clean - it's fresh from the press
     $obj->is_dirty(0);

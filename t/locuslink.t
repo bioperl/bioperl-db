@@ -107,7 +107,7 @@ eval {
     # we also need to make up for tests that we won't conduct
     # (namely the count comparison per annotation key)
     for (1..(3-scalar(values %uniquenames))) {
-	skip("GO sub-division tag became GO name", $tag);
+	skip("GO sub-division tag became other GO name", $_);
     }
 
     my @keys = $ac->get_all_annotation_keys();

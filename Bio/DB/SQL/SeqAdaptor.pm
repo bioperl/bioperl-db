@@ -87,6 +87,12 @@ use Bio::DB::SQL::BaseAdaptor;
 sub fetch_by_dbID{
    my ($self,$id) = @_;
 
+   if( !defined $id || $id !~ /^\d+$/) {
+       $self->throw("Must have an id to fetch by id! (and it must be a number not [$id])");
+   }
+
+   #print STDERR "select en.display_id,en.accession,en.entry_version,length(bs.biosequence_str),bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id\n";
+
    my $sth = $self->prepare("select en.display_id,en.accession,en.entry_version,length(bs.biosequence_str),bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
 
    $sth->execute;
@@ -108,6 +114,8 @@ sub fetch_by_dbID{
    
 
 }
+
+
 
 =head2 fetch_by_db_and_accession
 
@@ -162,7 +170,9 @@ sub store{
    my $accession = $seq->accession;
    my $version   = $seq->seq_version;
    my $division = 'UNK';
-   if (defined $seq->division) {
+
+   
+   if ( $seq->isa('Bio::Seq::RichSeqI')  && defined $seq->division) {
        $division  = $seq->division;
    }
    if( !defined $version ) {
@@ -187,16 +197,18 @@ sub store{
        $sth->execute;
    }
 
-   if (my $kw = $seq->keywords) {
-       $sth= $self->prepare("insert into bioentry_keywords(bioentry_id,keywords) VALUES ($id,'$kw')");
-       $sth->execute;
+   if( $seq->isa('Bio::Seq::RichSeqI') ) {
+       foreach my $date ($seq->get_dates) {
+	   $sth = $self->prepare("insert into bioentry_date (bioentry_id,date) VALUES ($id,'$date')");
+	   $sth->execute;
+       }
+       if (my $kw = $seq->keywords) {
+	   $sth= $self->prepare("insert into bioentry_keywords(bioentry_id,keywords) VALUES ($id,'$kw')");
+	   $sth->execute;
+       }
    }
 
 
-   foreach my $date ($seq->get_dates) {
-       $sth = $self->prepare("insert into bioentry_date (bioentry_id,date) VALUES ($id,'$date')");
-       $sth->execute;
-   }
    my $species = $seq->species;
 
    if( defined $species ) {
@@ -223,6 +235,7 @@ sub store{
    my $rdp = $self->db->get_ReferenceAdaptor();
    foreach my $ref ( $seq->annotation->each_Reference ) {
        my $rid = $rdp->store_if_needed($ref);
+
        my $start='NULL';
        my $end='NULL';
        if ($ref->start) {
@@ -242,6 +255,9 @@ sub store{
    foreach my $dblink ( $seq->annotation->each_DBLink ) {
        $adp->store($dblink,$id);
    }
+
+   
+   return $id;
 
 }
 

@@ -187,18 +187,26 @@ sub store{
 sub _store_component{
    my ($self,$location,$seqfeature_id,$rank) = @_;
 
+   if( !defined $location ) {
+       $self->throw("Have to store with a location");
+   }
+
    if( !defined $rank ) {
        $self->throw("Have to store with a rank");
    }
    my $start  = $location->start;
    my $end    = $location->end;
    my $strand = $location->strand;
+
+   #print STDERR "Got $seqfeature_id $start $end $strand with $location\n";
+
  
    my $sth = $self->prepare("insert into seqfeature_location (seqfeature_location_id,seqfeature_id,seq_start,seq_end,seq_strand,location_rank) VALUES (NULL,$seqfeature_id,$start,$end,$strand,$rank)");
    $sth->execute;
    my $id= $sth->{'mysql_insertid'};
 
-   $location->seq_id =~ /(\S+)\.(\S+)/;
+   
+   #$location->seq_id =~ /(\S+)\.(\S+)/;
    my $acc = $1;
    my $v = $2;
    if ($location->is_remote) {

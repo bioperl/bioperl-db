@@ -228,7 +228,18 @@ CREATE TABLE remote_seqfeature_name (
 );
 
 
-# references are left to a future implementor to handle.
+#
+# this is a tiny table to allow a cach'ing corba server to
+# persistently store aspects of the root server - so when/if
+# the server gets reaped it can reconnect
+#
+
+CREATE TABLE cache_corba_support (
+       biodatabase_id    int(10) unsigned NOT NULL PRIMARY KEY,  
+       http_ior_string   varchar(255),
+       direct_ior_string varchar(255)
+       );
+
 
 
 

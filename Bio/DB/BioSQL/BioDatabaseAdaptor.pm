@@ -12,7 +12,7 @@
 
 =head1 NAME
 
-Bio::DB::SQL::BioDatabaseAdaptor - DESCRIPTION of Object
+Bio::DB::SQL::BioDatabaseAdaptor - Adaptor for BioDatabase table
 
 =head1 SYNOPSIS
 
@@ -188,14 +188,16 @@ sub fetch_Seq_by_display_id{
 sub fetch_Seq_by_accession{
    my ($self,$dbid,$acc) = @_;
 
+   #print STDERR "Asking for accession $acc with select bioentry_id from bioentry where biodatabase_id = $dbid and accession = '$acc'\n";
    my $sth = $self->prepare("select bioentry_id from bioentry where biodatabase_id = $dbid and accession = '$acc'");
    $sth->execute;
-   my ($bid) = $sth->fetchrow_array();
-
+   my $ref = $sth->fetchrow_arrayref();
+   my $bid = $ref->[0];
+   
    if( !defined $bid ) {
        $self->throw("Unable to find sequence in $dbid database for $acc");
    }
-   return $self->db->get_SeqAdaptor->fetch_by_dbID($dbid);
+   return $self->db->get_SeqAdaptor->fetch_by_dbID($bid);
 }
 
 =head2 list_biodatabase_ids

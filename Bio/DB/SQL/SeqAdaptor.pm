@@ -94,7 +94,7 @@ sub fetch_by_dbID{
 
    #print STDERR "select en.display_id,en.accession,en.entry_version,length(bs.biosequence_str),bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id\n";
 
-   my $sth = $self->prepare("select en.display_id,en.accession,en.entry_version,bs.molecule,en.division,bed.description from bioentry en,bioentry_description bed where bed.bioentry_id=en.bioentry_id and bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
+   my $sth = $self->prepare("select en.display_id,en.accession,en.entry_version,bs.molecule,en.division,bed.description from biosequence bs,bioentry en,bioentry_description bed where bed.bioentry_id=en.bioentry_id and bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
 
    $sth->execute;
 

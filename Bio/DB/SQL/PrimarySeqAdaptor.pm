@@ -84,11 +84,11 @@ use Bio::DB::PrimarySeq;
 sub fetch_by_dbID{
    my ($self,$id) = @_;
 
-   my $sth = $self->prepare("select en.display_id,en.accession,length(bs.biosequence_str),bs.molecule from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
+   my $sth = $self->prepare("select en.display_id,en.accession,bs.molecule from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
 
    $sth->execute;
 
-   my ($display,$acc,$len,$mol) = $sth->fetchrow_array;
+   my ($display,$acc,$mol) = $sth->fetchrow_array;
 
    if( !defined $display ) {
        $self->throw("Bioentry id $id does not have a biosequence or bioentry ");
@@ -98,7 +98,6 @@ sub fetch_by_dbID{
 				    '-display_id' => $display,
 				    '-accession'  => $acc,
 				    '-alphabet'    => $mol,
-				    '-length'     => $len,
 				    '-adaptor'    => $self);
    
 }
@@ -217,6 +216,29 @@ sub get_description{
    my ($desc) = $sth->fetchrow_array;
 
    return $desc;
+}
+
+=head2 get_length
+
+ Title   : get_length
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_length{
+   my ($self,$id) = @_;
+
+   my $sth = $self->prepare("select length(bs.biosequence_str) from bioentry en,biosequence bs bs.bioentry_id = en.bioentry_id and en.bioentry_id = $id");
+   $sth->execute();
+
+   my ($length) = $sth->fetchrow_array();
+
+   return $length;
 }
 
 1;

@@ -76,27 +76,25 @@ BEGIN {
 sub new {
     my ($class,@args) = @_;
 
+
     my $self = bless {}, ref($class) || $class;
 
-    my($primary_id,$display_id,$accession,$adaptor,$length,$alpha) = 
+    my($primary_id,$display_id,$accession,$adaptor,$alpha) = 
 	$self->_rearrange([qw(PRIMARY_ID 
 			      DISPLAY_ID 
 			      ACCESSION 
 			      ADAPTOR 
-			      LENGTH 
 			      ALPHABET)],@args);
 
     if( !defined $primary_id || !defined $display_id || 
-	!defined $accession || !defined $adaptor || 
-	!defined $length) {
-	$self->throw("Not got one of the arguments in DB::PrimarySeq new $primary_id,$display_id,$accession,$adaptor,$length");
+	!defined $accession || !defined $adaptor) {
+	$self->throw("Not got one of the arguments in DB::PrimarySeq new $primary_id,$display_id,$accession,$adaptor");
     }
 
     $self->primary_id($primary_id);
     $self->display_id($display_id);
     $self->accession($accession);
     $self->adaptor($adaptor);
-    $self->length($length);
     $self->alphabet($alpha);
 
     return $self;
@@ -204,11 +202,16 @@ sub adaptor{
 =cut
 
 sub length{
-   my ($obj,$value) = @_;
+   my ($self,$value) = @_;
    if( defined $value) {
-      $obj->{'length'} = $value;
+      $self->{'length'} = $value;
     }
-    return $obj->{'length'};
+
+   if( !defined $self->{'length'} ) {
+     $self->{'length'} = $self->adaptor->get_length($self->primary_id);
+   }
+
+   return $self->{'length'};
 
 }
 

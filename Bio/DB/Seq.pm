@@ -81,22 +81,21 @@ sub new {
 
     my $self = bless {}, ref($class) || $class;
     my($primary_id,$display_id,$accession,
-       $version,$adaptor,$length,$division,$desc,$alpha) = 
+       $version,$adaptor,$division,$desc,$alpha) = 
 	   $self->_rearrange([qw(PRIMARY_ID 
 				 DISPLAY_ID 				 
 				 ACCESSION 
 				 VERSION 
 				 ADAPTOR 
-				 LENGTH 
 				 DIVISION 
 				 DESC
 				 ALPHABET				 
 				 )],@args);
     
     if( !defined $primary_id || !defined $display_id || 
-	!defined $accession || !defined $adaptor || 
-	!defined $length) {
-	$self->throw("Not got one of the arguments in DB::Seq new [$primary_id,$display_id,$accession,$adaptor,$length]");
+	!defined $accession || !defined $adaptor  
+	) {
+	$self->throw("Not got one of the arguments in DB::Seq new [$primary_id,$display_id,$accession,$adaptor]");
     }
 
     $self->primary_id($primary_id);
@@ -104,7 +103,6 @@ sub new {
     $self->accession($accession);
     $self->version($version);
     $self->adaptor($adaptor);
-    $self->length($length);
     $self->division($division);
     $self->desc($desc);    
     $self->alphabet($alpha);
@@ -126,9 +124,18 @@ sub new {
 
 sub primary_seq{
    my ($self,@args) = @_;
-
+   
    if( !defined $self->{'_primary_seq'} ) {
-       $self->{'_primary_seq'} = $self->adaptor->db->get_PrimarySeqAdaptor->fetch_by_dbID($self->primary_id);
+       # We know we want to build a PrimarySeq and we have all the info
+       # here. No need to retrip to the database
+
+       $self->{'_primary_seq'} = Bio::DB::PrimarySeq->new(
+							  -primary_id => $self->primary_id,
+							  -display_id => $self->display_id,
+							  -accession => $self->accession,
+							  -adaptor => $self->adaptor->db->get_PrimarySeqAdaptor(),
+							  -alphabet => $self->alphabet );
+
    } 
 
    return $self->{'_primary_seq'};
@@ -203,9 +210,13 @@ sub moltype{
 =cut
 
 sub alphabet{
-   my ($self,@args) = @_;
+   my ($self,$alpha) = @_;
 
-   return $self->primary_seq->alphabet;
+   if( !defined $self->{'alpha'} ) {
+       $self->{'alpha'}= $alpha;
+   }
+
+   return $self->{'alpha'};
 }
 
 

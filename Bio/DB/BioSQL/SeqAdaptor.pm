@@ -446,7 +446,8 @@ sub store{
    my $desc = $seq->desc;
    $desc =~ s/\'/\\\'/g;
    if( defined $seq->desc && $seq->desc ne '' ) {
-       $sth = $self->prepare("insert into bioentry_description (bioentry_id,description) VALUES ($id,'$desc')");
+       $desc = $self->quote($desc);
+       $sth = $self->prepare("insert into bioentry_description (bioentry_id,description) VALUES ($id,$desc)");
        $sth->execute;
    }
 
@@ -456,7 +457,8 @@ sub store{
 	   $sth->execute;
        }
        if (my $kw = $seq->keywords) {
-	   $sth= $self->prepare("insert into bioentry_keywords(bioentry_id,keywords) VALUES ($id,'$kw')");
+	   $kw = $self->quote($kw);
+	   $sth= $self->prepare("insert into bioentry_keywords(bioentry_id,keywords) VALUES ($id,$kw)");
 	   $sth->execute;
        }
    }

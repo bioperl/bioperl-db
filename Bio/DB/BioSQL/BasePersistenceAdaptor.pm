@@ -1520,7 +1520,8 @@ sub dbd{
 						 "Driver",
 						 ref($self));
 	$self->debug("Using $adpdriver as driver peer for ".ref($self)."\n");
-	$self->{'_dbd'} = $adpdriver->new(-adaptor => $self);
+	$self->{'_dbd'} = $adpdriver->new(-adaptor => $self,
+                                          -verbose => $self->verbose());
     }
     return $self->{'_dbd'};
 }

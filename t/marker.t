@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;
-    plan test => 28;
+    plan test => 34;
 }
 
 
@@ -38,13 +38,13 @@ my $maprc = $mapadaptor->write($map);
 ok ( $map->id );
 ok ( $maprc->id, $map->id);
 
-my $marker = new Bio::DB::Map::Marker( -locus => 'D1S243',
-				       -probe => 'AFM214yg7',
-				       -length=> 201,
-				       -pcrfwd=> 'CACACAGGCTCACATGCC',
-				       -pcrrev=> 'GCTCCAGCGTCATGGACT',
-				       -type  => 'ms',
-				       -chrom => 'chr1' );
+my $marker = new Bio::DB::Map::Marker( '-locus' => 'D1S243',
+				       '-probe' => 'AFM214yg7',
+				       '-length'=> 201,
+				       '-pcrfwd'=> 'CACACAGGCTCACATGCC',
+				       '-pcrrev'=> 'GCTCCAGCGTCATGGACT',
+				       '-type'  => 'ms',
+				       '-chrom' => 'chr1' );
 				       
 ok ($marker);
 ok ($marker->locus, 'D1S243');
@@ -79,7 +79,8 @@ ok($marker->get_source_for_alias('RH15245'), 'genemap99gb4');
 
 $markeradaptor->write($marker);
 ok($marker->id,1);
-my ($markercopy) = $markeradaptor->get('RH15245');
+my ($markercopy) = $markeradaptor->get(-name => 'RH15245');
+ok($markercopy);
 ok($markercopy->id, $marker->id);
 ok($markercopy->get_position('marshfield') ==
    $marker->get_position('marshfield'));
@@ -87,3 +88,15 @@ ok($markercopy->is_alias('RH15245'));
 ok($markercopy->is_alias('LOCAL0010101'));
 ok($markercopy->get_source_for_alias('LOCAL0010101'), 'localmap');
 ok($markercopy->get_source_for_alias('RH15245'), 'genemap99gb4');
+
+($marker) = $markeradaptor->get('-pcrprimers' => [ qw( CACACAGGCTCACATGCC
+						     GCTCCAGCGTCATGGACT) ] );
+ok ( defined $marker );
+ok ($marker->id);
+ok ($marker->length, 201);
+
+ok ( $markeradaptor->delete($marker->id) );
+
+$marker = $markeradaptor->get('-pcrprimers' => [ qw( CACACAGGCTCACATGCC
+						     GCTCCAGCGTCATGGACT) ] );
+ok (! $marker);

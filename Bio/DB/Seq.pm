@@ -174,24 +174,6 @@ sub moltype{
    return $self->primary_seq->moltype;
 }
 
-=head2 molecule
-
- Title   : molecule
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub molecule{
-   my ($self,@args) = @_;
-
-   return $self->primary_seq->moltype;
-}
-
 
 =head2 desc
 

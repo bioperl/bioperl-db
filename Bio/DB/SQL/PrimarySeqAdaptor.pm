@@ -94,6 +94,7 @@ sub fetch_by_dbID{
    if( !defined $display ) {
        $self->throw("Bioentry id $id does not have a biosequence or bioentry ");
    }
+
    return Bio::DB::PrimarySeq->new( -primary_id => $id,
 				    -display_id => $display,
 				    -accession  => $acc,
@@ -121,8 +122,12 @@ sub store{
    if( !defined $pseq || !ref $pseq || !$pseq->isa('Bio::PrimarySeqI') ) {
        $self->throw("Yikes. Don't have a primary seq to store $pseq");
    }
+   my $mol='XXX';
+   if (defined $pseq->moltype) {
+       $mol=$pseq->moltype;
+   }
    my $seq = $pseq->seq;
-   my $sth = $self->prepare("insert into biosequence (biosequence_id,bioentry_id,biosequence_str) values (NULL,$bioentry_id,'$seq')");
+   my $sth = $self->prepare("insert into biosequence (biosequence_id,bioentry_id,biosequence_str,molecule) values (NULL,$bioentry_id,'$seq','$mol')");
 
    $sth->execute;
 

@@ -178,6 +178,24 @@ sub store{
    $sth->execute;
    my($id) = $sth->fetchrow_array();
 
+   #my $moltype='XXX';
+   #if (defined $seq->molecule) {
+   #    my $mol =$seq->molecule;
+   #    if ($mol =~ /DNA/) {
+#	   $moltype='dna';
+#       }
+#       elsif ($mol =~ /RNA/) {
+#	   $moltype='rna';
+#       }
+#       elsif ($mol =~ /AA/) {
+#	   $moltype='protein';
+#       }
+#       else {
+#	   $self->warn("Cannot recognise molecule $mol");
+#	   
+#       }
+#   }
+#   $seq->primary_seq->moltype($moltype);
    $self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
 
    my $desc = $seq->desc;

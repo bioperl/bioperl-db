@@ -14,7 +14,7 @@ sub {
 
     # as a special tuning step we make sure here that caching is turned
     # on for Annotation::Reference objects, since the updated record will
-    # in many cases have almost the same reference as were already there
+    # in many cases have almost the same references as were already there
     my $refadp = $db->get_object_adaptor("Bio::Annotation::Reference");
     $refadp->caching_mode(1) if $refadp && (! $refadp->caching_mode);
 

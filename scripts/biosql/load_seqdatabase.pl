@@ -239,6 +239,7 @@ my $help = 0;            # WTH?
 my $debug = 0;           # try it ...
 my $testonly_flag = 0;   # don't commit anything, rollback at the end?
 my $safe_flag = 0;       # tolerate exceptions on create?
+my $uncompress = 0;      # whether to pipe through gunzip
 ####################################################################
 # Global defaults or definitions not changeable through commandline
 ####################################################################
@@ -258,25 +259,25 @@ my %nextobj_map = (
 #
 # get options from commandline 
 #
-my $ok = GetOptions( 'host:s'      => \$host,
-		     'driver:s'    => \$driver,
-		     'dbname:s'    => \$dbname,
-		     'dbuser:s'    => \$dbuser,
-		     'dbpass:s'    => \$dbpass,
-		     'format:s'    => \$format,
-		     'fmtargs=s'   => \$fmtargs,
-		     'seqfilter:s' => \$seqfilter,
-		     'namespace:s' => \$namespace,
-		     'pipeline:s'  => \$pipeline,
-		     'mergeobjs:s' => \$mergefunc,
-		     'safe'        => \$safe_flag,
-		     'remove'      => \$remove_flag,
-		     'lookup'      => \$lookup_flag,
-		     'noupdate'    => \$no_update_flag,
-		     'debug'       => \$debug,
-		     'testonly'    => \$testonly_flag,
-		     'h'           => \$help,
-		     'help'        => \$help
+my $ok = GetOptions( 'host=s'         => \$host,
+		     'driver=s'       => \$driver,
+		     'dbname=s'       => \$dbname,
+		     'dbuser=s'       => \$dbuser,
+		     'dbpass=s'       => \$dbpass,
+		     'format=s'       => \$format,
+		     'fmtargs=s'      => \$fmtargs,
+		     'seqfilter=s'    => \$seqfilter,
+		     'namespace=s'    => \$namespace,
+		     'pipeline=s'     => \$pipeline,
+		     'mergeobjs=s'    => \$mergefunc,
+		     'safe'           => \$safe_flag,
+		     'remove'         => \$remove_flag,
+		     'lookup'         => \$lookup_flag,
+		     'noupdate'       => \$no_update_flag,
+		     'debug'          => \$debug,
+		     'testonly'       => \$testonly_flag,
+		     'u|z|uncompress' => \$uncompress,
+		     'h|help'         => \$help
 		     );
 
 if((! $ok) || $help) {
@@ -366,7 +367,8 @@ foreach $file ( @files ) {
     # create a handle if it's not one already
     if(! ref($fh)) {
 	$fh = gensym;
-	if(! open($fh, "<$file")) {
+	my $fspec = $uncompress ? "gunzip $file |" : "<$file";
+	if(! open($fh, $fspec)) {
 	    warn "unable to open $file for reading, skipping: $!\n";
 	    next;
 	}

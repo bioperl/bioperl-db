@@ -69,6 +69,3 @@ print STDERR $@ if $@;
 # delete seq
 ok ($biosql->delete_seq($seq), 1);
 ok ($biosql->delete_biodatabase("mytestnamespace"), 1);
-
-
-

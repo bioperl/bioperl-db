@@ -68,7 +68,7 @@ eval {
     ok (scalar(@arr), 0);
     
     # should be no qualifier/values anymore
-    @arr = $seqadaptor->each_tag_value($seq->primary_id());
+    @arr = $seqadaptor->each_tag_value_pair($seq->primary_id());
     ok (scalar(@arr), 0);
 
 #  $sth = $dba->prepare("select taxa_id from bioentry_taxa br where br.bioentry_id=$dbID"); 

@@ -44,9 +44,9 @@ use vars qw( $TMPDIR $DEBUG $GENEMAPURL $MARSHFIELDURL $WHITEHEADURL
 	     $GENETHONURL $NCBISTSURL $USAGE);
 $GENETHONURL = 'ftp://ftp.genethon.fr/pub/Gmap/Nature-1995/data';
 $GENEMAPURL  = 'ftp://ftp.ncbi.nlm.nih.gov/repository/genemap/Mar1999';
-$MARSHFIELDURL = 'http://marshfieldclinic.org/research/genetics/Map_Markers/data';
+$MARSHFIELDURL = 'http://www.marshfieldclinic.org/research/genetics/Map_Markers/data';
 $NCBISTSURL = 'ftp://ftp.ncbi.nlm.nih.gov/repository/dbSTS/human.sts';
-$WHITEHEADURL = 'http://carbon.wi.mit.edu:8000/ftp/pub/human_STS_releases/may97';
+$WHITEHEADURL = 'http://www-genome.wi.mit.edu/ftp/pub/human_STS_releases/may97';
 
 $TMPDIR = '/tmp';
 $DEBUG = 1;

@@ -64,11 +64,48 @@ use strict;
 
 use Bio::DB::SQL::BaseAdaptor;
 use Bio::DB::BioSeqDatabase;
+use Bio::DB::SQL::DBAdaptor;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
 # metadata
 sub _table { "biodatabase" }
+
+
+
+=head2 new_from_registry
+
+ Title   : new_from_registry
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub new_from_registry{
+   my ($class, %conf) = @_;
+
+   my $db = Bio::DB::SQL::DBAdaptor->new(
+						-DBNAME=>$conf{'dbname'},
+						-HOST=>$conf{'location'},
+						-DRIVER=>$conf{'driver'},
+						-USER=>$conf{'user'},
+						-PASS=>$conf{'pass'},
+						-PORT=>$conf{'port'}
+						);
+   my $self = $class->SUPER::new($db);
+
+   my $id = $self->fetch_by_name($conf{'biodbname'});
+   my $bioseqdb = Bio::DB::BioSeqDatabase->new( -adaptor => $self,
+						-dbid    => $id);
+   
+   $bioseqdb->name($conf{'biodbname'});
+   
+   return $bioseqdb;
+}
 
 =head2 fetch_by_name_store_if_needed
 

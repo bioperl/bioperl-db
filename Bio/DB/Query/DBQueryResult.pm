@@ -97,11 +97,21 @@ use Bio::Root::Root;
  Function: Builds a new Bio::DB::Query::DBQueryResult object 
  Returns : an instance of Bio::DB::Query::DBQueryResult
  Args    : named parameters
-           -sth        the statement handle (this object will not execute it)
-           -adaptor    the persistence adaptor (basically needs to implement
-		       instantiate_from_row($row, $factory)
-           -factory    optionally, the object factory to pass to the adaptor
-	   -num_fks    the number of foreign key object columns in the rows
+
+           -sth        the statement handle (this object will not
+                       execute it)
+
+           -adaptor    the persistence adaptor (basically needs to 
+                       implement instantiate_from_row($row, $factory)
+
+           -factory    optionally, the object factory to pass to the
+                       adaptor
+
+	   -num_fks    the number of foreign key object columns in
+                       the rows
+
+           -flat_only  whether to retrieve and attach children when
+                       building objects (default: false)
 
            If none of these are given at instantiation, at least sth() and
            persistence_adaptor() must be set prior to calling next_object().
@@ -114,13 +124,14 @@ sub new {
 
     my $self = $class->SUPER::new(@args);
     
-    my ($sth, $adaptor, $fact, $nfks) =
-	$self->_rearrange([qw(STH ADAPTOR FACTORY NUM_FKS)], @args);
+    my ($sth, $adaptor, $fact, $nfks, $flatonly) =
+	$self->_rearrange([qw(STH ADAPTOR FACTORY NUM_FKS FLAT_ONLY)], @args);
     
     $self->sth($sth) if $sth;
     $self->persistence_adaptor($adaptor) if $adaptor;
     $self->object_factory($fact) if $fact;
     $self->num_fks($nfks) if defined($nfks);
+    $self->flat_retrieval($flatonly);
 
     return $self;
 }
@@ -148,7 +159,8 @@ sub next_object{
 	# build the object
 	$obj = $adp->_build_object(-row => $row,
 				   -obj_factory => $self->object_factory(),
-				   -num_fks => $self->num_fks());
+				   -num_fks => $self->num_fks(),
+                                   -flat_only => $self->flat_retrieval());
     }
     return $obj;
 }
@@ -303,6 +315,34 @@ sub num_fks{
 	$self->{'num_fks'} = $value;
     }
     return $self->{'num_fks'};
+}
+
+=head2 flat_retrieval
+
+ Title   : flat_retrieval
+ Usage   : $obj->flat_retrieval($newval)
+ Function: Get/set whether objects should be retrieved and built flat
+           or with all their dependent objects fetched and attached.
+
+           The default is to build full objects with all children
+           attached which provides for no bad surprises when
+           inspecting the results. However, building flat objects by
+           disregarding children is potentially a lot faster, so this
+           option is useful if, for instance, for a sequence you don't
+           need any annotation or features.
+
+ Example : 
+ Returns : value of flat_retrieval (a scalar evaluating to true or false)
+ Args    : on set, new value (a scalar or undef, optional)
+
+
+=cut
+
+sub flat_retrieval{
+    my $self = shift;
+
+    return $self->{'flat_retrieval'} = shift if @_;
+    return $self->{'flat_retrieval'};
 }
 
 1;

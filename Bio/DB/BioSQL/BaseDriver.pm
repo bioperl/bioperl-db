@@ -221,6 +221,7 @@ my %slot_attribute_map = (
 	     "version"        => "version",
 	     "division"       => "division",
 	     "bionamespace"   => "biodatabase_id",
+	     "namespace"      => "biodatabase_id",
 	     # these are for context-sensitive FK name resolution
 	     "object"         => "object_bioentry_id",
 	     "subject"        => "subject_bioentry_id",

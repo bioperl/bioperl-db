@@ -110,6 +110,7 @@ my %slot_attribute_map = (
 	 },
 	 "bioentry" => {
 	     "bionamespace"   => "db_oid",
+	     "namespace"      => "db_oid",
 	     # these are for context-sensitive FK name resolution
 	     "object"         => "obj_ent_oid",
 	     "subject"        => "subj_ent_oid",

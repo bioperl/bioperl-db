@@ -1164,15 +1164,24 @@ sub find_by_association{
               -fkobjs    a reference to an array of foreign key
                          objects that are not retrievable from the
                          persistent object itself
+
               -obj_factory  the object factory to use for creating
                          objects for resulting rows
+
               -name      a unique name for the query, which will make
                          the the statement be a cached prepared
                          statement, which in subsequent invocations
                          will only be re-bound with parameters values,
                          but not recreated
+
               -values    a reference to an array holding the values
                          to be bound, if the query is a named query
+
+              -flat_only do not retrieve and attach children (objects
+                         having a foreign key to the entity handled by
+                         this adaptor) if value evaluates to true
+                         (default: false)
+
 
 
 =cut
@@ -1182,8 +1191,9 @@ sub find_by_query{
     my $sth;
 
     # get arguments
-    my ($fkargs,$fact,$qname,$qvalues) =
-	$self->_rearrange([qw(FKOBJS OBJ_FACTORY NAME VALUES)], @args);
+    my ($fkargs,$fact,$qname,$qvalues,$flatonly) =
+	$self->_rearrange([qw(FKOBJS OBJ_FACTORY NAME VALUES FLAT_ONLY)], 
+                          @args);
     $fkargs = [] unless $fkargs;
     # first gather the foreign objects
     my @fkobjs = $self->get_foreign_key_objects(@$fkargs);
@@ -1249,7 +1259,8 @@ sub find_by_query{
     my $qres = Bio::DB::Query::DBQueryResult->new(-sth => $sth,
 						  -adaptor => $self,
 						  -factory => $fact,
-						  -num_fks => scalar(@fkobjs));
+						  -num_fks => scalar(@fkobjs),
+                                                  -flat_only => $flatonly);
     # that's it -- return the result object
     return $qres;
 }

@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;
-    plan tests => 160;
+    plan tests => 162;
 }
 
 use DBTestHarness;
@@ -33,7 +33,7 @@ ok $pclu->isa("Bio::DB::PersistentObjectI");
 ok $pclu->isa("Bio::ClusterI");
 
 $pclu->namespace("mytestnamespace");
-$pclu->store();
+$pclu->create();
 my $dbid = $pclu->primary_key();
 ok $dbid;
 
@@ -111,6 +111,15 @@ eval {
     my $seq = $dbmems[0]->adaptor->find_by_primary_key($dbmems[0]->primary_key);
     ok $seq;
     ok ($seq->accession_number, $dbmems[0]->accession_number);
+    # and the original size is retained, like it or not
+    ok ($dbclu->size, 29);
+    # now try to update the size (we should be able to do that in the
+    # absence of any members
+    $dbclu->size(10);
+    $dbclu->store();
+    # refetch and test
+    $dbclu = $adp->find_by_primary_key($dbid);
+    ok ($dbclu->size, 10);
 };
 
 print STDERR $@ if $@;

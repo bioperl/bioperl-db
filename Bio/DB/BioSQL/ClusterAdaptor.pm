@@ -248,9 +248,16 @@ sub store_children{
     # cluster size becomes a qualifier/value association, which essentially
     # is a SimpleValue annotation
     my $sizeann = $self->_object_slot('cluster size',$obj->size());
-    $ok = $sizeann->store() && $ok;
+    $sizeann = $sizeann->create();
+    # since we don't (can't very well due to the difficult definition of
+    # alternative keys) update associations, first remove the old size
+    # slot (value() won't be considered here)
+    $ok = $sizeann->adaptor->remove_association(-objs => [$sizeann, $obj],
+						-values => {"rank" => 1});
+    # add the new size
     $ok = $sizeann->adaptor->add_association(-objs => [$sizeann, $obj],
-					     -values => {"rank" => 1}) && $ok;
+					     -values => {"rank" => 1});
+
     # we need to store the annotations, and associate ourselves with them
     if($obj->can('annotation')) {
 	my $ac = $obj->annotation();
@@ -262,6 +269,7 @@ sub store_children{
 	    $ok = $ac->adaptor()->add_association(-objs => [$ac, $obj]) && $ok;
 	}
     }
+
     # finally, store the members
     #
     # obtain the type term for the association upfront
@@ -363,16 +371,15 @@ sub attach_children{
 	    $obj->annotation($ac);
 	}
     }
-    if($ac) {
-	# clean up the annotation collection from object slots
-	$ac->remove_Annotations('Object Slots');
-    }
+    # remove the Annotation::OntologyTerm objects that are rather terms for
+    # object slots
+    $ac->remove_Annotations('Object Slots') if $ac;
     #
     # find the tag/value pairs corresponding to object slots
     my $slotval = $self->_object_slot('dummy');
-    # The SimpleValue object in the association list must not be persistent
-    # because otherwise the base adaptor thinks we want to constrain by it.
-    # So we simply pass the wrapped object.
+    # we simply pass the wrapped object, because otherwise the base adaptor
+    # thinks we want to constrain by the name of the tag, whereas we want
+    # to constrain by the ontology of the tag
     my $qres = $slotval->adaptor->find_by_association(
 					      -objs => [$slotval->obj, $obj]);
     $ok &&= $qres;

@@ -149,6 +149,7 @@ sub new {
 
     $self->obj($obj) if $obj;
     $self->adaptor($adp) if $adp;
+    $self->is_dirty(1);
 
     # success - we hope
     return $self;
@@ -239,7 +240,9 @@ sub create{
     my $adp = $self->adaptor();
     $self->throw("unable to carry out database operation without an adaptor")
 	unless $adp;
-    return $adp->create($self, @args);
+    my $obj = $adp->create($self, @args);
+    $self->is_dirty(-1) if $obj && $obj->primary_key();
+    return $obj;
 }
 
 =head2 store
@@ -263,7 +266,10 @@ sub store{
     my $adp = $self->adaptor();
     $self->throw("unable to carry out database operation without an adaptor")
 	unless $adp;
-    return $adp->store($self, @args);
+    my $rv = 1;
+    $rv = $adp->store($self, @args);
+    $self->is_dirty(-1) if $rv;
+    return $rv;
 }
 
 =head2 remove
@@ -371,6 +377,42 @@ sub adaptor{
     return $self->{'_adaptor'};
 }
 
+=head2 is_dirty
+
+ Title   : is_dirty
+ Usage   : $obj->is_dirty($newval)
+ Function: Get/set whether this persistent object is to be considered
+           dirty.
+
+           An object is considered dirty if one or more of it's
+           properties has been altered since it was last obtained
+           from, stored in, or created in the database, or if the
+           create() (insert) or the last store() (update) hasn't been
+           committed or rolled back yet.
+
+           There are currently 3 known states of this attribute. A
+           value of zero (or false) means the object has not been
+           modified since it either came from the database, or since
+           the changes have been serialized (via store()) and
+           committed (via commit()). A negative value means changes
+           have been serialized, but not yet committed. A positive
+           value means there have been unserialized changes on the
+           object.
+
+ Example : 
+ Returns : value of is_dirty (a scalar)
+ Args    : on set, new value (a scalar or undef, optional)
+
+
+=cut
+
+sub is_dirty{
+    my $self = shift;
+
+    return $self->{'is_dirty'} = shift if @_;
+    return $self->{'is_dirty'};
+}
+
 =head1 Methods for transactional control
 
    Rollback and commit
@@ -391,7 +433,11 @@ sub adaptor{
 =cut
 
 sub commit{
-    return shift->adaptor->commit(@_);
+    my $self = shift;
+
+    my $rv = $self->adaptor->commit(@_);
+    $self->is_dirty(0) if ($self->is_dirty() < 0) && $rv;
+    return $rv;
 }
 
 =head2 rollback
@@ -408,7 +454,11 @@ sub commit{
 =cut
 
 sub rollback{
-    return shift->adaptor->rollback(@_);
+    my $self = shift;
+
+    my $rv = $self->adaptor->rollback(@_);
+    $self->is_dirty(1) if ($self->is_dirty() < 0) && $rv;
+    return $rv;
 }
 
 =head1 Methods to mimic the wrapped object
@@ -484,6 +534,9 @@ sub AUTOLOAD {
     $self->throw("Can't locate object method \"$meth\" via package ".
 		 ref($self))
 	unless $obj && ($obj ne $self);
+    # by default, we consider any arguments as a calling a setter and hence
+    # the object becomes dirty
+    $self->is_dirty(1) if @args;
     # execute the method by delegation
     return $obj->$meth(@args);
 }

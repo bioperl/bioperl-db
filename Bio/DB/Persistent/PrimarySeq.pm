@@ -123,6 +123,7 @@ sub seq{
 	$self->seq_has_changed(1);
 	# we don't need to fetch any more
 	$self->_seq_is_fetched(1);
+	$self->is_dirty(1);
     } else {
 	# does the object have it pre-set?
         $value = $self->obj()->seq();

@@ -136,6 +136,7 @@ sub identifiable{
 		     "Bio::IdentifiableI. Too bad.")
 	    unless $value->isa("Bio::IdentifiableI");
 	$self->{'identifiable'} = $value;
+	$self->is_dirty(1);
     }
     return $self->{'identifiable'};
 }
@@ -157,6 +158,7 @@ sub identifiable{
 
 sub object_id {
     my ($self, @args) = @_;
+    $self->is_dirty(1) if @args;
     return $self->identifiable()->object_id(@args);
 }
 
@@ -175,6 +177,7 @@ sub object_id {
 
 sub version{
     my ($self,@args) = @_;
+    $self->is_dirty(1) if @args;
     return $self->identifiable()->version(@args);
 }
 
@@ -193,6 +196,7 @@ sub version{
 
 sub authority {
     my ($self,@args) = @_;
+    $self->is_dirty(1) if @args;
     return $self->identifiable()->authority(@args);
 }
 
@@ -211,6 +215,7 @@ sub authority {
 
 sub namespace{
     my ($self,@args) = @_;
+    $self->is_dirty(1) if @args;
     return $self->identifiable()->namespace(@args);
 }
 

@@ -105,9 +105,10 @@ sub new {
  Usage   : $obj->primary_key($newval)
  Function: Get/set the primary key value.
 
-           We override this here from PersistentObjectI in order to propagate
-           the primary key to a possibly attached PrimarySeq object if
-           PrimarySeqI is implemented by composition.
+           We override this here from PersistentObjectI in order to
+           propagate the primary key to a possibly attached PrimarySeq
+           object if PrimarySeqI is implemented by composition.
+
  Example : 
  Returns : value of primary_key (a scalar)
  Args    : new value (a scalar, optional)

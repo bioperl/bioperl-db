@@ -467,12 +467,11 @@ sub get_unique_key_query{
     } elsif($obj->name()) {
 	$uk_h->{'name'} = $obj->name();
 	if(my $ont = $obj->ontology()) {
-	    if($ont->isa("Bio::DB::PersistentObjectI")) {
-		$ont->create() unless $ont->primary_key();
-	    } else {
-		$ont = $self->_ont_adaptor->find_by_unique_key($ont);
-	    }
-	    $uk_h->{'ontology'} = $ont->primary_key() if $ont;
+	    if(! ($ont->isa("Bio::DB::PersistentObjectI") &&
+		  $ont->primary_key())) {
+		$ont = $self->_ont_adaptor->create($ont);
+	    } 
+	    $uk_h->{'ontology'} = $ont->primary_key();
 	}
     }
     

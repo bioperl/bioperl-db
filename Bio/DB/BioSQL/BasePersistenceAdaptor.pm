@@ -89,6 +89,7 @@ use Bio::DB::Query::BioQuery;
 use Bio::DB::Query::DBQueryResult;
 use Bio::DB::Query::SqlGenerator;
 use Bio::DB::Query::PrebuiltResult;
+use Bio::DB::DBI::Transaction;
 
 @ISA = qw(Bio::Root::Root Bio::DB::PersistenceAdaptorI);
 
@@ -217,6 +218,9 @@ sub create{
 		    ($ok ? -$ok : "one or more").
 		    " child objects for an instance of class ".
 		    ref($obj->obj()). " (PK=".$obj->primary_key().")");
+    } else {
+	# mark it as clean - it's fresh from the press
+	$obj->is_dirty(0);
     }
     # done
     return $obj;
@@ -263,8 +267,9 @@ sub store{
 	# no cascading updates of FK objects - only create()
 	$_->create() unless $_->primary_key();
     }
-    # update
-    my $rv = $self->dbd()->update_object($self, $obj, \@fkobjs);
+    # update (if necessary)
+    my $rv = $obj->is_dirty() > 0 ?
+	$self->dbd()->update_object($self, $obj, \@fkobjs) : 1;
     # update children
     $rv = $self->store_children($obj, \@fkobjs);
     if((! defined($rv)) || ($rv <= 0)) {
@@ -531,7 +536,7 @@ sub remove_association{
     return $rv;    
 }
 
-=head1 Making objects persistent objects
+=head1 Making persistent objects
 
 The DBAdaptorI factory mandates this operation, but it will in most
 cases conduct the operation by first finding the appropriate
@@ -850,8 +855,9 @@ sub find_by_unique_key{
 
  Title   : _find_by_unique_key
  Usage   :
- Function: Locates the entry matching the unique key attributes as set in the
-           passed object, and populates a persistent object with this entry.
+ Function: Locates the entry matching the unique key attributes as 
+           set in the passed object, and populates a persistent
+           object with this entry.
 
            This is the protected version of find_by_unique_key. Since
            it requires more upfront work to pass the right parameters
@@ -1299,6 +1305,9 @@ sub _build_object{
 	$self->warn("failed to attach all child objects (pk=".
 		    $obj->primary_key().")");
     }
+    # mark it as clean - it's fresh from the press
+    $obj->is_dirty(0);
+    # done
     return $obj;
 }
 
@@ -1396,8 +1405,30 @@ sub dbh{
     my ($self,$dbh) = @_;
 
     if( defined $dbh) {
-	$self->finish() if $self->{'_dbh'};
+	my @objlstnrs = ();
+	if($self->{'_dbh'}) {
+	    $self->finish();
+	    # remove ourselves and all objects that use us as adaptor
+	    # from the list of transaction listeners for this connection
+	    my $tx =
+		Bio::DB::DBI::Transaction->get_Transaction($self->{'_dbh'});
+	    @objlstnrs = $tx->remove_TransactionListeners();
+	    my @lstnrs = grep {
+		($_ != $self) &&
+		(! ($_->isa("Bio::DB::PersistentObjectI") &&
+		    $_->adaptor() == $self));
+	    } @objlstnrs;
+	    # retain those objects that use us for listening to the 
+	    # new connection
+	    @objlstnrs = grep {
+		($_->isa("Bio::DB::PersistentObjectI") &&
+		 $_->adaptor() == $self);
+	    } @objlstnrs;
+	    $tx->add_TransactionListener(@lstnrs);
+	}
 	$self->{'_dbh'} = $dbh;
+	my $tx = Bio::DB::DBI::Transaction->get_Transaction($dbh);
+	$tx->add_TransactionListener(@objlstnrs);
     } elsif(! exists($self->{'_dbh'})) {
 	# obtain a new connection automatically if one is requested and none
 	# has been set
@@ -1407,6 +1438,8 @@ sub dbh{
 	$dbh = $dbc->dbi()->get_connection($dbc,
 					   $dbc->dbi()->conn_params($self));
 	$self->{'_dbh'} = $dbh;
+	my $tx = Bio::DB::DBI::Transaction->get_Transaction($dbh);
+	$tx->add_TransactionListener($self);
     }
     return $self->{'_dbh'};
 }

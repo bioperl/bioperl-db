@@ -33,6 +33,8 @@ load_ontology.pl
                    --namespace "Gene Ontology" --format goflat \
                    --fmtargs "-defs_file,GO.defs" \
                    function.ontology process.ontology component.ontology
+  # in practice, you will want to use options for dealing with
+  # obsolete terms; read the documentation of respective arguments
 
   # for loading the SOFA part of the sequence ontology (currently
   # there is no term definition file for SOFA):
@@ -48,7 +50,15 @@ name you wish to load this into and then any number of files that make
 up the ontology. The files are assumed formatted identically with the
 format given in the --format flag.
 
-There are more options than the ones shown above. See below.
+There are more options than the ones shown above, see below. In
+particular, there is a variety of options to specify how you want to
+handle obsolete terms. If you try to load the Gene Ontology, you will
+want to check out those options. Also, you may want to consult a
+thread from the bioperl mailing list in this regard, see
+http://bioperl.org/pipermail/bioperl-l/2004-February/014846.html .
+
+Also, consider using --safe always unless you do want the script to
+terminate at the first issue it encounters with loading.
 
 =head1 ARGUMENTS
 

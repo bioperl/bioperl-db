@@ -17,6 +17,13 @@ your download:
 
   >patch -p0 < /path/to/bioperl-db/onto-term.patch
 
+Update: The current latest release of bioperl is 1.5.0. The 1.2.x
+series hasn't been tested anymore for more than a year and may not
+work anymore. The 1.4.0 release is known to work, but has a problem in
+the ontology IO code for parsing GO. Choose either to download bioperl
+from the 1.4 branch per CVS (the ontology IO is fixed on the branch),
+or use 1.5.0, or, if available, the 1.6.x release series.
+
 
 INSTALL BIOSQL
 
@@ -31,13 +38,20 @@ MAKE
 
 Download the bioperl-db archive, then extract its contents. Example:
 
-  >gunzip bioperl-db-0.1.tar.gz
-  >tar xvf bioperl-db-0.1.tar
+  >gunzip bioperl-db-<release-version>.tar.gz
+  >tar xvf bioperl-db-<release-version>.tar
   >cd bioperl-db
 
-Copy or rename t/DBHarness.conf.example to t/DBHarness.biosql.conf and 
-edit the file as needed. Then issue the following commands from within 
-bioperl-db/:
+where <release-version> is the current release. Note that at present
+there is no current release and you will need to download bioperl-db
+through CVS.
+
+If you are on Windows, see the respective section at the end of this
+document.
+
+Otherwise, copy or rename t/DBHarness.conf.example to
+t/DBHarness.biosql.conf and edit the file as needed. Then issue the
+following commands from within bioperl-db/:
 
   >perl Makefile.PL
   >make
@@ -97,3 +111,83 @@ FEEDBACK
 
 Write down any problems or praise and send them to 
 bioperl-l@bioperl.org  ;-)
+
+INSTALLING bioperl-db ON WINDOWS
+
+The following is a report sent by Chris Fields, cjfields at uiuc.edu.
+=====================================================================
+I have installed bioperl-db on Windows XP without a problem (although
+I plan on switching over to MacOSX within a year!).  Basically, here's
+what I did:
+
+1) Install Activestate's free Perl package (the latest version of Perl 5.8).
+
+2) Using PPM, install Bioperl.  There are installation instructions
+   for this on the website, and I think Sudha has progressed at least
+   this far.
+3) Install your database of choice.  I installed MySQL (which has a
+   Windows installer).
+
+4) Install the database interface modules (DBI and DBD-MySQL, both
+   available through PPM).  Adding Randy Kobe's repository in PPM
+   helps here, although it isn't necessary (it does help if you want
+   other modules for bioperl, like GD).
+
+5) Get BioSQL schema.  Judging by the error, you may be missing this
+   or bioperl-db (which operates with BioSQL).
+
+        a) Go to the CVS repository and download the bioperl-db
+        package as tarball.
+
+        b) Decompress the tarball and view the installation
+        instructions.  This will tell you where to get BioSQL (hint:
+        it's in the same CVS repository as well as the CVS mentioned
+        in the installation files).
+
+        c) Get the particular schema for your database.  This is
+        located in biosql-schema/sql.
+
+6) Install bioperl-db using nmake.  This worked well for me, although
+   nmake is notoriously buggy sometimes.
+
+        a) Using a shell (or command prompt for Windows users),
+        migrate to the bioperl-db folder (which you decompressed
+        above).
+
+        b)  Type the following:
+
+                perl Makefile.PL
+                nmake
+                nmake install
+
+        c) You might get some errors here with nmake.  Don't panic
+        (and remember your towel).  Okay, bad Douglas Adams humor...
+
+        d)  You don't have nmake?!?  get the old nmake here:
+
+                <http://download.microsoft.com/download/vc15/Patch/1.52/W95/EN-US/Nmake15.exe>http://download.microsoft.com/download/vc15/Patch/1.52/W95/EN-US/Nmake15.exe
+
+        e) nmake also comes with MSVC++.  You don't have MSVC++?!?
+        Don't panic yet, because...
+
+        f) I've heard reports that make also works (using MinGW or
+        other windows-ported tools), but I haven't tried these, so be
+        warned.
+
+7) create your database.
+
+        mysqladmin -u root create bioseqdb
+
+8) load the schema into your database.
+
+        mysql -u root bioseqdb < biosqldb-mysql.sql
+
+9) load the taxonomy database if needed (I think it's
+   recommended). The script is in the biosql-schema/scripts folder.
+
+Anything I'm missing?  I think I've listed almost everything.  I do
+think Cygwin is a good alternative (the installation is exactly like
+the instructions).
+
+Chris
+=====================================================================

@@ -13,9 +13,48 @@ Bio::DB::Query::BioQuery - Object representing a query on a bioperldb
 
 =head1 SYNOPSIS
 
+  # generally
   $q = Bio::DB::Query::BioQuery->new;
   $q->where(["AND", "attA=x", "attB=y", "attC=y"]);
   $adaptor->fetch_by_query($q);
+
+  # more specific example in the context of biosql:
+  $query = Bio::DB::Query::BioQuery->new();
+
+  # all mouse sequences loaded under namespace ensembl that
+  # have receptor in their description
+  $query->datacollections(["Bio::PrimarySeqI e",
+			 "Bio::Species=>Bio::PrimarySeqI sp",
+			 "BioNamespace=>Bio::PrimarySeqI db"]);
+  $query->where(["sp.binomial like 'Mus *'",
+	         "e.desc like '*receptor*'",
+                 "db.namespace = 'ensembl'"]);
+
+  # all mouse sequences loaded under namespace ensembl that
+  # have receptor in their description, and that also have a
+  # cross-reference with SWISS as the database
+  $query->datacollections(["Bio::PrimarySeqI e",
+			 "Bio::Species=>Bio::PrimarySeqI sp",
+			 "BioNamespace=>Bio::PrimarySeqI db",
+			 "Bio::Annotation::DBLink xref",
+			 "Bio::PrimarySeqI<=>Bio::Annotation::DBLink"]);
+  $query->where(["sp.binomial like 'Mus *'",
+	         "e.desc like '*receptor*'",
+	         "db.namespace = 'ensembl'",
+	         "xref.database = 'SWISS'"]);
+
+  # find a bioentry by primary key
+  $query->datacollections(["Bio::PrimarySeqI]);
+  $query->where(["Bio::PrimarySeqI::primary_key = 10"]);
+
+  # all bioentries in a sequence cluster (Hs.2 as an example)
+  $query->datacollections(
+		  ["Bio::PrimarySeqI c::subject",
+		   "Bio::PrimarySeqI p::object",
+		   "Bio::PrimarySeqI<=>Bio::ClusterI<=>Bio::Ontology::TermI"]);
+  $query->where(["p.accession_number = 'Hs.2'",
+	         "Bio::Ontology::TermI::name = 'cluster member'"]);
+
 
 =head1 DESCRIPTION
 

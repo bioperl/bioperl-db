@@ -672,8 +672,12 @@ sub find_by_unique_key{
 	# there should be only one row since it's a unique key
 	if(@$rows > 1) {
 	    $self->throw("Unique key query returned ".scalar(@$rows)." rows ".
-			 "instead of 1. Bummer.");
+			 "instead of only 1. Bummer.");
 	}
+	# factory provided? If so, treat it as being forced to create
+	# a new object.
+	my ($fact) = $self->_rearrange([qw(OBJ_FACTORY)], @args);
+	$obj = $fact->create_object() if $fact;
 	# convert into a persistent object if necessary
 	if(! $obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj = $self->create_persistent($obj);

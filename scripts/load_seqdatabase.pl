@@ -73,16 +73,17 @@ my $driver = 'mysql';
 my $dbpass;
 my $format = 'genbank';
 my $namespace = "bioperl";
-my $seqfilter;
-my $pipeline;
+my $seqfilter;           # see conditions in Bio::Seq::SeqBuilder
+my $mergefunc;           # if and how to merge old (found) and new objects
+my $pipeline;            # see Bio::Factory::SequenceProcessorI
 # flags
-my $remove_flag = 0;
-my $lookup_flag = 0;
-my $no_update_flag = 0;
-my $help = 0;
-my $debug = 0;
-#If safe is turned on, the script doesn't die because of one bad entry..
-my $safe_flag = 0;
+my $remove_flag = 0;     # remove object before creating?
+my $lookup_flag = 0;     # look up object before creating, update if found?
+my $no_update_flag = 0;  # do not update if found on look up?
+my $help = 0;            # WTH?
+my $debug = 0;           # try it ...
+my $testonly_flag = 0;   # don't commit anything, rollback at the end?
+my $safe_flag = 0;       # tolerate exceptions on create?
 ####################################################################
 # Global defaults or definitions not changeable through commandline
 ####################################################################
@@ -108,11 +109,13 @@ my $ok = GetOptions( 'host:s'   => \$host,
 		     'seqfilter:s' => \$seqfilter,
 		     'namespace:s' => \$namespace,
 		     'pipeline:s'  => \$pipeline,
+		     'mergeobjs:s' => \$mergefunc,
 		     'safe'     => \$safe_flag,
 		     'remove'   => \$remove_flag,
 		     'lookup'   => \$lookup_flag,
 		     'noupdate' => \$no_update_flag,
 		     'debug'    => \$debug,
+		     'testonly' => \$testonly_flag,
 		     'h' => \$help,
 		     'help' => \$help
 		     );
@@ -128,22 +131,12 @@ if((! $ok) || $help) {
 #
 # load and/or parse condition if supplied
 #
-my $condition;
-if($seqfilter) {
-    # file or subroutine?
-    if(-r $seqfilter) {
-	if(! (($condition = do $seqfilter)) && (ref($condition) eq "CODE")) {
-	    die "error in parsing seq filter $seqfilter: $@" if $@;
-	    die "unable to read file $seqfilter: $!" if $!;
-	    die "failed to run $seqfilter, or it failed to return a closure";
-	}
-    } else {
-	$condition = eval $seqfilter;
-	die "error in parsing seq filter \"$seqfilter\": $@" if $@;
-	die "\"$seqfilter\" fails to return a closure"
-	    unless ref($condition) eq "CODE";
-    }
-}
+my $condition = parse_code($seqfilter) if $seqfilter;
+
+#
+# load and/or parse object merge function if supplied
+#
+my $merge_objs = parse_code($mergefunc) if $mergefunc;
 
 #
 # determine input source(s)
@@ -171,24 +164,9 @@ if($pipeline) {
     if($objio ne "Bio::SeqIO") {
 	die "pipelining sequence processors not supported for non-SeqIOs\n";
     }
-    # split into modules
-    my @mods = split(/[,;\|\s]+/, $pipeline);
-    # instantiate a module 'loader'
-    my $loader = Bio::Root::Root->new();
-    # load and instantiate each one, then concatenate
-    foreach my $mod (@mods) {
-	$loader->_load_module($mod);
-	my $proc = $mod->new();
-	if(! $proc->isa("Bio::Factory::SequenceProcessorI")) {
-	    die "Pipeline processing module $mod does not implement ".
-		"Bio::Factory::SequenceProcessorI. Bummer.\n";
-	}
-	$proc->source_stream($pipemods[$#pipemods]) if @pipemods;
-	push(@pipemods, $proc);
-    }
-    if(! @pipemods) {
-	warn "you specified -pipeline, but no processor modules resulted\n";
-    }
+    @pipemods = setup_pipeline($pipeline);
+    warn "you specified -pipeline, but no processor modules resulted\n"
+	unless @pipemods;
 }
 
 #
@@ -203,8 +181,8 @@ my $db = Bio::DB::BioDB->new(-database => "biosql",
 			     );
 $db->verbose($debug) if $debug > 0;
 
-# adaptor
-my $adp;
+# declarations
+my ($pseq);
 
 #
 # loop over every input file and load its content
@@ -264,23 +242,26 @@ foreach $file ( @files ) {
 	}
 	# don't forget to add namespace if the parser doesn't supply one
 	$seq->namespace($namespace) unless $seq->namespace();
-	# create a persistent object out of the seq
-	my ($pseq,$lseq);
 	# look up or delete first?
+	my ($lseq);
 	if($lookup_flag || $remove_flag) {
 	    # look up
-	    $lseq = $seq->isa("Bio::Seq") ? $seq->primary_seq : $seq;
-	    $adp = $db->get_object_adaptor($lseq) unless $adp;
-	    $lseq = $adp->find_by_unique_key($lseq);
+	    #$lseq = clone_identifiable($seq, $seqin->object_factory());
+	    my $adp = $db->get_object_adaptor($seq);
+	    $lseq = $adp->find_by_unique_key($seq,
+					     -obj_factory =>
+					     $seqin->object_factory());
 	    # found?
 	    if($lseq) {
 		# delete if requested
 		$lseq->remove() if $remove_flag;
 		# skip the rest if we are not supposed to update
 		next if $no_update_flag;
+		# merge old and new if a function for this is provided
+		$seq = &$merge_objs($lseq, $seq) if $merge_objs;
 	    }
 	}
-	# make persistent
+	# create a persistent object out of the seq
 	$pseq = $db->create_persistent($seq);
 	# store the primary key of we found it by lookup (this is going to
 	# be an udate then)
@@ -289,12 +270,8 @@ foreach $file ( @files ) {
 	}
 	# try to serialize
 	eval {
-	    if($pseq->primary_key()) {
-		$pseq->store();
-	    } else {
-		$pseq->create();
-	    }
-	    $pseq->commit();
+	    $pseq->store();
+	    $pseq->commit() unless $testonly_flag;
 	};
 	if ($@) {
 	    my $msg = "Could not store ".$seq->object_id().": $@\n";
@@ -307,4 +284,72 @@ foreach $file ( @files ) {
 	}
     }
     $seqin->close();
+}
+
+$pseq->rollback() if $pseq && $testonly_flag;
+
+# done!
+
+#################################################################
+# Implementation of functions                                   #
+#################################################################
+
+sub parse_code{
+    my $src = shift;
+    my $code;
+
+    # file or subroutine?
+    if(-r $src) {
+	if(! (($code = do $src)) && (ref($code) eq "CODE")) {
+	    die "error in parsing code block $src: $@" if $@;
+	    die "unable to read file $src: $!" if $!;
+	    die "failed to run $src, or it failed to return a closure";
+	}
+    } else {
+	$code = eval $src;
+	die "error in parsing code block \"$src\": $@" if $@;
+	die "\"$src\" fails to return a closure"
+	    unless ref($code) eq "CODE";
+    }
+    return $code;
+}
+
+sub setup_pipeline{
+    my $pipeline = shift;
+    my @pipemods = ();
+
+    # split into modules
+    my @mods = split(/[,;\|\s]+/, $pipeline);
+    # instantiate a module 'loader'
+    my $loader = Bio::Root::Root->new();
+    # load and instantiate each one, then concatenate
+    foreach my $mod (@mods) {
+	$loader->_load_module($mod);
+	my $proc = $mod->new();
+	if(! $proc->isa("Bio::Factory::SequenceProcessorI")) {
+	    die "Pipeline processing module $mod does not implement ".
+		"Bio::Factory::SequenceProcessorI. Bummer.\n";
+	}
+	$proc->source_stream($pipemods[$#pipemods]) if @pipemods;
+	push(@pipemods, $proc);
+    }
+    return @pipemods;
+}
+
+sub clone_identifiable{
+    my ($obj, $fact) = @_;
+
+    my $newobj = $fact->create_object(-object_id => $obj->object_id,
+				      -version   => $obj->version,
+				      -namespace => $obj->namespace,
+				      -authority => $obj->authority);
+    if(! $newobj->isa("Bio::IdentifiableI")) {
+	die "trouble: factory class ".ref($fact)." does not create ".
+	    "Bio::IdentifiableI compliant objects. Bad.\n";
+    }
+    if($newobj->can('primary_id') &&
+       ($obj->primary_id() !~ /=(HASH|ARRAY)\(0x/)) {
+	$newobj->primary_id($obj->primary_id());
+    }
+    return $newobj;
 }

@@ -177,7 +177,7 @@ sub store_children{
     # empty, and there's no point storing anything)
     if($ac->isa("Bio::DB::PersistentObjectI")) {
 	$ok = $ac->store(-fkobjs => [$obj]) && $ok;
-	$ok = $ac->adaptor()->add_association(-objs => [$ac, $obj]) && $ok;
+	$ac->adaptor()->add_association(-objs => [$ac, $obj]);
     }
     # store the features
     # re-sync the attached seq of the features with this seq object

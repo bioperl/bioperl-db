@@ -288,7 +288,7 @@ sub store_children{
     if($ac->get_num_of_annotations() > 0) {
 	my $acadp = $self->_anncoll_adaptor();
 	$ok = $acadp->create($ac) && $ok;
-	$ok = $acadp->add_association(-objs => [$ac, $obj]) && $ok;
+	$acadp->add_association(-objs => [$ac, $obj]);
     }    
     # done
     return $ok;

@@ -82,23 +82,24 @@ package Bio::DB::Query::QueryConstraint;
 
 use vars qw(@ISA);
 use strict;
-use Bio::Root::RootI;
+use Bio::Root::Root;
 
-@ISA = qw(Bio::Root::RootI);
+@ISA = qw(Bio::Root::Root);
 
 sub new {
     my $class = shift;
 
-    my $self = {};
+    my $self = $class->SUPER::new(@_);
 
-    bless $self,$class;
     my ($str, $name, $op, $value, $neg) = 
 	$self->_rearrange([qw(STR NAME OP VALUE NEG)], @_);
+
     $self->set($str) if defined($str);
     $self->name($name) if defined($name);
     $self->operand($op) if defined($op);
     $self->value($value) if defined($value);
     $self->neg($neg) if defined($neg);
+
     return $self;
 }
 

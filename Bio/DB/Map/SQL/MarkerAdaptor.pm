@@ -85,17 +85,32 @@ sub new {
            -ids  => array ref of marker ids
            -name => marker name
            -names=> array ref of marker names
+           -pcrprimers => array ref of pcrprimers to use to search for marker  
 =cut
 
 sub get {
     my ($self, @args) = @_;
-    my ($id, $ids, $name,$names) = $self->_rearrange( [qw(ID IDS NAME NAMES)], 
+    my ($id, $ids, $name, $names,
+	$pcrprimers ) = $self->_rearrange( [qw(ID IDS NAME NAMES 
+					       PCRPRIMERS )], 
 						     @args );
 
     my (@n, @i);
+
     
     # for now we will ignore bad users who specify > 1 argument
-    # by just handling input in a precedence order.
+    # by just handling input in a precedence order.    
+    
+    if( defined $pcrprimers ) {
+	# pcr primers trump all for now
+	if( ref($pcrprimers) !~ /array/i || 
+	    scalar @$pcrprimers != 2 ) {
+	    $self->warn("Did not supply a 2-entry array ref or paramer -pcrprimers");
+	    return undef;
+	}
+	return $self->_get_marker_by_primers(@$pcrprimers);
+    }
+    
     
     if( defined $names ) {
 	if( ref($names) !~ /array/i ) {
@@ -106,6 +121,7 @@ sub get {
     } elsif( defined $name ) {
 	@n = ($name);	
     } 
+
     if( defined $ids ) {
 	if( ref($ids ) !~ /array/i ) {
 	    $self->warn("Must specify an array ref for the parameter - ids");
@@ -114,10 +130,14 @@ sub get {
 	@i = @$ids;
     } elsif( defined $id ) {
 	@i = ($id);
+    } 
+    if( ! @i && ! @n ) {
+	$self->warn("did not pass in appropriate arguments to get!");
+	return ();
     }
     # should we try and be sure that the lists produce a unique list?    
     return ( $self->_get_markers_by_ids(@i),
-	     $self->_get_markers_by_names(@n) );
+		$self->_get_markers_by_names(@n) );
 }
 
 =head2 write
@@ -148,8 +168,8 @@ sub write {
     my $sth;
     if( $marker->id ) {
 	# this is an update since marker already has an id
-
-	my $UPDATESQL = 'UPDATE marker %s WHERE markerid = ?';  
+	my $rc = 0;
+	my $UPDATESQL = 'UPDATE marker %s WHERE markerid = ? ';  
 	# let's get the original and compare for
 	# the sake of comparing aliases and map positions
 	my ($markercopy) = $self->get('-id' => $marker->id );
@@ -168,7 +188,7 @@ sub write {
 		push (@updatevalues, $marker->{$field});
 	    }
 	}
-    
+
 	if( $markercopy->pcrfwd ne $marker->pcrfwd ){
 	    push (@updatefields,"SET fwdprimer=?");
 	    push (@updatevalues, $marker->pcrfwd);
@@ -181,65 +201,81 @@ sub write {
 	    if( @updatefields ) {
 		my $sql = sprintf($UPDATESQL,
 				  join(', ', @updatefields));
-		print "sql is $sql\n";
 		$sth = $self->prepare($sql);
 		$sth->execute(@updatevalues,$marker->id);
 		$sth->finish();
 	    }
-	    # update aliases, in the current implementation we'll never 
-	    # remove aliases unless a marker is completely removed       
-	    $sth = $self->prepare(q(INSERT INTO marker_alias 
-					( alias, markerid, source ) 
-					VALUES ( ?, ?, ?) 
-					));
-	    my $sthupdate = $self->prepare(q(UPDATE marker_alias 
-					     SET source = ? 
-					     WHERE markerid = ? 
-					     AND alias = ?));
-	    foreach my $alias ( $marker->each_alias ) {
-		my $src = $marker->get_source_for_alias($alias);
+	};
+	if( $@ ) {
+	    $self->warn($@);
+	    $marker = undef;
+	    return $marker;
+	}
+	# update aliases, in the current implementation we'll never 
+	# remove aliases unless a marker is completely removed       
+	$sth = $self->prepare(q(INSERT INTO marker_alias 
+				( alias, markerid, source ) 
+				VALUES ( ?, ?, ?) 
+				));
+	my $sthupdate = $self->prepare(q(UPDATE marker_alias 
+					 SET source = ? 
+					 WHERE markerid = ? 
+					 AND alias = ?));
+	foreach my $alias ( $marker->each_alias ) {
+	    my $src = $marker->get_source_for_alias($alias);
+	    eval { 
+
 		if( ! $markercopy->is_alias($alias) ) {
 		    $sth->execute($alias,$marker->id, $src);
 		} elsif( $markercopy->get_source_for_alias($alias) ne 
 			 $src ) {
 		    $sthupdate->execute($src, $marker->id, $alias);
 		}
+	    };
+	    if( $@) {
+		$self->warn($@);
+		$rc = -1 unless ( $@ =~ /Duplicate/ );
 	    }
-	    $sth->finish();
-	    $sthupdate->finish();
-	    # update positions    
-	    my $updatesth = $self->prepare(q(UPDATE map_position 
-					     SET position = ?
-					     WHRE markerid = ?
-					     AND mapid = ?));
-
-	    my $insertsth = $self->prepare(q(INSERT INTO map_position 
-						 (position, markerid, mapid) 
-						 VALUES ( ?, ?, ?) ));
-
-	    foreach my $position ( $marker->each_position ) {
-		my $mapid = $maphash{$position->{'map'}};
-		if( ! $mapid ) {
-		    $self->warn(sprintf("Trying to add positions for map '%s', which does not exist in this database yet, please add it first",
-					$position->{'map'}));
-		}	     
-		if( !defined $markercopy->get_position($position->{'map'})) {
-		    $sth = $insertsth; 
-		} elsif( $markercopy->get_position($position->{'map'}) !=
-			 $position->{'position'} ) {
-		    $sth = $updatesth;
-		} else {  next; }	    
-
-		$sth->execute($position->{'position'}, $marker->id,$mapid);
-	    }
-	    $sth->finish();
-	    $updatesth->finish();
-	    $insertsth->finish();
-	};
-	if( $@ ) {
-	    $marker = undef;
-	    $self->warn($@);
 	}
+	$sth->finish();
+	$sthupdate->finish();
+
+	# update positions    
+	$sth = undef;
+
+	my $updatesth = $self->prepare(q(UPDATE map_position 
+					 SET position = ? 
+					 WHERE markerid = ? 
+					 AND mapid = ?));
+
+	my $insertsth = $self->prepare(q(INSERT INTO map_position 
+					 (position, markerid, mapid) 
+					 VALUES ( ?, ?, ?) ));
+
+	foreach my $position ( $marker->each_position ) {
+	    my $mapid = $maphash{$position->{'map'}};
+	    if( ! $mapid ) {
+		$self->warn(sprintf("Trying to add positions for map '%s', which does not exist in this database yet, please add it first",
+				    $position->{'map'}));
+	    }	     
+	    if( !defined $markercopy->get_position($position->{'map'})) {
+		$sth = $insertsth; 
+	    } elsif( $markercopy->get_position($position->{'map'}) !=
+		     $position->{'position'} ) {
+		$sth = $updatesth;
+	    } else {  next; }	    
+	    eval { 
+		$sth->execute($position->{'position'}, $marker->id,$mapid);
+	    };
+	    if( $@) {
+		$self->warn($@);
+		$rc = -1;
+	    }
+	}
+	$sth->finish() if( $sth);
+	$updatesth->finish();
+	$insertsth->finish();
+	$marker = undef unless( $rc == 0);
     } else { 
 	# this is a new insert       
 	eval {
@@ -257,16 +293,31 @@ sub write {
 	    # $self->get_last_id();
 	    $marker->id($sth->{'mysql_insertid'});
 	    $sth->finish();
-
-	    # let's insert aliases
-	    $sth = $self->prepare(q(INSERT INTO marker_alias 
+	};
+	if( $@ ) {
+	    if( $@ =~ /Duplicate entry/ ) {
+		return undef;
+	    }
+	    $self->warn($@);	
+	    $self->warn("Working on marker \n" . $marker->to_string());
+	    $marker = undef;
+	}
+	# let's insert aliases
+	$sth = $self->prepare(q(INSERT INTO marker_alias 
 					( markerid, alias, source) 
 					VALUES ( ?, ?, ?)));	   
 	    foreach my $alias ( $marker->each_alias ) {
-		$sth->execute($marker->id, $alias, 
-			      $marker->get_source_for_alias($alias));
+		eval { 
+		    $sth->execute($marker->id, $alias, 
+				  $marker->get_source_for_alias($alias));
+		};
+		if ($@) {
+		    $self->warn($@) unless ( $@ =~ /Duplicate entry/ &&
+					     $self->verbose < 1 );
+		}
 	    }
 	    $sth->finish();
+	eval {
 	    # let's insert map positions
 	    $sth = $self->prepare(q(INSERT INTO map_position 
 					(markerid, position, mapid) 
@@ -277,11 +328,14 @@ sub write {
 		    $self->warn("Map " . $position->{'map'}. " does not exist, please add it before adding this marker");			    
 		    next;
 		}
-		$sth->execute($marker->id,$position->{'position'},
-			      $mapid);
+		    $sth->execute($marker->id,$position->{'position'},
+				  $mapid);
 	    }
 	};
 	if($@ ) {
+	    if( $@ =~ /Duplicate entry/ ) {
+		return undef;
+	    }
 	    $self->warn($@);	
 	    $self->warn("Working on marker \n" . $marker->to_string());
 	    $marker = undef;
@@ -321,14 +375,16 @@ sub delete{
    };
    if($@) {
        $self->warn($@);
+       return 0;
    }
+   return 1;
 }
 
 
 sub _get_markers_by_ids {
     my ($self, @ids) = @_;
     return () unless ( @ids);
-    
+
     my $TEMPTABLESQL = q(CREATE TEMPORARY TABLE __markers 
 			 ( markerid integer(11) not null PRIMARY KEY));
     my $TEMPLOAD = q(INSERT INTO __markers (markerid) values ( ? ));
@@ -364,6 +420,8 @@ sub _get_markers_by_ids {
     # can't find the syntax
 
     eval { $self->prepare($TEMPTABLESQL)->execute() };
+    if( $@ ) { $self->warn($@); }
+
     eval {	
 	my $sth = $self->prepare($TEMPLOAD);
 	foreach my $id ( @ids ) {
@@ -397,17 +455,13 @@ sub _get_markers_by_ids {
 	$sth->finish();			
     };
     if( $@ ) { $self->warn($@);	}
-    eval { $self->prepare('DELETE FROM __markers')->execute() };
-    
+    eval { $self->prepare('DROP TABLE __markers')->execute() };
     return values %markers;
 }
 
 sub _get_markers_by_names {
     my ($self, @names) = @_;
     return () unless ( @names);
-    my $TEMPTABLESQL =q(CREATE TEMPORARY TABLE __markers 
-			( markerid integer(11) not null PRIMARY KEY));
-    my $TEMPLOAD = q(INSERT INTO __markers (markerid) values ( ? ));
         
     my $LOCUSFIND = 'SELECT markerid FROM marker WHERE locus = ?';
     my $PROBEFIND = 'SELECT markerid FROM marker WHERE probe = ?';
@@ -459,9 +513,33 @@ sub _get_markers_by_names {
     };
     if( $@ ) {
 	$self->warn($@);
-    }
-    eval { $self->prepare('DELETE FROM __markers')->execute() };
+    }    
     return $self->_get_markers_by_ids(@ids);
+}
+
+sub _get_marker_by_primers {
+    my ($self, $primer1,$primer2) = @_;
+    my $SQL = q(SELECT markerid FROM marker 
+		WHERE fwdprimer = ? AND revprimer = ?);
+    my $marker;
+    eval { 
+	my $sth = $self->prepare($SQL);
+	$sth->execute($primer1,$primer2);
+	my ($row) = $sth->fetchrow_array;
+	if( $row ) {	    
+	    ( $marker)  = $self->get('-id' => $row);
+	} else { 
+	    $sth->execute($primer2,$primer1);
+	    ($row) = $sth->fetchrow_array;
+	    if( $row ) {
+		( $marker) = $self->get('-id' => $row);
+	    }
+	}	
+    };
+    if( $@ ){
+	$self->warn($@);	
+    }
+    return $marker;
 }
 
 1;

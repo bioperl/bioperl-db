@@ -137,7 +137,7 @@ sub get {
     }
     # should we try and be sure that the lists produce a unique list?    
     return ( $self->_get_markers_by_ids(@i),
-		$self->_get_markers_by_names(@n) );
+	     $self->_get_markers_by_names(@n) );
 }
 
 =head2 write
@@ -294,8 +294,9 @@ sub write {
 	    $marker->id($sth->{'mysql_insertid'});
 	    $sth->finish();
 	};
-	if( $@ ) {
+	if( $@ ) {    
 	    if( $@ =~ /Duplicate entry/ ) {
+		$self->warn($@) if( $self->verbose >= 1);
 		return undef;
 	    }
 	    $self->warn($@);	
@@ -313,6 +314,7 @@ sub write {
 				  $marker->get_source_for_alias($alias));
 		};
 		if ($@) {
+		    $self->{'_dblasterr'} = $@;	    
 		    $self->warn($@) unless ( $@ =~ /Duplicate entry/ &&
 					     $self->verbose < 1 );
 		}
@@ -381,6 +383,63 @@ sub delete{
    return 1;
 }
 
+=head2 add_duplicate_marker
+
+ Title   : add_marker_duplicate_marker
+ Usage   : boolean $adaptor->add_duplicate_marker($marker ); 
+ Function: Tries to find a duplicate marker for a marker and 
+           updates it to contain merge of the two information srcs
+ Returns : boolean if marker was added
+ Args    : Bio::DB::Map::MarkerI object
+
+
+=cut
+
+sub add_duplicate_marker {
+   my ($self,$marker) = @_;
+   return 0 unless( defined $marker && ref($marker) 
+		     && $marker->isa('Bio::DB::Map::MarkerI') );
+   
+   my @potential = $self->get('-pcrprimers' => [ $marker->pcrfwd,
+						 $marker->pcrrev ] );
+   
+   if( ! @potential ) {
+       @potential = $self->get('-name' => $marker->probe );       
+       if( ! @potential ) {
+	   @potential = $self->get('-name' => $marker->locus );
+	   if( ! @potential ) {
+	       @potential = $self->get('-names' => [ $marker->each_alias ] );
+	   }
+       }
+   }
+
+   if( @potential > 1) { $self->warn("got back " . scalar @potential . 
+				     " markers for query!"); 
+		     }
+   my $dup = shift @potential; # take the first one
+   return 0 if ( ! $dup );      
+   
+   foreach my $map ( $marker->each_position ) {
+       if( $dup->get_position($map->{'map'} ) ) {
+	   $dup->add_position($map->{'position'}, $map->{'map'} );
+       }	       
+   }	     
+    
+   foreach my $alias ( $marker->each_alias ) {
+       if( ! $dup->is_alias($alias) ) {
+	   $dup->add_alias($alias);
+       }       
+   }
+      
+   if( $dup->locus ne $marker->locus ) {
+       $dup->add_alias($marker->locus);
+   }
+   if( $dup->probe  ne $marker->probe ) {
+       $dup->add_alias($marker->probe);
+   }
+   return $self->write($dup);   
+}
+
 
 sub _get_markers_by_ids {
     my ($self, @ids) = @_;
@@ -421,7 +480,10 @@ sub _get_markers_by_ids {
     # can't find the syntax
 
     eval { $self->prepare($TEMPTABLESQL)->execute() };
-    if( $@ ) { $self->warn($@); }
+    if( $@ ) {
+	# this is going to warn whenever we write > 1 marker at a
+	# time, but there is no reason to pay the create/drop overhead
+    }
 
     eval {	
 	my $sth = $self->prepare($TEMPLOAD);
@@ -456,7 +518,7 @@ sub _get_markers_by_ids {
 	$sth->finish();			
     };
     if( $@ ) { $self->warn($@);	}
-    eval { $self->prepare('DROP TABLE __markers')->execute() };
+    eval { $self->prepare('DELETE FROM __markers')->execute() };
     return values %markers;
 }
 
@@ -543,4 +605,8 @@ sub _get_marker_by_primers {
     return $marker;
 }
 
+sub prepare {
+    my ($self, @args) = @_;
+    $self->SUPER::prepare(@args);
+}
 1;

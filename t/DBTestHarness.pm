@@ -43,7 +43,7 @@ my $counter=0;
 
 {
     # This is a list of possible entries in the config
-    # file "EnsTestDB.conf"
+    # file "DBHarness.conf"
     my %known_field = map {$_, 1} qw(
         driver
         host
@@ -182,7 +182,7 @@ sub create_db {
     my( $self ) = @_;
     
     ### FIXME: not portable between different drivers
-    my $locator = 'dbi:'. $self->driver .':host='. $self->host .';database=mysql';
+    my $locator = 'dbi:'. $self->driver .':host='. $self->host .';';
     my $db = DBI->connect(
         $locator, $self->user, $self->password, {RaiseError => 1}
         ) or confess "Can't connect to server";
@@ -223,11 +223,11 @@ sub get_DBAdaptor {
     my $module = $self->module;
 
     return $module->new( 
-			 -dbname => $self->dbname,
-			 -host   => $self->host,
-			 -user   => $self->user,
-			 -pass   => $self->password,
-			 -port   => $self->port
+			 -"dbname" => $self->dbname,
+			 -"host"   => $self->host,
+			 -"user"   => $self->user,
+			 -"pass"   => $self->password,
+			 -"port"   => $self->port
 			 );
 
 }

@@ -4,7 +4,7 @@ CREATE TABLE map_study (
     map_type_id	        integer(11) not null,
     species_id          integer(11) not null,
     description         text not null,
-    evidence_id         integer(11),
+    evidence_id         integer(11)
 );
 
 CREATE TABLE map_type (
@@ -70,7 +70,7 @@ CREATE TABLE marker_to_dna (
 
 CREATE TABLE marker_rflp (
     marker_id           integer(11) not null PRIMARY KEY, 
-    enzyme_id           integer(11) not null,
+    enzyme_id           integer(11) not null
 );
 
 CREATE TABLE marker_rapd (
@@ -85,7 +85,7 @@ CREATE TABLE marker_microsatellite (
     flanking_gc_percent float(8,4),
     length_low          integer(6),
     length_high         integer(6),
-    motif               varchar(128) not null,
+    motif               varchar(128) not null
 );
 
 CREATE TABLE marker_sts (
@@ -104,13 +104,13 @@ CREATE TABLE marker_aflp (
     oligo1_id           integer(11) not null,
     oligo2_id           integer(11) not null,
     cycle_count         integer(11),  -- same as "amplification" in RiceGenes
-    molecular_weight    float(8,4), 
+    molecular_weight    float(8,4) 
 );
 
 CREATE TABLE marker_isozyme (
     marker_id           integer(11) not null PRIMARY KEY, 
     go_id               integer(11) not null, -- from the Gene Ontology (tm)
-    molecular_weight    float(8,4), 
+    molecular_weight    float(8,4) 
 );
 
 create table marker_alias (
@@ -139,7 +139,7 @@ CREATE TABLE marker_to_marker_group (
 
 CREATE TABLE marker_group (
     marker_group_id     integer(11) not null AUTO_INCREMENT PRIMARY KEY,
-    evidence_id         integer(11) not null,
+    evidence_id         integer(11) not null
     
 );
 
@@ -162,7 +162,7 @@ CREATE TABLE microsatellite_allele (
    allele_length         integer(6),
    UNIQUE KEY            i_marker_strain (marker_id,strain_id)
 );
-
+INSERT INTO map (map_id,map_study_id,map_name,linkage_group) values(NULL,1,'marshfield','chr');
 INSERT INTO map_type (map_type,map_units) VALUES ('Genetic','cM');
 INSERT INTO map_type (map_type,map_units) VALUES ('Physical','Kb');
 INSERT INTO map_type (map_type,map_units) VALUES ('Radiation Hybrid','cR');

@@ -92,21 +92,21 @@ sub get{
    }
    my $map;
    eval {
+
        my $SQL = q(SELECT 
-		   mapid as '-id',
-		   name  as '-name',
-		   units as '-units'
+		   map_id as '-id',
+		   map_name  as '-name'
 		   FROM map WHERE );
        if( $id ) {
-	   $SQL .= 'mapid = ?';
+	   $SQL .= 'map_id = ?';
        } else { 
-	   $SQL .= 'name = ?';
+	   $SQL .= 'map_name = ?';
        }
        my $sth = $self->prepare($SQL); 
        if( ! $id  ) { $id = $name; }
        $sth->execute($id );
        my $row;
-       # only want the first hit, plus name and mapid are both unique fields
+       # only want the first hit, plus name and map_id are both unique fields
        if( defined($row = $sth->fetchrow_hashref ) ){ 
 	   $map = new Bio::DB::Map::Map( '-adaptor' => $self,
 					 %{$row} );
@@ -136,9 +136,9 @@ sub write{
    my ($self,$map) = @_;
 
    eval { 
-       my $sth = $self->prepare(q(INSERT INTO map ( name, units) 
-				  VALUES ( ?, ? ) ));
-       $sth->execute($map->name,$map->units);
+       my $sth = $self->prepare(q(INSERT INTO map ( map_name) 
+				  VALUES ( ?) ));
+       $sth->execute($map->name);
        $map->id($sth->{'mysql_insertid'});
    };
    if( $@ ){
@@ -166,7 +166,7 @@ sub get_mapids_hash {
    
    my %mapinfo;
    eval {
-       my $sth = $self->prepare("SELECT mapid, name FROM map");
+       my $sth = $self->prepare("SELECT map_id, map_name FROM map");
        $sth->execute();
        
        while( my($mapid,$name) = $sth->fetchrow_array ) {
@@ -210,7 +210,7 @@ sub get_markers_for_region{
    }
    
    my $SQL =q(SELECT m.markerid from marker m, map_position p 
-	      WHERE m.chrom = ? AND p.mapid = ?
+	      WHERE m.chrom = ? AND p.map_id = ?
 	      AND m.markerid = p.markerid AND
 	      p.position >= ? AND p.position <= ?
 	      );
@@ -267,8 +267,8 @@ sub get_next_marker{
    
    my $SQL = q(SELECT query.markerid 
 	       FROM map_position start, map_position query 
-	       WHERE start.markerid = ? AND start.mapid = ?
-	       AND start.mapid = query.mapid 
+	       WHERE start.markerid = ? AND start.map_id = ?
+	       AND start.map_id = query.map_id 
 	       );
    if( $direction > 0 ) { $SQL .= ' AND query.position > start.position'; }
    else { $SQL .= ' AND query.position < start.position'; }
@@ -306,7 +306,7 @@ sub get_Chrom_length{
    
    my $SQL = q(SELECT max(position) 
 	       FROM map_position p, marker m
-	       WHERE m.chrom = ? AND p.mapid = ? AND 
+	       WHERE m.chrom = ? AND p.map_id = ? AND 
 	       m.markerid = p.markerid);
    my ($len);
    eval { 
@@ -337,7 +337,7 @@ sub get_all_markerids_for_map{
    if( ! $mapid ) { return (); }
    
    my @ids;
-   my $SQL = 'SELECT markerid from map_position where mapid = ?';
+   my $SQL = 'SELECT markerid from map_position where map_id = ?';
    eval { 
        my $sth = $self->prepare($SQL);       
        $sth->execute($mapid);

@@ -286,7 +286,7 @@ sub write {
 					(locus,probe,type,chrom,
 					 fwdprimer,revprimer,length)
 					VALUES ( ?, ?, ?, ?, ?, ?, ?)));
-	    my (undef,$chrom) = ( $marker->chrom =~ /(chr)?(X|Y|UL|\d+)/ );
+	    my ($chr,$chrom) = ( $marker->chrom =~ /(chr)?(X|Y|UL|\d+)/ );
 
 	    $sth->execute($marker->locus,$marker->probe,$marker->type,
 			  $chrom, $marker->pcrfwd,$marker->pcrrev, 

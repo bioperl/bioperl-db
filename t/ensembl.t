@@ -67,7 +67,7 @@ ok ($dbseq->desc       eq $test_desc);
 
 #$harness->pause;
 
-$out = Bio::SeqIO->new( -file => '>t/ensembl_test.gb' , -format => 'GenBank');
+$out = Bio::SeqIO->new( -file => '>t/ensembl_test.gb' , -"format" => 'GenBank');
 
 
 $out->write_seq($dbseq);

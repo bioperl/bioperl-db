@@ -87,9 +87,13 @@ use Bio::DB::BioSeqDatabase;
 sub fetch_by_name_store_if_needed{
    my ($self,$name) = @_;
 
-   my $id = $self->fetch_by_name($name);
-   
-   if( !defined $id || $id eq '' ) {
+   my $id;
+   eval {
+       $id = $self->fetch_by_name($name);
+   };
+
+   #if( !defined $id || $id eq '' ) {
+   if ($@) {
        $id = $self->store($name);
    }
 

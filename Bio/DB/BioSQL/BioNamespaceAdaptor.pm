@@ -301,8 +301,11 @@ sub populate_from_row{
            a derived class may choose to override find_by_unique_key() instead,
            as that one calls this method.
  Example :
- Returns : A reference to a hash with the names of the object''s slots in the
-           unique key as keys and their values as values.
+ Returns : One or more references to hash(es) where each hash
+           represents one unique key, and the keys of each hash
+           represent the names of the object's slots that are part of
+           the particular unique key and their values are the values
+           of those slots as suitable for the key.
  Args    : The object with those attributes set that constitute the chosen
            unique key (note that the class of the object will be suitable for
            the adaptor).

@@ -744,46 +744,134 @@ sub find_by_primary_key{
 
  Title   : find_by_unique_key
  Usage   :
- Function: Locates the entry matching the unique key attributes as set in the
-           passed object, and populates a persistent object with this entry.
+ Function: Locates the entry matching the unique key attributes as set
+           in the passed object, and populates a persistent object
+           with this entry.
+
+           This method will ask get_unique_key_query() for the actual
+           alternative key(s) by which to search. It can handle
+           multiple alternative keys returned by
+           get_unique_key_query(). So the knowledge about which
+           properties of an object constitute an alternative key, and
+           how to retrieve the values for those properties, is with
+           get_unique_key_query() which therefore must be overridden
+           by every adaptor.
+
+           Multiple keys will be semantically ORed with short-cut
+           evaluation, meaning the method will loop over all
+           alternative keys and terminate the loop as soon as a match
+           is found. Thus, the order of multiple keys returned by
+           get_unique_key_query() does matter.
 
  Example :
  Returns : A Bio::DB::PersistentObjectI implementing object, with the
            attributes populated with values provided by the entry in the
            datastore, or undef if no matching entry was found. If one was
            found, the object returned will be the first argument if that
-           implemented Bio::DB::PersistentObjectI already.
+           implemented Bio::DB::PersistentObjectI already, and a new
+           persistent object otherwise.
  Args    : The object with those attributes set that constitute the chosen
            unique key (note that the class of the object must be suitable for
            the adaptor).
+
            Additional attributes and values if required, passed as named
-           parameters.
+           parameters. Specifically noteworthy are
+
+            -fkobjs   a reference to an array holding foreign key
+                      objects if those can't be retrieved from the
+                      object itself (e.g., a Comment object will need
+                      the Seq object passed with this argument)
+
+            -obj_factory the object factory to use to create new
+                      objects when a matching row is found. If not
+                      specified, the passed object will be populated
+                      rather than creating a new object.
 
 
 =cut
 
 sub find_by_unique_key{
     my ($self,$obj,@args) = @_;
+    my $match;
 
     # first gather the foreign objects
     my @fkobjs = $self->get_foreign_key_objects($obj,@args);
     # get slots and their values for the most appropriate UK
-    my $ukval_h = $self->get_unique_key_query($obj,\@fkobjs);
-    # if there are no keys, there's no appropriate UK
-    return () if (! $ukval_h) || (! %$ukval_h);
+    my @ukqueries = $self->get_unique_key_query($obj,\@fkobjs);
+    # factory provided? We need to retrieve that here in order to pass it
+    # to the wrapped method.
+    my ($fact) = $self->_rearrange([qw(OBJ_FACTORY)], @args);
+    # now loop over all queries, and terminate once a match is found
+    foreach my $ukquery (@ukqueries) {
+	# is this a meaningful query?
+	next unless $ukquery && %$ukquery;
+	# pass on to the single-query method to do the work
+	$match = $self->_find_by_unique_key($obj,$ukquery,\@fkobjs,$fact);
+	# terminate if found
+	last if $match;
+    }
+    # done
+    return $match;
+}
+
+=head2 _find_by_unique_key
+
+ Title   : _find_by_unique_key
+ Usage   :
+ Function: Locates the entry matching the unique key attributes as set in the
+           passed object, and populates a persistent object with this entry.
+
+           This is the protected version of find_by_unique_key. Since
+           it requires more upfront work to pass the right parameters
+           in the right order, you should not call it from outside,
+           but there may be situations where you want to call this
+           method from a derived class.
+
+ Example :
+ Returns : A Bio::DB::PersistentObjectI implementing object, with the
+           attributes populated with values provided by the entry in the
+           datastore, or undef if no matching entry was found. If one was
+           found, the object returned will be the first argument if that
+           implemented Bio::DB::PersistentObjectI already, and a new
+           persistent object otherwise.
+ Args    : 
+
+           - The object with those attributes set that constitute the
+             chosen unique key (note that the class of the object must
+             be suitable for the adaptor).
+
+           - The query as an anonymous hash with keys being properties
+             in the unique key. See get_unique_key_query() for a more
+             detailed description on what the expected structure is.
+
+           - A reference to an array of foreign key objects if
+             applicable (undef if the entity doesn't have any foreign
+             keys).
+
+           - The object factory to use to create a new object if a
+             matching row is found. Optional; if not specified the
+             passed object will be populated with the found values
+             rather than a new object created.
+
+
+=cut
+
+sub _find_by_unique_key{
+    my ($self,$obj,$query_h,$fkobjs,$fact) = @_;
+
     # matching object cached? 
-    my $obj_key = join("|", %$ukval_h);
+    my $obj_key = join("|", %$query_h);
     my $cobj = $self->obj_cache($obj_key);
     return $cobj if $cobj;
     # no, we'll have to fetch this one
     #
     # construct key for statement cache -- we'll just use the concatenated keys
-    my $cache_key = "SELECT UK ".ref($self).join(";", sort (keys %$ukval_h));
+    my $cache_key = "SELECT UK ".ref($self).join(";", sort (keys %$query_h));
     # statement cached?
     my $sth = $self->sth($cache_key);
     if(! $sth) {
 	# not cached, get from driver peer
-	$sth = $self->dbd()->prepare_findbyuk_sth($self, $ukval_h,\@fkobjs);
+	$sth = $self->dbd()->prepare_findbyuk_sth($self, $query_h, $fkobjs);
 	# and cache
 	$self->sth($cache_key, $sth);
     }
@@ -793,12 +881,12 @@ sub find_by_unique_key{
 	$i = 0;
 	$self->debug(join("", map {
 	    substr(ref($self),rindex(ref($self),"::")+2).
-	    ": binding UK column ".(++$i)." to \"".$ukval_h->{$_}."\" ($_)\n";
-	} keys %$ukval_h));
+	    ": binding UK column ".(++$i)." to \"".$query_h->{$_}."\" ($_)\n";
+	} keys %$query_h));
     }
     $i = 0;
-    foreach (keys %$ukval_h) {
-	$sth->bind_param(++$i, $ukval_h->{$_});
+    foreach (keys %$query_h) {
+	$sth->bind_param(++$i, $query_h->{$_});
     }
     # execute and check for error
     if(! $sth->execute()) {
@@ -820,13 +908,12 @@ sub find_by_unique_key{
 			 " returned ".scalar(@$rows)." rows instead of 1. ".
 			 "Query was [".
 			 join(",",
-			      map { "$_=\"".$ukval_h->{$_}."\""; }
-			      keys %$ukval_h).
+			      map { "$_=\"".$query_h->{$_}."\""; }
+			      keys %$query_h).
 			 "]");
 	}
 	# factory provided? If so, treat it as being forced to create
 	# a new object.
-	my ($fact) = $self->_rearrange([qw(OBJ_FACTORY)], @args);
 	$obj = $fact->create_object() if $fact;
 	# convert into a persistent object if necessary
 	if(! $obj->isa("Bio::DB::PersistentObjectI")) {
@@ -834,7 +921,7 @@ sub find_by_unique_key{
 	}
 	# populate the object with what we found
 	$obj = $self->_build_object(-obj => $obj,
-				    -num_fks => scalar(@fkobjs),
+				    -num_fks => scalar(@$fkobjs),
 				    -row => $rows->[0]);
 	# cache it 
 	$self->obj_cache($obj_key, $obj);
@@ -1904,19 +1991,46 @@ sub populate_from_row{
 
  Title   : get_unique_key_query
  Usage   :
- Function: Obtain the suitable unique key slots and values as determined by the
-           attribute values of the given object and the additional foreign
-           key objects, in case foreign keys participate in a UK. 
+ Function: Obtain the suitable unique key slots and values as
+           determined by the attribute values of the given object and
+           the additional foreign key objects, in case foreign keys
+           participate in a UK.
 
-           This implementation assumes there are no unique keys defined for
-           the entity adapted by this class and hence returns an empty hash
-           ref. This is going to be inappropriate for almost all entities
-           and hence should be overridden by a derived class. Alternatively,
-           a derived class may choose to override find_by_unique_key() instead,
-           as that one calls this method.
+           This method embodies the knowledge about which properties
+           constitute the alternative keys for an object (entity) and
+           how to obtain the values of those properties from the
+           object. Therefore, unless there is no alternative key for
+           an entity, the respective (derived) adaptor must override
+           this method.
+
+           If there are multiple alternative keys for an entity, the
+           overriding implementation may choose to determine at
+           runtime the best alternative key given the object and then
+           return only a single alternative key, or it may choose to
+           return an array of (supposedly equally suitable)
+           alternative keys. Note that if every alternative key
+           returned will be searched for until a match is found
+           (short-cut evaluation), so returning partially populated
+           alternative keys is usually not wise.
+
+           This implementation assumes there are no unique keys
+           defined for the entity adapted by this class and hence
+           returns an empty hash ref. Instead of overriding this
+           method a derived class may choose to override
+           find_by_unique_key() instead, as that one calls this
+           method.
+
+           See the documentation of find_by_unique_key() for further
+           information on what the return value is used for and what
+           the implications are.
+
  Example :
- Returns : A reference to a hash with the names of the object''s slots in the
-           unique key as keys and their values as values.
+ Returns : One or more references to hash(es) where each hash
+           represents one unique key, and the keys of each hash
+           represent the names of the object's slots that are part of
+           the particular unique key and their values are the values
+           of those slots as suitable for the key.
+
  Args    : The object with those attributes set that constitute the chosen
            unique key (note that the class of the object will be suitable for
            the adaptor).

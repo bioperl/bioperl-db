@@ -76,6 +76,7 @@ use vars qw(@ISA);
 use strict;
 
 use Bio::Annotation::Reference;
+use Bio::Annotation::DBLink;
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
 use Bio::DB::PersistentObjectI;
 
@@ -233,7 +234,12 @@ sub attach_foreign_key_objects{
     if($fks && @$fks && $fks->[0]) {
 	my $dbl = $self->_dbxref_adaptor->find_by_primary_key($fks->[0]);
 	if($dbl) {
-	    $obj->medline($dbl->primary_id());
+	    if(uc($dbl->database()) eq "PUBMED") {
+		$obj->pubmed($dbl->primary_id());
+	    } else {
+		# we treat everything else as MEDLINE. Not very clean.
+		$obj->medline($dbl->primary_id());
+	    }
 	} else {
 	    $ok = 0;
 	}
@@ -370,8 +376,11 @@ sub populate_from_row{
            key objects, in case foreign keys participate in a UK. 
 
  Example :
- Returns : A reference to a hash with the names of the object''s slots in the
-           unique key as keys and their values as values.
+ Returns : One or more references to hash(es) where each hash
+           represents one unique key, and the keys of each hash
+           represent the names of the object's slots that are part of
+           the particular unique key and their values are the values
+           of those slots as suitable for the key.
  Args    : The object with those attributes set that constitute the chosen
            unique key (note that the class of the object will be suitable for
            the adaptor).
@@ -383,20 +392,37 @@ sub populate_from_row{
 
 sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
-    my $uk_h = {};
+    my @ukqueries = ();
 
     # UK is either the dbxref foreign key, or the (computed) identifier
     # for this object
     if($obj->medline()) {
 	my $dbl = Bio::Annotation::DBLink->new(-database => "MEDLINE",
-					     -primary_id => $obj->medline);
+					       -primary_id => $obj->medline);
 	$dbl = $self->_dbxref_adaptor->find_by_unique_key($dbl);
-	$uk_h->{'medline'} = $dbl ? $dbl->primary_key() : undef;
-    } elsif($obj->authors()) {
-	$uk_h->{'doc_id'} = $self->_crc64($obj);
+	if($dbl) {
+	    push(@ukqueries, {
+		'medline' => $dbl->primary_key(),
+	    });
+	}
+    }
+    if($obj->medline()) {
+	my $dbl = Bio::Annotation::DBLink->new(-database => "PubMed",
+					       -primary_id => $obj->pubmed);
+	$dbl = $self->_dbxref_adaptor->find_by_unique_key($dbl);
+	if($dbl) {
+	    push(@ukqueries, {
+		'pubmed' => $dbl->primary_key(),
+	    });
+	}
+    }
+    if($obj->authors()) {
+	push(@ukqueries, {
+	    'doc_id' => $self->_crc64($obj),
+	});
     }
     
-    return $uk_h;
+    return @ukqueries;
 }
 
 
@@ -515,11 +541,16 @@ sub _dbxref_adaptor{
 sub _dblink_fk{
     my $self = shift;
     my $obj = shift;
-    my $dbl;
+    my ($db,$id,$dbl);
 
     if($obj->medline()) {
-	$dbl = Bio::Annotation::DBLink->new(-database => "MEDLINE",
-					    -primary_id => $obj->medline);
+	$db = "MEDLINE"; $id = $obj->medline();
+    } elsif($obj->pubmed()) {
+	$db = "PubMed"; $id = $obj->pubmed();
+    }
+    if($db) {
+	$dbl = Bio::Annotation::DBLink->new(-database => $db,
+					    -primary_id => $id);
 	$dbl = $self->_dbxref_adaptor->create_persistent($dbl);
     }
     return $dbl;

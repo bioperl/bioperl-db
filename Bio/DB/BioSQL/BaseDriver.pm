@@ -432,8 +432,12 @@ sub insert_object{
     while($i < @slots) {
 	if($slotmap->{$slots[$i]} &&
 	   (substr($slotmap->{$slots[$i]},0,2) ne '=>')) {
-	    $adp->debug("binding column $j to \"", $slotvals->[$i],
-			"\" ($slots[$i])\n");
+	    if($adp->verbose > 0) {
+		$adp->debug(substr(ref($adp),rindex(ref($adp),"::")+2).
+			    "::insert: ".
+			    "binding column $j to \"", $slotvals->[$i],
+			    "\" ($slots[$i])\n");
+	    }
 	    $sth->bind_param($j, $slotvals->[$i]);
 	    $j++;
 	}
@@ -445,9 +449,15 @@ sub insert_object{
 	    # If it's an object, the value to bind is the primary key.
 	    # Otherwise bind undef.
 	    my $fk = $o && ref($o) ? $o->primary_key() : undef;
-	    $adp->debug("binding column $j to \"", $fk, "\" (FK to ",
-			($o ? (ref($o) ? ref($o->obj()) : $o) : "<unknown>"),
-			")\n");
+	    if($adp->verbose > 0) {
+		$adp->debug(substr(ref($adp),rindex(ref($adp),"::")+2).
+			    "::insert: ".
+			    "binding column $j to \"", $fk,
+			    "\" (FK to ",
+			    ($o ?
+			     (ref($o) ? ref($o->obj()) : $o) : "<unknown>"),
+			    ")\n");
+	    }
 	    $sth->bind_param($j, $fk);
 	    $j++;
 	}
@@ -539,8 +549,12 @@ sub update_object{
     while($i < @slots) {
 	if($slotmap->{$slots[$i]} &&
 	   (substr($slotmap->{$slots[$i]},0,2) ne '=>')) {
-	    $adp->debug("binding column $j to \"" .
-			$slotvals->[$i] . "\" ($slots[$i])\n");
+	    if($adp->verbose > 0) {
+		$adp->debug(substr(ref($adp),rindex(ref($adp),"::")+2).
+			    "::update: ".
+			    "binding column $j to \"" .
+			    $slotvals->[$i] . "\" ($slots[$i])\n");
+	    }
 	    $sth->bind_param($j, $slotvals->[$i]);
 	    $j++;
 	}
@@ -554,8 +568,12 @@ sub update_object{
 	    my $fk = ref($o) ?
 		$o->primary_key() :
 		$o =~ /^\d+$/ ? $o : undef;
-	    $adp->debug("binding column $j to \"$fk\" (FK to ".
-			$self->table_name($o) . ")\n");
+	    if($adp->verbose > 0) {
+		$adp->debug(substr(ref($adp),rindex(ref($adp),"::")+2).
+			    "::update: ".
+			    "binding column $j to \"$fk\" (FK to ".
+			    $self->table_name($o) . ")\n");
+	    }
 	    $sth->bind_param($j, $fk);
 	    $j++;
 	}

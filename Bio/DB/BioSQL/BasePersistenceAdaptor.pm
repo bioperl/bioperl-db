@@ -363,8 +363,10 @@ sub add_association{
     # bind columns: first objects
     $i = 1;
     foreach my $obj (@$objs) {
-	$self->debug("binding column $i to \"".$obj->primary_key().
-		    "\" (FK to ".ref($obj->obj()).")\n");
+	$self->debug(substr(ref($self),rindex(ref($self),"::")+2).
+		     "::add_assoc: ".
+		     "binding column $i to \"".$obj->primary_key().
+		     "\" (FK to ".ref($obj->obj()).")\n");
 	$sth->bind_param($i, $obj->primary_key());
 	$i++;
     }
@@ -376,7 +378,9 @@ sub add_association{
 				         $dbd->association_table_name($objs));
 	foreach my $valkey (keys %$values) {
 	    if($columnmap->{$valkey}) {
-		$self->debug("binding column $i to \"",
+		$self->debug(substr(ref($self),rindex(ref($self),"::")+2).
+			     "::add_assoc: ".
+			     "binding column $i to \"",
 			     $values->{$valkey}, "\" ($valkey)\n");
 		$sth->bind_param($i, $values->{$valkey});
 		$i++;
@@ -567,6 +571,10 @@ sub find_by_primary_key{
 	$self->sth($cache_key, $sth);
     }
     # bind primary key and execute
+    if($self->verbose > 0) {
+	$self->debug(substr(ref($self),rindex(ref($self),"::")+2).
+		     ": binding PK column to \"$dbid\"\n");
+    }
     if(! $sth->execute($dbid)) {
 	# The subsequent exception may be caught. Remove sth from cache
 	# in order not to trip up obscure driver-specific bugs.
@@ -648,7 +656,8 @@ sub find_by_unique_key{
     if($self->verbose > 0) {
 	$i = 0;
 	$self->debug(join("", map {
-	    "binding UK column ".(++$i)." to \"".$ukval_h->{$_}."\" ($_)\n";
+	    substr(ref($self),rindex(ref($self),"::")+2).
+	    ": binding UK column ".(++$i)." to \"".$ukval_h->{$_}."\" ($_)\n";
 	} keys %$ukval_h));
     }
     $i = 0;
@@ -804,19 +813,26 @@ sub find_by_association{
     $i = 1;
     foreach my $obj (@$objs) {
 	if(ref($obj) && $obj->isa("Bio::DB::PersistentObjectI")) {
-	    $self->debug("binding column $i to \"".$obj->primary_key().
-			 "\" (PK of ".ref($obj->obj()).")\n");
+	    if($self->verbose > 0) {
+		$self->debug(substr(ref($self),rindex(ref($self),"::")+2).
+			     ": binding ASSOC column $i to \"".
+			     $obj->primary_key().
+			     "\" (FK to ".ref($obj->obj()).")\n");
+	    }
 	    $sth->bind_param($i, $obj->primary_key());
 	    $i++;
 	}
     }
     # bind values for additional constraints if any
     foreach my $constraint ($constr ? @$constr : ()) {
-	$self->debug("binding column $i to \"".
-		     $values->{$constraint}.
-		     "\" (constraint ".$constraint->name.")\n");
-	    $sth->bind_param($i, $values->{$constraint});
-	    $i++;
+	if($self->verbose > 0) {
+	    $self->debug(substr(ref($self),rindex(ref($self),"::")+2).
+			 ": binding ASSOC column $i to \"".
+			 $values->{$constraint}.
+			 "\" (constraint ".$constraint->name.")\n");
+	}
+	$sth->bind_param($i, $values->{$constraint});
+	$i++;
     }
     # execute
     if(! $sth->execute()) {

@@ -25,7 +25,7 @@
           <boolean val="false"/>
         </attribute>
         <attribute name="scaling">
-          <real val="0.801613"/>
+          <real val="0.750123"/>
         </attribute>
         <attribute name="fitto">
           <boolean val="true"/>
@@ -64,19 +64,19 @@
   <layer name="Background" visible="true">
     <object type="UML - Class" version="0" id="O0">
       <attribute name="obj_pos">
-        <point val="0.903449,0.524769"/>
+        <point val="1.10345,0.324769"/>
       </attribute>
       <attribute name="obj_bb">
-        <rectangle val="0.853449,0.474769;12.9038,7.77477"/>
+        <rectangle val="1.05345,0.274769;13.5886,8.37477"/>
       </attribute>
       <attribute name="elem_corner">
-        <point val="0.903449,0.524769"/>
+        <point val="1.10345,0.324769"/>
       </attribute>
       <attribute name="elem_width">
-        <real val="11.9504"/>
+        <real val="12.4352"/>
       </attribute>
       <attribute name="elem_height">
-        <real val="7.2"/>
+        <real val="8"/>
       </attribute>
       <attribute name="name">
         <string>#Marker#</string>
@@ -125,7 +125,7 @@
             <string>#locus#</string>
           </attribute>
           <attribute name="type">
-            <string>#string#</string>
+            <string>#varchar(64)#</string>
           </attribute>
           <attribute name="value">
             <string/>
@@ -145,7 +145,7 @@
             <string>#probe#</string>
           </attribute>
           <attribute name="type">
-            <string>#string#</string>
+            <string>#varchar(64)#</string>
           </attribute>
           <attribute name="value">
             <string/>
@@ -162,10 +162,10 @@
         </composite>
         <composite type="umlattribute">
           <attribute name="name">
-            <string>#pcr Fwd primer#</string>
+            <string>#type#</string>
           </attribute>
           <attribute name="type">
-            <string>#string#</string>
+            <string>#varchar(5)#</string>
           </attribute>
           <attribute name="value">
             <string/>
@@ -182,10 +182,50 @@
         </composite>
         <composite type="umlattribute">
           <attribute name="name">
-            <string>#pcr Rev primer#</string>
+            <string>#chrom#</string>
           </attribute>
           <attribute name="type">
-            <string>#string#</string>
+            <string>#char(2)#</string>
+          </attribute>
+          <attribute name="value">
+            <string/>
+          </attribute>
+          <attribute name="visibility">
+            <enum val="0"/>
+          </attribute>
+          <attribute name="abstract">
+            <boolean val="false"/>
+          </attribute>
+          <attribute name="class_scope">
+            <boolean val="false"/>
+          </attribute>
+        </composite>
+        <composite type="umlattribute">
+          <attribute name="name">
+            <string>#fwdprimer#</string>
+          </attribute>
+          <attribute name="type">
+            <string>#varchar(128)#</string>
+          </attribute>
+          <attribute name="value">
+            <string/>
+          </attribute>
+          <attribute name="visibility">
+            <enum val="0"/>
+          </attribute>
+          <attribute name="abstract">
+            <boolean val="false"/>
+          </attribute>
+          <attribute name="class_scope">
+            <boolean val="false"/>
+          </attribute>
+        </composite>
+        <composite type="umlattribute">
+          <attribute name="name">
+            <string>#revprimer#</string>
+          </attribute>
+          <attribute name="type">
+            <string>#varchar(128)#</string>
           </attribute>
           <attribute name="value">
             <string/>
@@ -220,26 +260,6 @@
             <boolean val="false"/>
           </attribute>
         </composite>
-        <composite type="umlattribute">
-          <attribute name="name">
-            <string>#type#</string>
-          </attribute>
-          <attribute name="type">
-            <string>#string#</string>
-          </attribute>
-          <attribute name="value">
-            <string/>
-          </attribute>
-          <attribute name="visibility">
-            <enum val="0"/>
-          </attribute>
-          <attribute name="abstract">
-            <boolean val="false"/>
-          </attribute>
-          <attribute name="class_scope">
-            <boolean val="false"/>
-          </attribute>
-        </composite>
       </attribute>
       <attribute name="operations"/>
       <attribute name="template">
@@ -252,13 +272,13 @@
         <point val="-0.227922,15.5861"/>
       </attribute>
       <attribute name="obj_bb">
-        <rectangle val="-0.277922,15.5361;9.34848,19.6361"/>
+        <rectangle val="-0.277922,15.5361;10.3181,19.6361"/>
       </attribute>
       <attribute name="elem_corner">
         <point val="-0.227922,15.5861"/>
       </attribute>
       <attribute name="elem_width">
-        <real val="9.5264"/>
+        <real val="10.496"/>
       </attribute>
       <attribute name="elem_height">
         <real val="4"/>
@@ -310,7 +330,7 @@
             <string>#alias#</string>
           </attribute>
           <attribute name="type">
-            <string>#string#</string>
+            <string>#varchar(32)#</string>
           </attribute>
           <attribute name="value">
             <string/>
@@ -327,10 +347,10 @@
         </composite>
         <composite type="umlattribute">
           <attribute name="name">
-            <string>#mapid#</string>
+            <string>#source#</string>
           </attribute>
           <attribute name="type">
-            <string>#integer#</string>
+            <string>#varchar(32)#</string>
           </attribute>
           <attribute name="value">
             <string/>
@@ -354,16 +374,16 @@
     </object>
     <object type="UML - Class" version="0" id="O2">
       <attribute name="obj_pos">
-        <point val="17.2376,1.58543"/>
+        <point val="16.8876,1.58543"/>
       </attribute>
       <attribute name="obj_bb">
-        <rectangle val="17.1876,1.53543;25.3596,6.43543"/>
+        <rectangle val="16.8376,1.53543;31.7968,6.43543"/>
       </attribute>
       <attribute name="elem_corner">
-        <point val="17.2376,1.58543"/>
+        <point val="16.8876,1.58543"/>
       </attribute>
       <attribute name="elem_width">
-        <real val="8.072"/>
+        <real val="14.8592"/>
       </attribute>
       <attribute name="elem_height">
         <real val="4.8"/>
@@ -415,7 +435,7 @@
             <string>#name#</string>
           </attribute>
           <attribute name="type">
-            <string>#string#</string>
+            <string>#varchar(32)#</string>
           </attribute>
           <attribute name="value">
             <string/>
@@ -435,7 +455,7 @@
             <string>#units#</string>
           </attribute>
           <attribute name="type">
-            <string>#string#</string>
+            <string>#char(5)#</string>
           </attribute>
           <attribute name="value">
             <string/>
@@ -452,7 +472,7 @@
         </composite>
         <composite type="umlattribute">
           <attribute name="name">
-            <string>#version#</string>
+            <string>#version (to be added)#</string>
           </attribute>
           <attribute name="type">
             <string>#float#</string>
@@ -479,13 +499,13 @@
     </object>
     <object type="UML - Class" version="0" id="O3">
       <attribute name="obj_pos">
-        <point val="10.5201,15.374"/>
+        <point val="11.2201,15.424"/>
       </attribute>
       <attribute name="obj_bb">
-        <rectangle val="10.4701,15.324;20.0965,19.424"/>
+        <rectangle val="11.1701,15.374;20.7965,19.474"/>
       </attribute>
       <attribute name="elem_corner">
-        <point val="10.5201,15.374"/>
+        <point val="11.2201,15.424"/>
       </attribute>
       <attribute name="elem_width">
         <real val="9.5264"/>
@@ -584,16 +604,16 @@
     </object>
     <object type="UML - Association" version="0" id="O4">
       <attribute name="obj_pos">
-        <point val="12.8538,7.72477"/>
+        <point val="10.75,8.25"/>
       </attribute>
       <attribute name="obj_bb">
-        <rectangle val="11.4038,6.27477;16.7333,16.824"/>
+        <rectangle val="9.3,6.8;17.4333,16.874"/>
       </attribute>
       <attribute name="orth_points">
-        <point val="12.8538,7.72477"/>
-        <point val="12.8538,9.57574"/>
-        <point val="15.2833,9.57574"/>
-        <point val="15.2833,15.374"/>
+        <point val="10.75,8.25"/>
+        <point val="10.75,9.57574"/>
+        <point val="15.9833,9.57574"/>
+        <point val="15.9833,15.424"/>
       </attribute>
       <attribute name="orth_orient">
         <enum val="1"/>
@@ -637,22 +657,21 @@
         </composite>
       </attribute>
       <connections>
-        <connection handle="0" to="O0" connection="7"/>
         <connection handle="1" to="O3" connection="1"/>
       </connections>
     </object>
     <object type="UML - Association" version="0" id="O5">
       <attribute name="obj_pos">
-        <point val="6.87865,7.72477"/>
+        <point val="7.32105,8.32477"/>
       </attribute>
       <attribute name="obj_bb">
-        <rectangle val="3.08528,6.27477;8.32865,17.0361"/>
+        <rectangle val="3.57008,6.87477;8.77105,17.0361"/>
       </attribute>
       <attribute name="orth_points">
-        <point val="6.87865,7.72477"/>
-        <point val="6.87865,9.57574"/>
-        <point val="4.53528,9.57574"/>
-        <point val="4.53528,15.5861"/>
+        <point val="7.32105,8.32477"/>
+        <point val="7.32105,9.57574"/>
+        <point val="5.02008,9.57574"/>
+        <point val="5.02008,15.5861"/>
       </attribute>
       <attribute name="orth_orient">
         <enum val="1"/>
@@ -702,16 +721,16 @@
     </object>
     <object type="UML - Association" version="0" id="O6">
       <attribute name="obj_pos">
-        <point val="21.2736,6.38543"/>
+        <point val="24.3172,6.38543"/>
       </attribute>
       <attribute name="obj_bb">
-        <rectangle val="16.6361,4.93543;22.7236,16.7533"/>
+        <rectangle val="16.65,4.93543;25.7672,16.8"/>
       </attribute>
       <attribute name="orth_points">
-        <point val="21.2736,6.38543"/>
-        <point val="21.2736,11.0607"/>
-        <point val="18.0861,11.0607"/>
-        <point val="18.0861,15.3033"/>
+        <point val="24.3172,6.38543"/>
+        <point val="24.3172,11.0607"/>
+        <point val="18.1,11.0607"/>
+        <point val="18.1,15.35"/>
       </attribute>
       <attribute name="orth_orient">
         <enum val="1"/>
@@ -757,61 +776,6 @@
       <connections>
         <connection handle="0" to="O2" connection="6"/>
       </connections>
-    </object>
-    <object type="UML - Association" version="0" id="O7">
-      <attribute name="obj_pos">
-        <point val="18.369,6.46447"/>
-      </attribute>
-      <attribute name="obj_bb">
-        <rectangle val="7.65589,5.01447;19.819,17.1776"/>
-      </attribute>
-      <attribute name="orth_points">
-        <point val="18.369,6.46447"/>
-        <point val="18.369,10.5657"/>
-        <point val="9.10589,10.5657"/>
-        <point val="9.10589,15.7276"/>
-      </attribute>
-      <attribute name="orth_orient">
-        <enum val="1"/>
-        <enum val="0"/>
-        <enum val="1"/>
-      </attribute>
-      <attribute name="name">
-        <string/>
-      </attribute>
-      <attribute name="direction">
-        <enum val="0"/>
-      </attribute>
-      <attribute name="ends">
-        <composite>
-          <attribute name="role">
-            <string/>
-          </attribute>
-          <attribute name="multiplicity">
-            <string>#1#</string>
-          </attribute>
-          <attribute name="arrow">
-            <boolean val="false"/>
-          </attribute>
-          <attribute name="aggregate">
-            <enum val="0"/>
-          </attribute>
-        </composite>
-        <composite>
-          <attribute name="role">
-            <string/>
-          </attribute>
-          <attribute name="multiplicity">
-            <string>#1#</string>
-          </attribute>
-          <attribute name="arrow">
-            <boolean val="false"/>
-          </attribute>
-          <attribute name="aggregate">
-            <enum val="0"/>
-          </attribute>
-        </composite>
-      </attribute>
     </object>
   </layer>
 </diagram>

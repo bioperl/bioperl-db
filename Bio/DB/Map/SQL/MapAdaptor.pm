@@ -209,13 +209,12 @@ sub get_markers_for_region{
        $end = $self->map_length();
    }
    
-   my $SQL =q(SELECT p.markerid from marker m, map_position p 
-	      WHERE m.chrom = ? AND m.mapid = ?
-	      AND m.mapid = p.mapid AND
+   my $SQL =q(SELECT m.markerid from marker m, map_position p 
+	      WHERE m.chrom = ? AND p.mapid = ?
+	      AND m.markerid = p.markerid AND
 	      p.position >= ? AND p.position <= ?
 	      );
 		
-   my $marker_adaptor = new Bio::DB::Map::SQL::MarkerAdaptor($self);
    my @m;   
    eval { 
        my $sth = $self->prepare($SQL);
@@ -227,6 +226,7 @@ sub get_markers_for_region{
    if( $@ ) {  $self->warn($@); }
 
    if( @m ) {
+       my $marker_adaptor = new Bio::DB::Map::SQL::MarkerAdaptor($self);
        my @markers = $marker_adaptor->get('-ids' => \@m);   
        return @markers;
    }   
@@ -237,23 +237,58 @@ sub get_markers_for_region{
  Title   : get_next_marker
  Usage   : my $marker = $map->get_next_marker(-marker => $marker,
 					      -direction => 1);
- Function: returns the next marker in the map based on the given marker
+ Function: returns the next marker(s) (by markerid) in the map based on the given marker
            and either a positive or negative direction
- Returns : Bio::DB::Map::MarkerI object or undef 
- Args    : -marker => $marker Bio::DB::Map::MarkerI object to start with
-           -direction => [1,-1]
+ Returns : Array of markerid or empty array if error or none found 
+ Args    : -mapid     => mapid
+           -markerid  => markerid
+           -direction => [1,-1] (default 1)          
+           -number    => number of markers to get (default 1)
 =cut
 
 sub get_next_marker{
    my ($self,@args) = @_;
-   my ($marker,$direction) = $self->_rearrange([qw(MARKER DIRECTION)],
+   my ($mapid, $markerid, $direction,
+       $number) = $self->_rearrange([qw(MAPID MARKERID DIRECTION NUMBER )],
 					       @args);
-   if( !defined $marker ) {
-       $self->warn("Did not specify a marker to anchor the search");
-       return undef;
-   }
-   $direction = 1 unless defined $direction;
+   
+   $number = 1 unless $number;
+   $direction = 1 unless $direction;
 
+   if( !defined $mapid ) {
+       $self->warn("Did not specify a mapid to anchor the search");
+       return ();
+   } elsif( !defined $markerid ) {
+       $self->warn("Did not specify a marker to anchor the search");
+       return ();
+   } 
+   
+   my (@markerids,@markers);
+   
+   my $SQL = q(SELECT query.markerid 
+	       FROM map_position start, map_position query 
+	       WHERE start.markerid = ? AND start.mapid = ?
+	       AND start.mapid = query.mapid 
+	       );
+   if( $direction > 0 ) { $SQL .= ' AND query.position > start.position'; }
+   else { $SQL .= ' AND query.position < start.position'; }
+   
+   $SQL .= " ORDER BY query.position LIMIT $number";
+   eval { 
+       my $sth = $self->prepare($SQL);
+       $sth->execute($markerid, $mapid);
+       while( my ($row) = $sth->fetchrow_array ) {
+	   push @markerids, $row;
+       }
+   };
+   if( $@ ) {
+       $self->warn($@);
+   }
+   if( @markerids ) {
+       my $marker_adaptor = new Bio::DB::Map::SQL::MarkerAdaptor($self);
+       @markers = $marker_adaptor->get('-ids' => \@markerids);   
+   }   
+   return @markers;
 }
 
 =head2 get_Chrom_length

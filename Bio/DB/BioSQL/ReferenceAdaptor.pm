@@ -409,7 +409,7 @@ sub get_unique_key_query{
 	}
     }
     if($obj->pubmed()) {
-	my $dbl = Bio::Annotation::DBLink->new(-database => "PubMed",
+	my $dbl = Bio::Annotation::DBLink->new(-database => "PUBMED",
 					       -primary_id => $obj->pubmed);
 	$dbl = $self->_dbxref_adaptor->find_by_unique_key($dbl);
 	if($dbl) {
@@ -548,7 +548,7 @@ sub _dblink_fk{
     if($obj->medline()) {
 	$db = "MEDLINE"; $id = $obj->medline();
     } elsif($obj->pubmed()) {
-	$db = "PubMed"; $id = $obj->pubmed();
+	$db = "PUBMED"; $id = $obj->pubmed();
     }
     if($db) {
 	$dbl = Bio::Annotation::DBLink->new(-database => $db,

@@ -18,8 +18,23 @@ name you wish to load this into and then any number of files. The
 files are assumed to be SeqIO formatted files with the format given
 in the -format flag
 
-=cut
+=head1 ARGUMENTS
+   
+   (in order, * are required)
 
+  *-host    $URL        : the IP addy incl. port
+  *-sqldb   $db_name    : the name of the sql database
+  -dbuser  $username    : username
+  -dbpass  $password    : password
+  *-format  $FileFormat : format of the flat files (eg. embl)
+                        : can be any format read by Bio::SeqIO
+  -safe                 : flag to ignore errors
+  -bulk    0/1          : write to tab-delim flat files (faster)
+  *data_title           : A name to associate with this data
+  *file1 file2 file3... : the flatfiles to import
+ 
+
+=cut
 
 
 
@@ -35,13 +50,15 @@ my $dbpass = undef;
 my $format = 'embl';
 #If safe is turned on, the script doesn't die because of one bad entry..
 my $safe = 0;
+my $bulkload = 0;
 
 &GetOptions( 'host:s' => \$host,
 	     'sqldb:s'  => \$sqlname,
 	     'dbuser:s' => \$dbuser,
 	     'dbpass:s' => \$dbpass,
 	     'format:s' => \$format,
-	     'safe'     => \$safe
+	     'safe'     => \$safe,
+			'bulk:s'   => \$bulkload
 	     );
 
 my $dbname = shift;
@@ -55,7 +72,8 @@ if( !defined $dbname || scalar(@files) == 0 ) {
 $dbadaptor = Bio::DB::SQL::DBAdaptor->new( -host => $host,
 					   -dbname => $sqlname,
 					   -user => $dbuser,
-					   -pass => $dbpass
+					   -pass => $dbpass,
+						-bulk => $bulkload,
 					   );
 
 $dbid = $dbadaptor->get_BioDatabaseAdaptor->fetch_by_name_store_if_needed($dbname);

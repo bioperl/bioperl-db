@@ -155,6 +155,13 @@ sub fetch_by_bioentry_id{
 
 =cut
 
+
+sub _nextid {
+	my ($self) = @_;
+	unless ($self->{_nextFeatureid}){$self->{_nextFeatureid} = 0}
+	return ++$self->{_nextFeatureid};
+}
+   
 sub store{
    my ($self,$feature,$rank,$bioentryid) = @_;
 
@@ -165,35 +172,60 @@ sub store{
    my $keyid = $self->db->get_SeqFeatureKeyAdaptor->store_if_needed($feature->primary_tag);
    my $sourceid = $self->db->get_SeqFeatureSourceAdaptor->store_if_needed($feature->source_tag);
 
-   my $sth = $self->prepare("insert into seqfeature (seqfeature_id,bioentry_id,seqfeature_key_id,seqfeature_source_id,seqfeature_rank) VALUES (NULL,$bioentryid,$keyid,$sourceid,$rank)");
+   if ($self->db->bulk_import){
+      $self->_storeText($feature, $rank, $bioentryid, $keyid, $sourceid);       
+   } else {
+      my $sth = $self->prepare("insert into seqfeature (seqfeature_id,bioentry_id,seqfeature_key_id,seqfeature_source_id,seqfeature_rank) VALUES (NULL,$bioentryid,$keyid,$sourceid,$rank)");
 
-   $sth->execute();
-   my ($last_id) = $sth->{'mysql_insertid'};
+      $sth->execute();
+      my ($last_id) = $sth->{'mysql_insertid'};
 
-   if( !defined $last_id ) {
-       $self->throw("Dont have last insert id...");
+      if( !defined $last_id ) {
+          $self->throw("Dont have last insert id...");
+      }
+   
+      $self->db->get_SeqLocationAdaptor->store($feature->location,$last_id);
+
+      my $adp = $self->db->get_SeqFeatureQualifierAdaptor();
+
+      foreach my $tag ( $feature->all_tags() ) {
+         my $qid = $adp->store_if_needed($tag);
+
+          # placeholder would be more efficient here
+         my $rank = 1;
+         foreach my $value ( $feature->each_tag_value($tag) ) {
+            $value =~ s/\'/\\\'/g;
+            my $sth= $self->prepare("INSERT into seqfeature_qualifier_value (seqfeature_id,seqfeature_qualifier_id,qualifier_value,seqfeature_qualifier_rank) VALUES ($last_id,$qid,'$value',$rank)");
+            $sth->execute;
+            $rank++;
+         }
+      }
    }
+}
 
+sub _storeText {
+   my ($self, $feature, $rank, $bioentryid, $keyid, $sourceid)=@_;
+   my $last_id = $self->_nextid;
+   my $fh = $self->db->{"__seqfeature"};
+   print $fh "$last_id\t$bioentryid\t$keyid\t$sourceid\t$rank\n";
+   
    $self->db->get_SeqLocationAdaptor->store($feature->location,$last_id);
 
    my $adp = $self->db->get_SeqFeatureQualifierAdaptor();
 
    foreach my $tag ( $feature->all_tags() ) {
-       my $qid = $adp->store_if_needed($tag);
+      my $qid = $adp->store_if_needed($tag);
 
        # placeholder would be more efficient here
-       my $qrank = 1;
-       foreach my $value ( $feature->each_tag_value($tag) ) {
-	   $value =~ s/\'/\\\'/g;
-	   $sth= $self->prepare("INSERT into seqfeature_qualifier_value (seqfeature_id,seqfeature_qualifier_id,qualifier_value,seqfeature_qualifier_rank) VALUES ($last_id,$qid,'$value',$rank)");
-	   $sth->execute;
-	   $rank++;
-       }
+      my $rank = 1;
+      foreach my $value ( $feature->each_tag_value($tag) ) {
+         $value =~ s/\'/\\\'/g;
+         my $fh = $self->db->{"__seqfeature_qualifier_value"};
+         print $fh "$last_id\t$qid\t$rank\t$value\n";
+         $rank++;
+      }
    }
-
 }
-
-
 
 
 =head2 remove_by_bioentry_id

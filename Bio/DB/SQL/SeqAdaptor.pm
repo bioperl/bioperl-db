@@ -436,85 +436,191 @@ sub store{
        $self->throw("no display id ($did) or no accession ($accession). Cannot process");
    }
 
-   my $sth = $self->prepare("insert into bioentry (biodatabase_id,bioentry_id,display_id,accession,entry_version,division) values ($dbid,NULL,'$did','$accession',$version,'$division')");
-   $sth->execute;
-      
-   my $id = $sth->{'mysql_insertid'};
+   if ($self->db->bulk_import){
+		# this one is complex enough that I put it into its own subroutine
+		my $id = $self->_storeText($dbid, $seq, $did, $accession, $version, $division);
+		return $id;
+   } else {
 
-   $self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
+		my $sth = $self->prepare("insert into bioentry (biodatabase_id,bioentry_id,display_id,accession,entry_version,division) values ($dbid,NULL,'$did','$accession',$version,'$division')");
+		$sth->execute;
+			
+		my $id = $sth->{'mysql_insertid'};
 
-   my $desc = $seq->desc;
-   $desc =~ s/\'/\\\'/g;
-   if( defined $seq->desc && $seq->desc ne '' ) {
-       $desc = $self->quote($desc);
-       $sth = $self->prepare("insert into bioentry_description (bioentry_id,description) VALUES ($id,$desc)");
-       $sth->execute;
-   }
+		$self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
 
-   if( $seq->isa('Bio::Seq::RichSeqI') ) {
-       foreach my $date ($seq->get_dates) {
-	   $sth = $self->prepare("insert into bioentry_date (bioentry_id,date) VALUES ($id,'$date')");
-	   $sth->execute;
-       }
-       if (my $kw = $seq->keywords) {
-	   $kw = $self->quote($kw);
-	   $sth= $self->prepare("insert into bioentry_keywords(bioentry_id,keywords) VALUES ($id,$kw)");
-	   $sth->execute;
-       }
-   }
+		my $desc = $seq->desc;
+		$desc =~ s/\'/\\\'/g;
+		if( defined $seq->desc && $seq->desc ne '' ) {
+			 $desc = $self->quote($desc);
+			 $sth = $self->prepare("insert into bioentry_description (bioentry_id,description) VALUES ($id,$desc)");
+			 $sth->execute;
+		}
 
-
-   my $species = $seq->species;
-
-   if( defined $species ) {
-       my $species_id = $self->db->get_SpeciesAdaptor->store_if_needed($species);
-       $sth = $self->prepare("insert into bioentry_taxa (bioentry_id,taxa_id) VALUES ($id,$species_id)");
-       $sth->execute;
-   }   
-
-   my $rank = 1;
-   my $adp  = $self->db->get_SeqFeatureAdaptor();
-
-   foreach my $sf ( $seq->top_SeqFeatures ) {
-       $adp->store($sf,$rank,$id);
-       $rank++; 
-   }
-
-   $rank = 1;
-   $adp = $self->db->get_CommentAdaptor();
-
-   foreach my $comment ( $seq->annotation->get_Annotations('comment') ) {
-       $adp->store($comment,$rank,$id);
-       $rank++;
-   }
-   
-   $rank = 1;
-   my $rdp = $self->db->get_ReferenceAdaptor();
-   foreach my $ref ( $seq->annotation->get_Annotations('reference') ) {
-       my $rid = $rdp->store_if_needed($ref);
-
-       my $start='NULL';
-       my $end='NULL';
-       if ($ref->start) {
-	   $start=$ref->start;
-       }
-       if ($ref->end) {
-	   $end=$ref->end;
-       }
-       $sth = $self->prepare("insert into bioentry_reference(bioentry_id,reference_id,reference_start,reference_end,reference_rank) values($id,$rid,$start,$end,$rank)");
-       #print STDERR "insert into bioentry_reference(bioentry_id,reference_id,reference_rank) values($id,$rid,$rank)\n";
-       $sth->execute;
-       $rank++;
-   }
+		if( $seq->isa('Bio::Seq::RichSeqI') ) {
+			 foreach my $date ($seq->get_dates) {
+			$sth = $self->prepare("insert into bioentry_date (bioentry_id,date) VALUES ($id,'$date')");
+			$sth->execute;
+			 }
+			 if (my $kw = $seq->keywords) {
+			$kw = $self->quote($kw);
+			$sth= $self->prepare("insert into bioentry_keywords(bioentry_id,keywords) VALUES ($id,$kw)");
+			$sth->execute;
+			 }
+		}
 
 
-   $adp = $self->db->get_DBLinkAdaptor();
-   foreach my $dblink ( $seq->annotation->get_Annotations('dblink') ) {
-       $adp->store($dblink,$id);
-   }
+		my $species = $seq->species;
 
-   
-   return $id;
+		if( defined $species ) {
+			 my $species_id = $self->db->get_SpeciesAdaptor->store_if_needed($species);
+			 $sth = $self->prepare("insert into bioentry_taxa (bioentry_id,taxa_id) VALUES ($id,$species_id)");
+			 $sth->execute;
+		}   
+
+		my $rank = 1;
+		my $adp  = $self->db->get_SeqFeatureAdaptor();
+
+		foreach my $sf ( $seq->top_SeqFeatures ) {
+			 $adp->store($sf,$rank,$id);
+			 $rank++; 
+		}
+
+		$rank = 1;
+		$adp = $self->db->get_CommentAdaptor();
+
+		foreach my $comment ( $seq->annotation->get_Annotations('comment') ) {
+			 $adp->store($comment,$rank,$id);
+			 $rank++;
+		}
+		
+		$rank = 1;
+		my $rdp = $self->db->get_ReferenceAdaptor();
+		foreach my $ref ( $seq->annotation->get_Annotations('reference') ) {
+			 my $rid = $rdp->store_if_needed($ref);
+
+			 my $start='NULL';
+			 my $end='NULL';
+			 if ($ref->start) {
+			$start=$ref->start;
+			 }
+			 if ($ref->end) {
+			$end=$ref->end;
+			 }
+			 $sth = $self->prepare("insert into bioentry_reference(bioentry_id,reference_id,reference_start,reference_end,reference_rank) values($id,$rid,$start,$end,$rank)");
+			 #print STDERR "insert into bioentry_reference(bioentry_id,reference_id,reference_rank) values($id,$rid,$rank)\n";
+			 $sth->execute;
+			 $rank++;
+		}
+
+
+		$adp = $self->db->get_DBLinkAdaptor();
+		foreach my $dblink ( $seq->annotation->get_Annotations('dblink') ) {
+			 $adp->store($dblink,$id);
+		}
+
+		
+		return $id;
+	}
+}
+
+
+=head2 _storeText
+
+ Title   : _storeText
+ Usage   :
+ Function: to store to a local file for bulk_import
+ Example :
+ Returns : 
+ Args    : for internal use only
+
+
+=cut
+
+
+sub _nextid {
+	my ($self) = @_;
+	unless ($self->{_nextid}){$self->{_nextid} = 0}
+	return ++$self->{_nextid};
+}
+
+sub _storeText {
+	my ($self, $dbid, $seq, $did, $accession, $version, $division) = @_;
+
+	my $id = $self->_nextid;
+	my $fh = $self->db->{"__bioentry"};
+	print $fh "$id\t$dbid\t$did\t$accession\t$version\t$division\n";
+
+	$self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
+
+	my $desc = $seq->desc;
+	$desc =~ s/\'/\\\\'/g;
+	if( defined $seq->desc && $seq->desc ne '' ) {
+		my $fh = $self->db->{"__bioentry_description"};
+		print $fh "$id\t$desc\n";
+	}
+
+	if( $seq->isa('Bio::Seq::RichSeqI') ) {
+		foreach my $date ($seq->get_dates) {
+			my $fh = $self->db->{"__bioentry_date"};
+			print $fh "$id\t$date\n";
+		}
+		if (my $kw = $seq->keywords) {
+			my $fh = $self->db->{"__bioentry_keywords"};
+			print $fh "$id\t$kw\n";
+		}
+	}
+
+	my $species = $seq->species;
+
+	if( defined $species ) {
+		my $species_id = $self->db->get_SpeciesAdaptor->store_if_needed($species);
+		my $fh = $self->db->{"__bioentry_taxa"};
+		print $fh "$id\t$species_id\n";
+	}   
+
+	my $rank = 1;
+	my $adp  = $self->db->get_SeqFeatureAdaptor();
+
+	foreach my $sf ( $seq->top_SeqFeatures ) {
+		 $adp->store($sf,$rank,$id);
+		 $rank++; 
+	}
+
+	$rank = 1;
+	$adp = $self->db->get_CommentAdaptor();
+
+	foreach my $comment ( $seq->annotation->get_Annotations('comment') ) {
+		 $adp->store($comment,$rank,$id);
+		 $rank++;
+	}
+	
+	$rank = 1;
+	my $rdp = $self->db->get_ReferenceAdaptor();
+	foreach my $ref ( $seq->annotation->get_Annotations('reference') ) {
+		my $rid = $rdp->store_if_needed($ref);
+
+		my $start='NULL';
+		my $end='NULL';
+		if ($ref->start) {
+			$start=$ref->start;
+		}
+		if ($ref->end) {
+			$end=$ref->end;
+		}
+		my $fh= $self->db->{"__bioentry_reference"};
+		print $fh "$id\t$rid\t$start\t$end\t$rank\n";
+		$rank++;
+	}
+
+
+	$adp = $self->db->get_DBLinkAdaptor();
+	foreach my $dblink ( $seq->annotation->get_Annotations('dblink') ) {
+		 $adp->store($dblink,$id);
+	}
+
+	
+	return $id;	
 
 }
 

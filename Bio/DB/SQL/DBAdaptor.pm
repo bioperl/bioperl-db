@@ -13,6 +13,7 @@ Bio::DB::SQL::DBAdapter - Object representing an instance of a bioperl database
         -dbname => 'pog',
         -host   => 'caldy',
         -driver => 'mysql',
+	-bulk => 0,
         );
 
 
@@ -57,6 +58,7 @@ use Bio::DB::SQL::SpeciesAdaptor;
 use Bio::DB::SQL::ReferenceAdaptor;
 
 use DBI;
+use FileHandle;
 
 @ISA = qw(Bio::Root::Root);
 
@@ -73,12 +75,16 @@ sub new {
         $user,
         $password,
         $port,
+	$bulk
         ) = $self->_rearrange([qw(
             DBNAME
 	    HOST
 	    DRIVER
 	    USER
 	    PASS
+	    PORT
+	    BULK
+	    
 	    )],@args);
     $db   || $self->throw("Database object must have a database name");
     $user || $self->throw("Database object must have a user");
@@ -91,6 +97,10 @@ sub new {
     if ( ! $port ) {
         $port = '';
     }
+    if ( ! $bulk){
+	$bulk = 0;
+    }
+    
 
   my $dsn;
   if( $driver eq 'mysql' ) { 
@@ -106,6 +116,12 @@ sub new {
   $self->username( $user );
   $self->host( $host );
   $self->dbname( $db );
+  $self->bulk_import($bulk);
+ 
+  if ($self->bulk_import){
+	  print "preparing filehandles\n";
+      $self->_prepareFilehandles;
+  }
   
   return $self; # success - we hope!
 }
@@ -133,8 +149,58 @@ sub host {
   $self->{_host};
 }
 
+sub bulk_import {
+  my ($self, $arg ) = @_;
+  ( defined $arg ) &&
+    ( $self->{_bulk} = $arg );
+  $self->{_bulk};
+}
 
 
+=head2 _prepareFilehandles
+
+ Title   : _prepareFilehandles
+ Usage   : $dbobj->prepareFilehandles;
+ Function: prepares filehandles for each database table for bulk_import parsing;
+ Example :
+ Returns : 
+ Args    : 
+
+
+=cut
+
+sub _prepareFilehandles {
+    my ($self) = @_;
+
+    foreach (qw(
+	biodatabase
+	bioentry
+	bioentry_date
+	bioentry_description
+	bioentry_direct_links
+	bioentry_keywords
+	bioentry_reference
+	bioentry_taxa
+	biosequence
+	cache_corba_support
+	comment
+	reference
+	remote_seqfeature_name
+	seqfeature
+	seqfeature_key
+	seqfeature_location
+	seqfeature_qualifier
+	seqfeature_qualifier_value
+	seqfeature_source
+	taxa
+	)){
+	my $filename = $_ . ".bulk";
+	my $fh = new FileHandle ">/tmp/$filename";
+	$fh || die "failed to create output file $_.bulk for writing:  $!";
+	if ($self->{"__$_"}){die "encapsulated namespace collision with $_"};
+	$self->{"__$_"} = $fh;
+	}    
+}
 
 
 =head2 prepare

@@ -139,16 +139,20 @@ sub store{
    my ($self,$dblink,$bioentry_id) = @_;
 
    if( !defined $bioentry_id ) {
-       $self->throw("must store dblinks with bioentries");
+      $self->throw("must store dblinks with bioentries");
    }
 
    my $acc = $dblink->primary_id();
    my $db  = $dblink->database();
 
-   my $sth = $self->prepare("insert into bioentry_direct_links (bio_dblink_id,source_bioentry_id,dbname,accession) VALUES (NULL,$bioentry_id,'$db','$acc')");
-
-   $sth->execute;
-
+   if ($self->db->bulk_import){
+        my $fh = $self->db->{"__bioentry_direct_links"};
+        print $fh "NULL\t$bioentry_id\t$db\t$acc\n";
+        return;
+   } else {
+        my $sth = $self->prepare("insert into bioentry_direct_links (bio_dblink_id,source_bioentry_id,dbname,accession) VALUES (NULL,$bioentry_id,'$db','$acc')");
+        $sth->execute;
+   }
    return;
 }
 

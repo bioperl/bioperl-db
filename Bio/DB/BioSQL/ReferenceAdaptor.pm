@@ -144,6 +144,13 @@ sub fetch_by_bioentry_id{
 
 =cut
 
+
+sub _nextid {
+	my ($self) = @_;
+	unless ($self->{_nextid}){$self->{_nextid} = 0}
+	return ++$self->{_nextid};
+}
+
 sub store_if_needed{
    my ($self,$reference) = @_;
 
@@ -162,20 +169,35 @@ sub store_if_needed{
    if ($reference->medline) {
        $med=$reference->medline;
    }
+   
+   if ($self->db->bulk_import){
+		# unfortunately, medlineid is not a reliable value to search by... that sucks!
+		# this in-memory hash is going to get huge!!
+		
+      if ($self->{_knownRefs}->{"$authors"."_"."$title"."_"."$location"}){
+			return $self->{_knownRefs}->{"$authors"."_"."$title"."_"."$location"}
+		} else {
+			my $id = $self->_nextid;
+			my $fh = $self->db->{"__reference"};
+			print $fh "$id\t$location\t$title\t$authors\t$med\n";
+			$self->{_knownRefs}->{"$authors"."_"."$title"."_"."$location"} = $id;
+			return $id;
+		}
+   } else {
 
-   if ($med) {
-       my $sth= $self->prepare("select reference_id from reference where reference_medline = $med");
-       $sth->execute();
-       my ($id) = $sth->fetchrow_array();
-       if ($id) {
-	   return $id;
-       }
-   }
-
-   my $sth = $self->prepare("insert into reference (reference_id,reference_authors,reference_title,reference_location,reference_medline) values (NULL,'$authors','$title','$location',$med)");
-   #print STDERR "insert into reference (reference_id,reference_start,reference_end,reference_authors,reference_title,reference_location,reference_medline) values (NULL,$start,$end,'$authors','$title','$location',$med)\n";
-   $sth->execute();
-   return $sth->{'mysql_insertid'};
+		if ($med) {
+			 my $sth= $self->prepare("select reference_id from reference where reference_medline = $med");
+			 $sth->execute();
+			 my ($id) = $sth->fetchrow_array();
+			 if ($id) {
+			return $id;
+			 }
+		}
+		my $sth = $self->prepare("insert into reference (reference_id,reference_authors,reference_title,reference_location,reference_medline) values (NULL,'$authors','$title','$location',$med)");
+		#print STDERR "insert into reference (reference_id,reference_start,reference_end,reference_authors,reference_title,reference_location,reference_medline) values (NULL,$start,$end,'$authors','$title','$location',$med)\n";
+		$sth->execute();
+		return $sth->{'mysql_insertid'};
+	}
 }
 
 

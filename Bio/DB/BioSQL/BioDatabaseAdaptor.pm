@@ -273,16 +273,30 @@ sub list_bioentry_ids{
 
 =cut
 
+
+sub _nextid {
+	my ($self) = @_;
+	unless ($self->{_nextid}){$self->{_nextid} = 0}
+	return ++$self->{_nextid};
+}
+
 sub store{
    my ($self,$name) = @_;
 
-   my $sth = $self->prepare("insert into biodatabase (biodatabase_id,name) values (NULL,'$name')");
-   $sth->execute;
-   $sth = $self->prepare("select LAST_INSERT_ID()");
-   $sth->execute;
-   my ($id) = $sth->fetchrow_array;
-
-   return $id;
+   if ($self->db->bulk_import){
+		my $id = $self->_nextid;
+		my $fh = $self->db->{"__biodatabase"};
+      print $fh "$id\t$name\n";
+      return $id;
+   } else {
+		my $sth = $self->prepare("insert into biodatabase (biodatabase_id,name) values (NULL,'$name')");
+		$sth->execute;
+		$sth = $self->prepare("select LAST_INSERT_ID()");
+		$sth->execute;
+		my ($id) = $sth->fetchrow_array;
+		print "BioDatabaseAdaptor returning $id\n";
+		return $id;
+	}
 }
 
 

@@ -105,6 +105,12 @@ sub new{
 
 =cut
 
+sub _nextid {
+	my ($self) = @_;
+	unless ($self->{_nextid}){$self->{_nextid} = 0}
+	return ++$self->{_nextid};
+}
+
 sub store_if_needed{
    my ($self,$name) = @_;
 
@@ -113,27 +119,36 @@ sub store_if_needed{
        return $self->{'_name_dbID'}->{$name};
    }
 
-   # could be in database 
-   my $sth = $self->prepare("select seqfeature_source_id from seqfeature_source where source_name = '$name'");
-   $sth->execute;
-   my ($dbid) = $sth->fetchrow_array();
-   if( defined $dbid ) {
-       $self->{'_name_dbID'}->{$name} = $dbid;
-       return $dbid;
-   }
-   
-   # nope - insert
-   $sth = $self->prepare("insert into seqfeature_source (seqfeature_source_id,source_name) VALUES (NULL,'$name')");
-   $sth->execute;
-   $sth = $self->prepare("select LAST_INSERT_ID()");
-   $sth->execute;
-
-   $dbid = $sth->fetchrow_array();
-   if( defined $dbid ) {
-       $self->{'_name_dbID'}->{$name} = $dbid;
-       return $dbid;
+   if ($self->db->bulk_import){
+		my $id = $self->_nextid;
+      my $fh = $self->db->{"__seqfeature_source"};
+      print $fh "$id\t$name\n";
+      $self->{'_name_dbID'}->{$name} = $id;
+      return $id;
    } else {
-       $self->throw("Very weird - we got a successful insert but no valid db id. Truly bizarre");
+
+      # could be in database 
+      my $sth = $self->prepare("select seqfeature_source_id from seqfeature_source where source_name = '$name'");
+      $sth->execute;
+      my ($dbid) = $sth->fetchrow_array();
+      if( defined $dbid ) {
+          $self->{'_name_dbID'}->{$name} = $dbid;
+          return $dbid;
+      }
+      
+      # nope - insert
+      $sth = $self->prepare("insert into seqfeature_source (seqfeature_source_id,source_name) VALUES (NULL,'$name')");
+      $sth->execute;
+      $sth = $self->prepare("select LAST_INSERT_ID()");
+      $sth->execute;
+
+      $dbid = $sth->fetchrow_array();
+      if( defined $dbid ) {
+          $self->{'_name_dbID'}->{$name} = $dbid;
+          return $dbid;
+      } else {
+          $self->throw("Very weird - we got a successful insert but no valid db id. Truly bizarre");
+      }
    }
 }
 

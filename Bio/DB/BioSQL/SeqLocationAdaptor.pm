@@ -184,6 +184,13 @@ sub store{
 
 =cut
 
+
+sub _nextid {
+	my ($self) = @_;
+	unless ($self->{_nextid}){$self->{_nextid} = 0}
+	return ++$self->{_nextid};
+}
+
 sub _store_component{
    my ($self,$location,$seqfeature_id,$rank) = @_;
 
@@ -200,20 +207,26 @@ sub _store_component{
 
    #print STDERR "Got $seqfeature_id $start $end $strand with $location\n";
 
- 
-   my $sth = $self->prepare("insert into seqfeature_location (seqfeature_location_id,seqfeature_id,seq_start,seq_end,seq_strand,location_rank) VALUES (NULL,$seqfeature_id,$start,$end,$strand,$rank)");
-   $sth->execute;
-   my $id= $sth->{'mysql_insertid'};
+   if ($self->db->bulk_import){
+		my $id = $self->_nextid;
+		my $fh = $self->db->{"__seqfeature_location"};
+      print $fh "$id\t$seqfeature_id\t$start\t$end\t$strand\t$rank\n";
+      return $id;
+   } else {
+		my $sth = $self->prepare("insert into seqfeature_location (seqfeature_location_id,seqfeature_id,seq_start,seq_end,seq_strand,location_rank) VALUES (NULL,$seqfeature_id,$start,$end,$strand,$rank)");
+		$sth->execute;
+		my $id= $sth->{'mysql_insertid'};
 
-   
-   #$location->seq_id =~ /(\S+)\.(\S+)/;
-   my $acc = $1;
-   my $v = $2;
-   if ($location->is_remote) {
-#       my $sth = $self->prepare("insert into remote_seqfeature_name (seqfeature_location_id,accession,version) values($id,'$acc',$v)");
-#       $sth->execute;
-   }
-   return $id;
+		
+		#$location->seq_id =~ /(\S+)\.(\S+)/;
+		my $acc = $1;
+		my $v = $2;
+		if ($location->is_remote) {
+	#       my $sth = $self->prepare("insert into remote_seqfeature_name (seqfeature_location_id,accession,version) values($id,'$acc',$v)");
+	#       $sth->execute;
+		}
+		return $id;
+	}
 }
 
 1;

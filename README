@@ -32,62 +32,7 @@ test_bioenv.pl          - test the bioenv of a running server
 bioenv_server.pl        - setup a CORBA sequence server
 
 
-II. Hard and Fast install instructions.
-
-1) You need a supported database server. Currently supported are
-MySQL, Oracle, and Postgres (coming, ask if you need this).
-
-	a) MySQL: downloads and installation instructions are at
-	http://www.mysql.com/. You must have at least version 3.23.52
-	installed and InnoDB enabled (see the README-MYSQL file for 
-        instructions on how to do this; it is _not_ enabled by default. 
-        You can type 'show variables' in your MySQL client or check your 
-        .err log for your MySQL host - it will conclusively tell whether InnoDB        is enabled or not).
-
-	b) Postgres: see http://www.postgresql.org/
-
-	c) Oracle: the current schema version may contain bits only
-	supported under 9i, but you should get a working system under
-	8i as well.
-
-2) You need an account on the database server that lets you create
-schemas. See the RDBMS's instructions or your DBA if you don't have
-such privileges.
-
-3) You need at least the latest bioperl release of the 1.2.x series
-for the whole functionality to work. The previous stable branch 1.0.x
-or the development series 1.1.1 will _not_ suffice.
-
-4) Download biosql-schema from open-bio.org. Instantiate the schema
-appropriate for your RDBMS. The Oracle version of the schema is in
-sql/biosql-ora in the biosql-schema repository.
-
-For testing purposes you do not need to instantiate the schema except
-for Oracle. The tests will create it automatically and drop it at the
-end of each test.
-
-5) Do the following from this directory:
-
-	$ cd t
-	$ cp DBHarness.conf.example DBHarness.biosql.conf
-	$ cp DBHarness.conf.example DBHarness.markerdb.conf
-
-and edit both new files appropriately to reflect your setup.
-
-After that running 'make test' should work fine.
-
-6) For the real stuff you want to instantiate the schema. If you
-haven't done this already, do it now. As an example, assuming MySQL
-and you downloaded biosql-schema next to bioperl-db:
-
-   % mysql -u someone -p -D sqldbname < ../biosql-schema/sql/biosqldb-mysql.sql
-
-7) Use scripts/load_seqdatabase.pl to upload sequences from
-flatfiles. See its POD (--help option) for the available options.
-
-8) write down any problems, complaints and send them to bioperl ;)
-
-III. Some background information and how it all works:
+II. Some background information and how it all works:
 
 The adaptor code in Bio::DB and Bio::DB::BioSQL was completely
 refactored and architected from scratch since the previous branch

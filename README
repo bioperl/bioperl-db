@@ -1,45 +1,30 @@
 # $Id$
 
 
-This code currently works properly with the bioperl 0.7.x series of
-stable releases and should not be used with the "live" (main-trunk)
-code.
+This package contains 2 logical projects under the common hood of
+interfaces and adaptors for relational databases for serializing and
+de-serializing bioperl objects.
 
-This directory contains code from the bioperl-db CVS repository. 
 ===================================================================
-There are currently 2 logical projects contained within here, a system
-for sequence file storage in a relational (currently only mysql)
-database and a system for storage of marker and map information within
-a relational database (currently only mysql supported).
-
-Note: the schema is now stored in a seperate repository since it is no
-longer perl specific.
-
-cvs users, use the repository "bio.perl.org:/home/repository/biosql"
-and check out "biosql-schema"
-
-
-Information about Bio::DB Interface with a mysql Sequence database.
+Information about Bio::DB::BioSQL interface, a sequence database.
 ===================================================================
 
 This project was started by Ewan Birney with major work by Elia Stupka
 with continued support by the bioperl community.  It's purpose is a
 standalone sequence database with little external dependancies and
 tight integration with bioperl.  Support for more databases and
-bindings in java and python by Biojava and Biopython projects are
-welcomed.  All questions and comments should be directed to the
-bioperl list <bioperl-l@bioperl.org> and more information can be found
-about the related projects at http://bio.perl.org and
+bindings in java and python by Biojava and Biopython projects is
+welcomed, and a working prototype was one of the accomplishments of
+the February 2002 hackathon in South Africa. All questions and
+comments should be directed to the bioperl list
+<bioperl-l@bioperl.org> and more information can be found about the
+related projects at http://www.bioperl.org and
 http://www.open-bio.org.
 
-Currently the necessary modules for this project are in the Bio/DB
-directory with the necessary sql in the sql/basicseqdb-ARCH (where
-ARCH is db architecture supported - currently only mysql). 
+I. Related scripts located in the scripts directory:
 
-Related scripts located in the scripts directory:
-
-load_seqdatabase.pl     - example of how to load seqs in the
-		          database
+load_seqdatabase.pl     - an example and a very flexible script to load seqs
+			  into the database
 bioentry2flat.pl        - dump sequence data into rich sequence
 		          format flatfile representation
 caching_corba_server.pl - setup a corba sequence caching server
@@ -47,27 +32,140 @@ test_bioenv.pl          - test the bioenv of a running server
 bioenv_server.pl        - setup a CORBA sequence server
 
 
-Hard and Fast install instructions.
+II. Hard and Fast install instructions.
 
-1) a mysql db server (http://www.mysql.com)
+1) You need a supported database server. Currently supported are
+MySQL, Oracle, and Postgres (coming, ask if you need this).
 
-2) an account on the server
+	a) MySQL: downloads and installation instructions are at
+	http://www.mysql.com/. You must have at least version 3.23.52
+	installed and InnoDB enabled (see the MySQL documentation for
+	how to do this; it is _not_ enabled by default. You can check
+	your .err log for your MySQL host - it will conclusively tell
+	whether InnoDB is enabled or not).
 
-Running 'make test' works fine. To set the options for the test
-suite, look into t/DBTestHarness.pm and make a file called
-DBTestHarness.conf
+	b) Postgres: see http://www.postgresql.org/
 
-3) Make a single SQL database. In general many biological 
-   "databases" will go into a single SQL instance
+	c) Oracle: the current schema version may contain bits only
+	supported under 9i, but you should get a working system under
+	8i as well.
 
-4) do the following (substituting your db name where appropriate)
+2) You need an account on the database server that lets you create
+schemas. See the RDBMS's instructions or your DBA if you don't have
+such privileges.
 
-   % mysql -u someone -D sqldbname < ../biosql-schema/sql/basicseqdb-mysql.sql
+3) You need the latest revision of bioperl for the whole functionality
+to work. The last development release 1.1.1 will _not_ suffice. Sorry
+about this, but this code exposed a number of bugs and deficiencies in
+the bioperl codebase which were continuously fixed, some only after
+1.1.1 was released.
 
-5) scripts/load_seqdatabase.pl should now work.
+4) Download biosql-schema from open-bio.org. Instantiate the schema
+appropriate for your RDBMS. The Oracle version of the schema is in
+sql/biosql-ora in the biosql-schema repository.
 
-6) write down any problems, complaints and send them to bioperl ;)
+For testing purposes you do not need to instantiate the schema except
+for Oracle. The tests will create it automatically and drop it at the
+end of each test.
 
+5) Do the following from this directory:
+
+	$ cd t
+	$ cp DBTestHarness.conf.example DBTestHarness.biosql.conf
+	$ cp DBTestHarness.conf.example DBTestHarness.markerdb.conf
+
+and edit both new files appropriately to reflect your setup.
+
+After that running 'make test' should work fine. There is one test in
+fuzzy2.t which is known to fail because optional_id() in
+Bio::Annotation::DBLink is not supported yet. Chances are you do not
+need this.
+
+6) For the real stuff you want to instantiate the schema. If you
+haven't done this already, do it now. As an example, assuming MySQL
+and you downloaded biosql-schema next to bioperl-db:
+
+   % mysql -u someone -D sqldbname < ../biosql-schema/sql/biosqldb-mysql.sql
+
+7) Use scripts/load_seqdatabase.pl to upload sequences from
+flatfiles. See its POD (--help option) for the available options.
+
+8) write down any problems, complaints and send them to bioperl ;)
+
+III. Some background information and how it all works:
+
+The adaptor code in Bio::DB and Bio::DB::BioSQL was completely
+refactored and architected from scratch since the previous branch
+bioperl-release-1-1-0. Meanwhile almost everything works. The
+following things are unsupported or do not work yet:
+
+	- sub-seqfeatures
+	- round-tripping fuzzy locations (they will be stored according
+	to their Bio::Location::CoordinatePolicyI interpretation)
+	- Bio::Annotation::DBLink::optional_id
+
+To understand the layout of the API and how you can interact with the
+adaptors to formulate your own queries, here is what you should know
+and read (i.e., read the PODs of all interfaces and modules named
+below).
+
+1) Bio::DB::BioDB acts as a factory of database adaptors, where a
+database adaptor encapsulates an entire database, not a specific
+object-relational mapping or table. Look at it in a similar way as
+e.g. Bio::SeqIO in bioperl, where you would specify the format and get
+back a parser for that format. Here you specify the database and get
+back a persistence factory for that database. Note that the only
+database really supported right now in this framework is biosql.
+
+2) The persistence factory returned by Bio::DB::BioDB->new() will
+implement Bio::DB::DBAdaptorI. It allows you to obtain a persistence
+adaptor for an object at hand, and to turn an object into a persistent
+object.
+
+3) A persistent object will implement Bio::DB::PersistentObjectI. A
+persistent object can be updated in and removed from the database. It
+also knows about its primary key in the database once it has been
+created or found in the database. A persistent object will still
+implement all interfaces and all methods that the non-persistent base
+object implements. E.g., a persistent sequence object will implement
+Bio::DB::PersistentObjectI and Bio::PrimarySeqI (or Bio::SeqI).
+
+4) A persistence adaptor will implement
+Bio::DB::PersistenceAdaptorI. Apart from actually implementing all the
+persistence methods for persistent objects, a persistence adaptor
+allows you to locate objects in the database by key and by query. You
+can find_by_primary_key(), find_by_unique_key(),
+find_by_association(), and find_by_query(). The latter allows you to
+formulate object queries as Bio::DB::Query::BioQuery objects and
+retrieve the matching objects.
+
+5) The guiding principle for the redesign of the adaptors was separate
+business logic from schema logic. While business logic is largely
+driven by the object model (hence, by the bioperl object model) and
+therefore is mostly independent from the schema, but specific to the
+object model, the schema logic is driven by and specific to the
+relational model. The schema logic will therefore need to differ from
+one schema to another and even from one schema flavor to another for
+very similar relational models, whereas the business logic is
+unaffected by this. 
+
+This had two consequences. First, the user interacts with the adaptors
+without knowing anything about the specific schema behind it. All
+interaction takes place in object space. You construct queries by
+specifying object slots and the values they should have or
+match. Joins and associations are also specified on the object level
+(cf. Bio::DB::Query::BioQuery). Internally, the respective drivers for
+the particular schema translate those queries into schema-specific SQL
+queries.
+
+The second consequence was that every persistence adaptor is divided
+into two layers, the persistence adaptor itself which does not contain
+a single SQL phrase or query, and the its schema-specific driver which
+implements those functions which cannot be accomplished without
+actually doing the concrete object-relational mapping.
+
+
+===================================================================
 Information about Bio::DB::Map modules and database interface
 ===================================================================
 

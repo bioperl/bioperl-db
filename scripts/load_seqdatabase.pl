@@ -1,4 +1,7 @@
 #!/usr/local/bin/perl
+#
+# $Id$
+#
 
 =head1 NAME 
 
@@ -28,29 +31,161 @@ There are more options than the ones shown above. See below.
   are marked by (M). Default values for each parameter are shown in
   square brackets.  (Note that -bulk is no longer available):
 
-  -host    $URL        : the IP addy incl. port [localhost]
-  -dbname  $db_name    : the name of the schema (biosql)
-  -dbuser  $username   : username [root]
-  -dbpass  $password   : password [undef]
-  -driver  $driver     : the DBI driver name for the RDBMS
-                         e.g., mysql, Pg, or oracle [mysql]
-  -format  $FileFormat : format of the flat files [genbank],
-                         can be any format read by Bio::SeqIO
-  -namespace $namesp   : the namespace under which the sequences in the
-                         input files are to be created in the database 
-                         [bioperl]
-  -seqfilter filter.pl : The sequence filtering function. This is either
-                         a string or a file defining a closure to be used
-                         as sequence filter. The value is interpreted as 
-                         a file if it refers to a readable file, and a
-                         string otherwise. Cf. Bio::Seq::SeqBuilder for
-                         more information about what the code will be used
-                         for, and what it is passed.
-  -remove              : flag to remove sequences before actually adding
-                         them
-  -safe                : flag to continue despite errors when loading
-  *file1 file2 file3...: the flatfiles to import
- 
+=over 2 
+
+=item --host $URL
+
+the host name or IP address incl. port [localhost]
+
+=item --dbname $db_name
+
+the name of the schema [biosql]
+
+=item --dbuser $username
+
+database username [root]
+
+=item --dbpass $password
+
+password [undef]
+
+=item --driver $driver
+
+the DBI driver name for the RDBMS e.g., mysql, Pg, or Oracle [mysql]
+
+=item --namespace $namesp 
+
+The namespace under which the sequences in the input files are to be
+created in the database [bioperl]. Note that the namespace will be
+left untouched if the object to be submitted has it set already.
+
+=item --lookup
+
+flag to look-up by unique key first, converting the insert into an
+update if the object is found
+
+=item --noupdate
+
+don't update if object is found (with --lookup)
+
+=item --remove
+
+flag to remove sequences before actually adding them (this
+necessitates a prior lookup)
+
+=item --safe
+
+flag to continue despite errors when loading (the entire object
+transaction will still be rolled back)
+
+=item --testonly 
+
+don't commit anything, rollback at the end
+
+=item --format
+
+This may theoretically be any IO subsytem and the format understood by
+that subsystem to parse the input file(s). IO subsytem and format must
+be separated by a double colon. See below for which subsystems are
+currently supported.
+
+The default IO subsystem is SeqIO. 'Bio::' will automatically be
+prepended if not already present. As of presently, the other supported
+subsystem is ClusterIO. All input files must have the same format.
+
+Examples: 
+    # this is the default
+    --format genbank  
+    # SeqIO format EMBL
+    --format embl     
+    # Bio::ClusterIO stream with -format => 'unigene'
+    --format ClusterIO::unigene 
+                          
+
+=item --pipeline
+
+This is a sequence of L<Bio::Factory::SeqProcessorI> implementing
+objects that will be instantiated and chained in exactly this
+order. This allows you to write re-usable modules for custom
+post-processing of objects after the stream parser returns
+them. Cf. L<Bio::Seq::BaseSeqProcessor> for a base implementation for
+such modules.
+
+Modules are separated by the pipe character '|' or white space. In
+addition, you can specify initialization parameters for each of the
+modules by enclosing a comma-separated list of alternating parameter
+name and value pairs in parentheses or angle brackets directly after
+the module.
+
+Examples: 
+    # one module
+    --pipeline "My::SeqProc" 
+    # two modules in the specified order
+    --pipeline "My::SeqProc|My::SecondSeqProc" 
+    # two modules, the first of which has two initialization parameters
+    --pipeline "My::SeqProc(-maxlength,1500,-minlength,300)|My::SecondProc"
+
+=item --seqfilter
+
+This is either a string or a file defining a closure to be used as
+sequence filter. The value is interpreted as a file if it refers to a
+readable file, and a string otherwise. Cf. add_condition() in
+L<Bio::Seq::SeqBuilder> for more information about what the code will
+be used for. The closure will be passed a hash reference with an
+accumulated list of initialization paramaters for the prospective
+object. It returns TRUE if the object is to be built and FALSE
+otherwise.
+
+Note that this closure operates at the stream parser level. Objects it
+rejects will be skipped by the parser. Objects it accepts can still be
+intercepted at a later stage (options --remove, --update, --noupdate,
+--mergeobjs).
+
+Note that not necessarily all stream parsers support a
+L<Bio::Factory::ObjectBuilderI> object. Email bioperl-l@bioperl.org to
+find out which ones do. In fact, at the time of writing this, only
+Bio::SeqIO::genbank supports it.
+
+=item --mergeobjs
+
+This is also a string or a file defining a closure. If provided, the
+closure is called if a look-up for the unique key of the new object
+was successful (hence, it will never be called without supplying
+--lookup, but not --noupdate, at the same time).
+
+The closure will be passed three (3) arguments: the object found by
+lookup, the new object to be submitted, and the L<Bio::DB::DBAdaptorI>
+implementing object for the desired database. If the closure returns a
+value, it must be the object to be inserted or updated in the database
+(if $obj->primary_key returns a value, the object will be updated). If
+it returns undef, the script will skip to the next object in the input
+stream.
+
+The purpose of the closure can be manifold. It was originally
+conceived as a means to customarily merge attributes or associated
+objects of the new object to the existing (found) one in order to
+avoid duplications but still capture additional information (e.g.,
+annotation). However, there is a multitude of other operations it can
+be used for, like physically deleting or altering certain associated
+information from the database (the found object and all its associated
+objects will implement L<Bio::DB::PersistentObjectI>). Since the third
+argument is the persistent object and adaptor factory for the
+database, there is literally no limit as to the database operations
+the closure could possibly do.
+
+=item more args
+
+The remaining arguments will be treated as files to parse and load. If
+there are no additional arguments, input is expected to come from
+standard input.
+
+=back
+
+=head1 Authors
+
+=head1 Contributors
+
+Hilmar Lapp E<lt>hlapp at gmx.netE<gt>
 
 =cut
 
@@ -147,9 +282,11 @@ my @files = @ARGV ? @ARGV : (\*STDIN);
 # determine input format and type
 #
 my $objio;
-($objio,$format) = split(/:/, $format);
-if(! $format) {
-    $format = $objio;
+my @fmtelems = split(/::/, $format);
+if(@fmtelems > 1) {
+    $format = pop(@fmtelems);
+    $objio = join('::', @fmtelems);
+} else {
     # default is SeqIO
     $objio = "SeqIO";
 }
@@ -226,19 +363,8 @@ foreach $file ( @files ) {
     while( my $seq = $seqin->$nextobj ) {
 	# we can't store the structure for structured values yet, so
 	# flatten them
-	if($seq->can('annotation')) {
-	    foreach my $ann ($seq->annotation->remove_Annotations()) {
-		if($ann->isa("Bio::Annotation::StructuredValue")) {
-		    foreach my $val ($ann->get_all_values()) {
-			$seq->annotation->add_Annotation(
-				 Bio::Annotation::SimpleValue->new(
-					         -value => $val,
-						 -tagname => $ann->tagname()));
-		    }
-		} else {
-		    $seq->annotation->add_Annotation($ann);
-		}
-	    }
+	if($seq->isa("Bio::AnnotatableI")) {
+	    flatten_annotations($seq->annotation);
 	}
 	# don't forget to add namespace if the parser doesn't supply one
 	$seq->namespace($namespace) unless $seq->namespace();
@@ -361,4 +487,19 @@ sub clone_identifiable{
 	$newobj->primary_id($obj->primary_id());
     }
     return $newobj;
+}
+
+sub flatten_annotations {
+    my $anncoll = shift;
+    foreach my $ann ($anncoll->remove_Annotations()) {
+	if($ann->isa("Bio::Annotation::StructuredValue")) {
+	    foreach my $val ($ann->get_all_values()) {
+		$anncoll->add_Annotation(Bio::Annotation::SimpleValue->new(
+					   -value => $val,
+					   -tagname => $ann->tagname()));
+	    }
+	} else {
+	    $anncoll->add_Annotation($ann);
+	}
+    }
 }

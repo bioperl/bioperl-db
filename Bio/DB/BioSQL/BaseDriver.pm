@@ -120,7 +120,9 @@ our %association_entity_map;
 		   "Bio::Annotation::DBLink"  => "dbxref",
 		   "Bio::DB::BioSQL::DBLinkAdaptor"
 		                              => "dbxref",
-		   #"Bio::Annotation::Comment" => "comment",
+		   "Bio::Annotation::Comment" => "comment",
+		   "Bio::DB::BioSQL::CommentAdaptor" 
+                                              => "comment",
 		   "Bio::Annotation::Reference" => "reference",
 		   "Bio::DB::BioSQL::ReferenceAdaptor"
 		                              => "reference",
@@ -201,6 +203,10 @@ our %association_entity_map;
 	     "start"          => "reference_start",
 	     "end"            => "reference_end",
 	     "rank"           => "reference_rank",
+	 },
+	 "comment"            => {
+	     "text"           => "comment_text",
+	     "rank"           => "comment_rank",
 	 },
          "ontology_term"      => {
 	     "identifier"     => "term_identifier",
@@ -1121,6 +1127,48 @@ sub association_entity_map{
 	$self->{'association_entity_map'} = $value;
     }
     return $self->{'association_entity_map'};
+}
+
+=head1 Methods for transactional control
+
+   Rollback and commit
+
+=cut
+
+=head2 commit
+
+ Title   : commit
+ Usage   :
+ Function: Commits the current transaction, if the underlying driver
+           supports transactions.
+ Example :
+ Returns : TRUE
+ Args    : The database connection for which to commit.
+
+
+=cut
+
+sub commit{
+    my ($self, $dbh) = @_;
+    return $dbh->commit();
+}
+
+=head2 rollback
+
+ Title   : rollback
+ Usage   :
+ Function: Triggers a rollback of the current transaction, if the
+           underlying driver supports transactions.
+ Example :
+ Returns : TRUE
+ Args    : The database connection for which to rollback.
+
+
+=cut
+
+sub rollback{
+    my ($self, $dbh) = @_;
+    return $dbh->rollback();
 }
 
 1;

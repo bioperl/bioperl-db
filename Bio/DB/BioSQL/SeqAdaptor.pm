@@ -176,7 +176,7 @@ sub store_children{
     # may not be a PersistentObjectI (if that's the case we'll assume it's
     # empty, and there's no point storing anything)
     if($ac->isa("Bio::DB::PersistentObjectI")) {
-	$ok = $ac->store() && $ok;
+	$ok = $ac->store(-fkobjs => [$obj]) && $ok;
 	$ok = $ac->adaptor()->add_association(-objs => [$ac, $obj]) && $ok;
     }
     # store the features

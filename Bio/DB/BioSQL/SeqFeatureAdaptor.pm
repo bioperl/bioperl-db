@@ -463,8 +463,10 @@ sub get_unique_key_query{
 	$uk_h->{'entire_seq'} = $seq->primary_key();
 	# now look up the term for the seqfeature key
 	if($obj->primary_tag()) {
-	    $sfkey = $self->_ontology_term_fk("primary_tag",
-					      $obj->primary_tag());
+	    my ($sfkey) = grep {
+		$_->isa("Bio::Ontology::TermI") &&
+		    $_->foreign_key_slot() =~ /primary_tag$/;
+	    } @$fkobjs;
 	    $sfkey = $self->_term_adaptor()->find_by_unique_key($sfkey)
 		unless $sfkey->primary_key();
 	}

@@ -183,14 +183,14 @@ sub create{
 	    $pk = $foundobj->primary_key() if $foundobj;
 	}
 	if(! defined($pk)) {
-	    $self->throw("create(): object (". ref($obj->obj) .
+	    $self->throw("create: object (". ref($obj->obj) .
 			 ") failed to insert or to be found by unique key");
 	}
 	# store primary key
 	$obj->primary_key($pk);
     }
     # insert child records if any
-    if(! $self->store_children($obj, @args)) {
+    if(! $self->store_children($obj, \@fkobjs)) {
 	# ideally he don't get here but were thrown out by an exception in
 	# case of failure
 	$self->throw("failed to store child objects for an instance of class ".
@@ -232,7 +232,7 @@ sub store{
     # update
     my $rv = $self->dbd()->update_object($self, $obj, \@fkobjs);
     # update children
-    if(! $self->store_children($obj, @args)) {
+    if(! $self->store_children($obj, \@fkobjs)) {
 	# ideally he don't get here but were thrown out by an exception in
 	# case of failure
 	$self->throw("failed to store child objects for an instance of class ".
@@ -897,6 +897,42 @@ sub _build_object{
     return $obj;
 }
 
+=head2 commit
+
+ Title   : commit
+ Usage   :
+ Function: Commits the current transaction, if the underlying driver
+           supports transactions.
+ Example :
+ Returns : TRUE
+ Args    : none
+
+
+=cut
+
+sub commit{
+    my $self = shift;
+    return $self->dbd->commit($self->dbh, @_);
+}
+
+=head2 rollback
+
+ Title   : rollback
+ Usage   :
+ Function: Triggers a rollback of the current transaction, if the
+           underlying driver supports transactions.
+ Example :
+ Returns : TRUE
+ Args    : none
+
+
+=cut
+
+sub rollback{
+    my $self = shift;
+    return $self->dbd->rollback($self->dbh, @_);
+}
+
 =head2 dbcontext
 
  Title   : dbcontext
@@ -1224,7 +1260,7 @@ sub _remove_from_obj_cache{
 
  Title   : DESTROY
  Usage   :
- Function:
+ Function: We override this here to call finish().
  Example :
  Returns : 
  Args    :
@@ -1241,23 +1277,28 @@ sub DESTROY {
 
 =head1 Abstract Methods
 
-    Almost all of the following methods MUST be overridden by a derived class.
-    For some methods there is an implementation here that assumes "no action"
-    is the right thing, but for many adaptors this won't be right. There is
-    no way this base implementation can make any meaningful guesses at the
-    correct values for those.
+    Almost all of the following methods MUST be overridden by a
+    derived class.  For some methods there is an implementation here
+    that assumes "no action" is the right thing, but for many adaptors
+    this won't be right. There is no way this base implementation can
+    make any meaningful guesses at the correct values for those.
+
+=cut
 
 =head2 get_persistent_slots
 
  Title   : get_persistent_slots
  Usage   :
- Function: Get the slots of the object that map to attributes in its respective
-           entity in the datastore.
+ Function: Get the slots of the object that map to attributes in its
+           respective entity in the datastore.
 
-           Slots should be methods callable without an argument.
+           Slot name generally refers to a method name, but is not
+           required to do so, since determining the values is under
+           the control of get_persistent_slot_values().
 
-           This is a strictly abstract method. A derived class MUST override
-           it to return something meaningful.
+           This is a strictly abstract method. A derived class MUST
+           override it to return something meaningful.
+
  Example :
  Returns : an array of method names constituting the serializable slots
  Args    : the object about to be inserted or updated
@@ -1266,9 +1307,7 @@ sub DESTROY {
 =cut
 
 sub get_persistent_slots{
-    my ($self,@args) = @_;
-
-    $self->throw_not_implemented();
+    shift->throw_not_implemented();
 }
 
 =head2 get_persistent_slot_values
@@ -1278,18 +1317,21 @@ sub get_persistent_slots{
  Function: Obtain the values for the slots returned by get_persistent_slots(),
            in exactly that order.
 
-           The reason this method is here is that sometimes the actual slot
-           values need to be post-processed to yield the value that gets
-           actually stored in the database. E.g., slots holding arrays
-           will need some kind of join function applied. Another example is if
-           the method call needs additional arguments. Supposedly the
-           adaptor for a specific interface knows exactly what to do here.
+           The reason this method is here is that sometimes the actual
+           slot values need to be post-processed to yield the value
+           that gets actually stored in the database. E.g., slots
+           holding arrays will need some kind of join function
+           applied. Another example is if the method call needs
+           additional arguments. Supposedly the adaptor for a specific
+           interface knows exactly what to do here.
 
-           Since there is also populate_from_row() the adaptor has full
-           control over mapping values to a version that is actually stored.
+           Since there is also populate_from_row() the adaptor has
+           full control over mapping values to a version that is
+           actually stored.
 
-           This is a strictly abstract method and it MUST be overridden by a
-           derived class. 
+           This is a strictly abstract method and it MUST be
+           overridden by a derived class.
+
  Example :
  Returns : A reference to an array of values for the persistent slots of this
            object. Individual values may be undef.
@@ -1399,6 +1441,8 @@ sub attach_foreign_key_objects{
  Returns : TRUE on success, and FALSE otherwise
  Args    : The Bio::DB::PersistentObjectI implementing object for which the
            child objects shall be made persistent.
+           A reference to an array of foreign key values, in the order of
+           foreign keys returned by get_foreign_key_objects().
 
 
 =cut

@@ -92,10 +92,11 @@ use Bio::Root::RootI;
            and the driver, the value may not be unique between tables.
  Example :
  Returns : a value suitable for use as a primary key
- Args    : The database connection handle to use for retrieving the next primary
-           key value.
-           Optionally, the name of the table. The driver is not required to
-           honor the argument if present.
+ Args    : The database connection handle to use for retrieving the
+           next primary key value.
+
+           Optionally, the name of the table. The driver is not
+           required to honor the argument if present.
 
 
 =cut
@@ -138,15 +139,18 @@ sub last_id_value{
  Function: Obtains a connection handle to the database represented by the
            the DBContextI object, passing additional args to the DBI->connect()
            method if a new connection is created.
-           
-           Contrary to new_connection(), this method may return shared
-           connections from a pool. The implementation should make sure though
-           that the returned handle was opened with the given parameters.
 
-           In addition, the caller must not disconnect the obtained handle
-           deliberately. Instead, the implementing object will disconnect and
-           dispose of open handles once it is being garbage collected, or once
-           disconnect() is called with the same or no parameters.
+           Contrary to new_connection(), this method may return shared
+           connections from a pool. The implementation should make
+           sure though that the returned handle was opened with the
+           given parameters.
+
+           In addition, the caller must not disconnect the obtained
+           handle deliberately. Instead, the implementing object will
+           disconnect and dispose of open handles once it is being
+           garbage collected, or once disconnect() is called with the
+           same or no parameters.
+
  Example :
  Returns : an open DBI database handle
  Args    : A Bio::DB::DBContextI implementing object. Additional hashref
@@ -169,9 +173,11 @@ sub get_connection{
            the DBContextI object, passing additional args to the DBI->connect()
            method.
 
-           This method is supposed to always open a new connection. Also, the
-           implementing class is expected to release proper disconnection of
-           the handle entirely to the caller.
+           This method is supposed to always open a new
+           connection. Also, the implementing class is expected to
+           release proper disconnection of the handle entirely to the
+           caller.
+
  Example :
  Returns : an open DBI database handle
  Args    : A Bio::DB::DBContextI implementing object. Additional hashref
@@ -214,19 +220,22 @@ sub disconnect{
  Function: Gets/sets connection parameters suitable for the specific driver and
            the specific requestor.
 
-           A particular implementation may choose to ignore the requestor, but
-           it may also use it to return different parameters, based on, e.g.,
-           which interface the requestor implements. Usually the caller will
-           pass $self as the value for $requestor, but an implementation is
-           is expected to accept a class or interface name as well.
+           A particular implementation may choose to ignore the
+           requestor, but it may also use it to return different
+           parameters, based on, e.g., which interface the requestor
+           implements. Usually the caller will pass $self as the value
+           for $requestor, but an implementation is is expected to
+           accept a class or interface name as well.
 
-           If an object is passed for $requestor, the implementation is
-           expected to return parameters for an interface the object
-           implements, or for a parent class, whichever comes first, and
-           provided no parameters have been set specifically for the class of
-           the passed object. This makes is possible, as an example, to set
-           parameters for Bio::DB::PersistenceAdaptorI, and have those returned
-           for every object that implements that interface.
+           If an object is passed for $requestor, the implementation
+           is expected to return parameters for an interface the
+           object implements, or for a parent class, whichever comes
+           first, and provided no parameters have been set
+           specifically for the class of the passed object. This makes
+           is possible, as an example, to set parameters for
+           Bio::DB::PersistenceAdaptorI, and have those returned for
+           every object that implements that interface.
+
  Example : 
  Returns : a hashref to be passed to get_connection() or new_connection()
            (which would pass it on to DBI->connect()).

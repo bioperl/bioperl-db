@@ -220,7 +220,6 @@ sub instantiate_from_row{
            Usually a derived class will instantiate the proper class and pass
            it on to populate_from_row().
 
-           This method MUST be overridden by a derived object.
  Example :
  Returns : An object, or undef, if the row contains no values
  Args    : The object to be populated, or the class to be instantiated.
@@ -235,7 +234,7 @@ sub populate_from_row{
     my ($self,$obj,$rows) = @_;
 
     if(! ref($obj)) {
-	$obj = $obj->new();
+	$self->throw("\"$obj\" is not an object. Probably internal error.");
     }
     if($rows && @$rows) {
 	if($rows->[1] && $obj->isa("Bio::Seq::RichSeqI")) {

@@ -85,6 +85,13 @@ use Bio::Root::RootI;
 
 @ISA = qw( Bio::Root::RootI );
 
+=head1 Methods for managing persistence of this object
+
+   Create (insert), store (update), remove (delete), and the primary
+   key
+
+=cut
+
 =head2 create
 
  Title   : create
@@ -154,10 +161,12 @@ sub remove{
  Usage   : $obj->primary_key($newval)
  Function: Get the primary key of the persistent object in the datastore.
 
-           Note that an implementation may not permit changing the primary
-           key once it has been set. For most applications, changing an
-           existing primary key value to another one is a potentially very
-           hazardous operation and will hence be prohibited.
+           Note that an implementation may not permit changing the
+           primary key once it has been set. For most applications,
+           changing an existing primary key value to another one is a
+           potentially very hazardous operation and will hence be
+           prohibited.
+
  Example : 
  Returns : value of primary_key (a scalar)
  Args    : new value (a scalar, optional)
@@ -176,12 +185,13 @@ sub primary_key{
  Usage   : $obj->obj()
  Function: Get/set the object that is made persistent through this adaptor.
 
-           Note that an implementation is not required to allow setting a
-           value. In fact, an implementation is encouraged to disallow changing
-           the value once it has been set.
+           Note that an implementation is not required to allow
+           setting a value. In fact, an implementation is encouraged
+           to disallow changing the value once it has been set.
 
-           Implementations based on inheriting from the class to be made
-           persistent will just return $self here.
+           Implementations based on inheriting from the class to be
+           made persistent will just return $self here.
+
  Example : 
  Returns : The object made persistent through this adaptor
  Args    : On set, the new value. Read above for caveat.
@@ -192,6 +202,46 @@ sub primary_key{
 sub obj{
     my ($self,$value) = @_;
     $self->throw_not_implemented();
+}
+
+=head1 Methods for transactional control
+
+   Rollback and commit
+
+=cut
+
+=head2 commit
+
+ Title   : commit
+ Usage   :
+ Function: Commits the current transaction, if the underlying driver
+           supports transactions.
+ Example :
+ Returns : TRUE
+ Args    : none
+
+
+=cut
+
+sub commit{
+    shift->throw_not_implemented();
+}
+
+=head2 rollback
+
+ Title   : rollback
+ Usage   :
+ Function: Triggers a rollback of the current transaction, if the
+           underlying driver supports transactions.
+ Example :
+ Returns : TRUE
+ Args    : none
+
+
+=cut
+
+sub rollback{
+    shift->throw_not_implemented();
 }
 
 =head1 Decorating methods

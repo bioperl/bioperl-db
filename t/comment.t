@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 9;
+    plan tests => 11;
 }
 
 use DBTestHarness;
@@ -41,7 +41,9 @@ eval {
     my $comment = Bio::Annotation::Comment->new();
     $comment->text("Some text");
     
-    my $pcomment = $adp->create($comment, -fkobjs => $pseq);
+    my $pcomment = $adp->create_persistent($comment);
+    $pcomment->rank(10);
+    $pcomment->create(-fkobjs => [$pseq]);
     ok $pcomment->primary_key();
 
     my $dbcomment = $adp->find_by_primary_key($pcomment->primary_key());

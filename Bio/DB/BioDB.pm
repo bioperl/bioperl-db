@@ -92,7 +92,7 @@ BEGIN {
  Args    : Named parameters. Currently recognized are
              -database    the name of the database for which the
                           encapsulating adaptor is sought (biosql|markerdb)
-             =dbcontext   a Bio::DB::DBContextI implementing object
+             -dbcontext   a Bio::DB::DBContextI implementing object
 
 
 =cut

@@ -84,7 +84,89 @@ use Bio::DB::BioSQL::BasePersistenceAdaptor;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
-# new is inherited
+our %annotation_type_map = (
+	"Bio::Annotation::DBLink"      => {
+	    "key"      => "dblink",
+	    "link"     => "association",
+	},
+	"Bio::Annotation::Reference"   => {
+	    "key"      => "reference",
+	    "link"     => "association",
+	},
+	"Bio::Annotation::SimpleValue" => {
+	    "key"      => "dummy",
+	    "link"     => "association",
+	},
+	"Bio::Annotation::Comment"     => {
+	    "key"      => "comment",
+	    "link"     => "child",
+	}
+			    );
+
+=head2 new
+
+ Title   : new
+ Usage   : my $obj = new Bio::DB::BioSQL::AnnotationCollectionAdaptor();
+ Function: Builds a new Bio::DB::BioSQL::AnnotationCollectionAdaptor object 
+ Returns : an instance of Bio::DB::BioSQL::AnnotationCollectionAdaptor
+ Args    :
+
+
+=cut
+
+sub new {
+    my($class,@args) = @_;
+
+    my $self = $class->SUPER::new(@args);
+    
+    $self->_supported_annotation_map(\%annotation_type_map);
+
+    return $self;
+}
+
+
+=head2 get_foreign_key_objects
+
+ Title   : get_foreign_key_objects
+ Usage   :
+ Function: Gets the objects referenced by this object, and which therefore need
+           to be referenced as foreign keys in the datastore.
+
+           Note that the objects are expected to implement
+           Bio::DB::PersistentObjectI.
+
+           An implementation may obtain the values either through the
+           object to be serialized, or through the additional
+           arguments. An implementation should also make sure that the
+           order of foreign key objects returned is always the same.
+
+ Example :
+ Returns : an array of Bio::DB::PersistentObjectI implementing objects
+ Args    : The object about to be inserted or updated, or undef if the call
+           is for a SELECT query. In the latter case return class or interface
+           names that are mapped to the foreign key tables.
+           Optionally, additional named parameters. A common parameter will
+           be -fkobjs, with a reference to an array of foreign key objects
+           that are not retrievable from the persistent object itself.
+
+=cut
+
+sub get_foreign_key_objects{
+    my ($self,$obj,@args) = @_;
+    my $annotatable;
+
+    # we need to get this from the arguments.
+    my ($fkobjs) = $self->_rearrange([qw(FKOBJS)], @args);
+    if($fkobjs && @$fkobjs) {
+	($annotatable) = grep {
+	    $_->isa("Bio::SeqI") || (! ref($_));
+	} @$fkobjs;
+    } else {
+	$annotatable = "Bio::SeqI";
+    }
+
+    return ($annotatable);
+}
 
 =head2 store_children
 
@@ -96,20 +178,34 @@ use Bio::DB::BioSQL::BasePersistenceAdaptor;
  Returns : TRUE on success, and FALSE otherwise
  Args    : The Bio::DB::PersistentObjectI implementing object for which the
            child objects shall be made persistent.
+           A reference to an array of foreign key values, in the order of
+           foreign keys returned by get_foreign_key_objects().
 
 
 =cut
 
 sub store_children{
-    my ($self,$ac) = @_;
+    my ($self,$ac,$fkobjs) = @_;
     my $ok = 1;
 
+    # get the annotation type map
+    my $annotmap = $self->_supported_annotation_map();
     # we need to store the contained annotations
     foreach my $annkey ($ac->get_all_annotation_keys()) {
+	my $rank = 0;
 	foreach my $ann ($ac->get_Annotations($annkey)) {
 	    # if it's a persistent object, store it
 	    if($ann->isa("Bio::DB::PersistentObjectI")) {
-		$ok = $ann->store() && $ok;
+		my @params = ();
+		# if this is a child relationship by FK, we need to pass on
+		# the FK here, and also supply the rank in case it's needed
+		my $key = $self->_annotation_map_key($annotmap,$ann);
+		if($annotmap->{$key}->{"link"} eq "child") {
+		    $ann->rank(++$rank);
+		    push(@params, -fkobjs => $fkobjs);
+		}
+		# now store the annotation object
+		$ok = $ann->store(@params) && $ok;
 	    }
 	}
     }
@@ -121,95 +217,6 @@ sub store_children{
 We override a couple of inherited methods here because an AnnotationCollection
 currently is only a virtual entity in the database. Hence, a number of
 operations greatly reduce or don't make sense at all.
-
-=head2 create
-
- Title   : create
- Usage   : $objectstoreadp->create($obj, @params)
- Function: Creates the object as a persistent object in the datastore. This
-           is equivalent to an insert.
-
-           For an AnnotationCollectionI, this means storing all children.
- Example :
- Returns : A Bio::DB::PersistentObjectI implementing object wrapping the
-           inserted object.
- Args    : The object to be inserted, and optionally additional (named) 
-           parameters. A common parameter will
-           be -fkobjs, with a reference to an array of foreign key objects
-           that are not retrievable from the persistent object itself.
-
-=cut
-
-sub create{
-    my ($self,$obj,@args) = @_;
-
-    # If the object wasn't a PersistentObjectI already it needs to become
-    # one now. We do this always to make sure the children etc are persistent,
-    # too.
-    $obj = $self->create_persistent($obj);
-    # obtain foreign key objects either from arguments or from object
-    my @fkobjs = $self->get_foreign_key_objects($obj, @args);
-    # make sure the foreign key objects are all persistent objects and have
-    # been stored already
-    foreach (@fkobjs) {
-	next unless $_ && ref($_);
-	$self->throw("All foreign key objects must implement ".
-		     "Bio::DB::PersistentObjectI. Found one that doesn't.")
-	    unless $_->isa("Bio::DB::PersistentObjectI");
-	$_->store() unless $_->primary_key();
-    }
-    # we only have virtual PK
-    $obj->primary_key(-1);
-    # insert child records
-    if(! $self->store_children($obj, @args)) {
-	# ideally he don't get here but were thrown out by an exception in
-	# case of failure
-	$self->throw("failed to store child objects for an instance of class ".
-		     ref(obj->obj()));
-    }
-    # done
-    return $obj;
-}
-
-=head2 store
-
- Title   : store
- Usage   : $objectstoreadp->store($persistent_obj,@params)
- Function: Updates the given persistent object in the datastore.
-
-           For an AnnotationCollectionI, this means storing all children.
- Example :
- Returns : TRUE on success and FALSE otherwise
- Args    : The object to be updated, and optionally additional (named) 
-           parameters. A common parameter will
-           be -fkobjs, with a reference to an array of foreign key objects
-           that are not retrievable from the persistent object itself.
-
-
-=cut
-
-sub store{
-    my ($self,$obj,@args) = @_;
-
-    $self->throw("Object of class ".ref($obj)." does not implement ".
-		 "Bio::DB::PersistentObjectI. Bad, cannot store.")
-	if ! $obj->isa("Bio::DB::PersistentObjectI");
-
-    # if there's no primary key, we need to create() the record(s) instead
-    # of update
-    return $self->create($obj, @args) if(! $obj->primary_key());
-    # We do this always to make sure the children etc are all persistent, too.
-    $self->create_persistent($obj);
-    # update children
-    if(! $self->store_children($obj, @args)) {
-	# ideally he don't get here but were thrown out by an exception in
-	# case of failure
-	$self->throw("failed to store child objects for an instance of class ".
-		     ref(obj->obj()));
-    }
-    # done
-    return 1;
-}
 
 =head2 remove
 
@@ -333,18 +340,24 @@ sub add_association{
 	}
 	$i++;
     }
+    # get annotation type map
+    my $annotmap = $self->_supported_annotation_map();
     # loop over all annotations in the collection and associate the
     # "other" objects with it
     foreach my $annkey ($ac->get_all_annotation_keys()) {
 	my $rank = 0; # we count key-wise (i.e., term-wise)
 	foreach my $ann ($ac->get_Annotations($annkey)) {
-	    # if it's a persistent object, propagate the association
+	    # if it's a persistent object, and if it's a membership by
+	    # association, then propagate the association
 	    if($ann->isa("Bio::DB::PersistentObjectI")) {
-		$ann->rank(++$rank);
-		push(@$objs, $ann);
-		$params{-values} = {"rank" => $ann->rank()};
-		$ok = $ann->adaptor()->add_association(%params) && $ok;
-		pop(@$objs);
+		my $key = $self->_annotation_map_key($annotmap,$ann);
+		if($annotmap->{$key}->{"link"} eq "association") {
+		    $ann->rank(++$rank);
+		    push(@$objs, $ann);
+		    $params{-values} = {"rank" => $ann->rank()};
+		    $ok = $ann->adaptor()->add_association(%params) && $ok;
+		    pop(@$objs);
+		}
 	    }
 	}
     }
@@ -381,7 +394,7 @@ sub find_by_association{
     # get arguments; we only need -objs and keep the rest untouched
     my %params = @args;
     my $objs = $params{-objs} || $params{-OBJS};
-    # separate objects to be associated into AnnotationCollectionIs and others
+    # separate objects to be associated into AnnotationCollectionI and others
     my $ac;
     $i = 0;
     while($i < @$objs) {
@@ -403,20 +416,23 @@ sub find_by_association{
     delete $params{-obj_factory};
     delete $params{-OBJ_FACTORY};
     # obtain the map from annotation types to annotation keys
-    my $annotmap = $self->supported_annotations();
+    my $annotmap = $self->_supported_annotation_map();
     # loop over all supported annotations and find the ones associated
     # with the "other" objects
     my $foundanything = 0;
     foreach my $anntype (keys %$annotmap) {
+	# we only do this for association links
+	next unless $annotmap->{$anntype}->{"link"} eq "association";
+	# ok, this is linked by association
 	my $annadp = $self->db()->get_object_adaptor($anntype);
-	# temporarily add it to the array of objects to be associated
+	# temporarily add the type to the array of objects to be associated
 	push(@$objs, $anntype);
 	# get query result
 	my $qres = $annadp->find_by_association(%params);
 	# loop over all result objects and attach
 	while(my $ann = $qres->next_object()) {
 	    # tagname may come from the db - otherwise set it from the map
-	    $ann->tagname($annotmap->{$anntype}) unless $ann->tagname();
+	    $ann->tagname($annotmap->{$anntype}->{"key"}) if ! $ann->tagname();
 	    $ac->add_Annotation($ann);
 	    $foundanything = 1;
 	}
@@ -430,32 +446,49 @@ sub find_by_association{
 	Bio::DB::Query::PrebuiltResult->new(-objs => []);
 }
 
-=head2 supported_annotations
+=head2 _supported_annotation_map
 
- Title   : supported_annotations
- Usage   : $obj->supported_annotations($newval)
+ Title   : _supported_annotation_map
+ Usage   : $obj->_supported_annotation_map($newval)
  Function: Get/set the map of supported annotation types (implementing
-	   classes) to annotation keys.
+	   classes) to annotation keys and persistence arguments.
+
+           The values of the map are anonymous hashes themselves with
+           currently the following keys and values.
+             key     the annotation collection key for this type of
+                     annotation
+             link    the type of link between the collection and the
+                     annotation object (child or association)
+
  Example : 
- Returns : value of supported_annotations (a reference to hash map)
+ Returns : value of _supported_annotation_map (a reference to hash map)
  Args    : new value (a reference to a hash map)
 
 
 =cut
 
-sub supported_annotations{
+sub _supported_annotation_map{
     my ($self,$value) = @_;
     if( defined $value) {
 	$self->{'supported_annotations'} = $value;
     }
-    if(! exists($self->{'supported_annotations'})) {
-	$self->{'supported_annotations'} = {
-	    "Bio::Annotation::DBLink"      => "dblink",
-	    "Bio::Annotation::Reference"   => "reference",
-	    "Bio::Annotation::SimpleValue" => "dummy",
-	    };
-    }
     return $self->{'supported_annotations'};
+}
+
+sub _annotation_map_key{
+    my ($self,$map,$obj) = @_;
+    my $key = ref($obj->obj());
+    if(! exists($map->{$key})) {
+	($key) = grep { $obj->isa($_); } keys %$map;
+	# cache result
+	if($key) {
+	    $map->{ref($obj->obj())} = $map->{$key};
+	} else {
+	    $self->throw("Annotation of class ".ref($obj->obj).
+			 " not type-mapped. Internal error?");
+	}
+    }
+    return $key;
 }
 
 1;

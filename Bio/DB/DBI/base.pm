@@ -108,7 +108,6 @@ sub new {
 
     $self->{'_dbh_pools'} = {};
     $self->{'_conn_params'} = {};
-    $self->dbcontext($dbc);
 
     if(! $seqname) {
 	$seqname = ($dbc->dbname() ? $dbc->dbname() : "pk") . "_sequence";
@@ -137,40 +136,6 @@ sub sequence_name{
 	$self->{'sequence_name'} = $value;
     }
     return $self->{'sequence_name'};
-}
-
-=head2 dbh
-
- Title   : dbh
- Usage   : $obj->dbh($newval)
- Function: 
- Example : 
- Returns : value of dbh (a database handle)
- Args    : new value (a database handle, optional), or a Bio::DB::DBContextI
-           implementing object to open a database handle if none is open yet
-           
-
-=cut
-
-sub dbh{
-    my ($self,$dbh) = @_;
-    my $dbc;
-
-    if( defined $dbh ) {
-	if($dbh->isa("Bio::DB::DBContextI")) {
-	    $dbc = $dbh;
-	    $dbh = undef;
-	} else {
-	    $self->{'dbh'} = $dbh;
-	}
-    }
-    if(! exists($self->{'dbh'})) {
-	$dbc = $self->dbcontext() if ! $dbc;
-	$dbh = $self->new_connection($dbc, { RaiseError => 1 });
-	$dbh->{ChopBlanks} = 1;
-	$self->{'dbh'} = $dbh;
-    }
-    return $self->{'dbh'};
 }
 
 =head2 build_dsn
@@ -339,19 +304,23 @@ sub disconnect{
 
  Title   : conn_params
  Usage   : $dbi->conn_params($requestor, $newval)
- Function: Gets/sets connection parameters suitable for the specific driver and
-           the specific requestor.
+ Function: Gets/sets connection parameters suitable for the specific
+           driver and the specific requestor.
 
-           A particular implementation may choose to ignore the requestor, but
-           it may also use it to return different parameters, based on, e.g.,
-           which interface the requestor implements. Usually the caller will
-           pass $self as the value $requestor, but an implementation is
-           is expected to accept a class or interface name as well.
+           A particular implementation may choose to ignore the
+           requestor, but it may also use it to return different
+           parameters, based on, e.g., which interface the requestor
+           implements. Usually the caller will pass $self as the value
+           $requestor, but an implementation is expected to accept
+           a class or interface name as well.
+
  Example : 
  Returns : a hashref to be passed to get_connection() or new_connection()
            (which would pass it on to DBI->connect()).
- Args    : The requesting object, or alternatively its class name or interface.
-           Optionally, on set the new value (which must be undef or a hashref).
+ Args    : The requesting object, or alternatively its class name or
+           interface.
+           Optionally, on set the new value (which must be undef or a
+           hashref).
 
 
 =cut
@@ -381,38 +350,10 @@ sub conn_params{
     return $params;
 }
 
-=head2 dbcontext
-
- Title   : dbcontext
- Usage   : $obj->dbcontext($newval)
- Function: Get/set the DBContextI object representing the physical database.
- Example : 
- Returns : A Bio::DB::DBContextI implementing object
- Args    : on set, the new Bio::DB::DBContextI implementing object
-
-
-=cut
-
-sub dbcontext{
-    my ($self,$value) = @_;
-
-    if( defined $value) {
-	$self->{'dbcontext'} = $value;
-    }
-    return $self->{'dbcontext'};
-}
-
-
 sub DESTROY {
     my ($self) = @_;
 
     $self->disconnect();
-    if($self->{'dbh'}) {
-	eval {
-	    $self->dbh()->disconnect();
-	};
-	$self->warn("error while disconnecting from database: " . $@) if($@);
-    }
     $self->SUPER::DESTROY;
 }
 

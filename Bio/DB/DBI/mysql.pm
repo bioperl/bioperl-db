@@ -137,9 +137,10 @@ sub next_id_value{
 
  Title   : last_id_value
  Usage   :
- Function: Returns the last unique primary key value allocated. Depending on 
-           the argument and the driver, the value may be specific to a table,
-           or independent of the table.
+ Function: Returns the last unique primary key value
+           allocated. Depending on the argument and the driver, the
+           value may be specific to a table, or independent of the
+           table.
 
            This implementation will ignore the table.
  Example :
@@ -154,17 +155,18 @@ sub last_id_value{
     my ($self, $dbh) = @_;
 
     if(! $dbh) {
-	$self->warn("no database handle supplied to last_id_value() ".
-		    "in MySQL driver -- expect problems down the road");
-	$dbh = $self->dbh();
+	$self->throw("no database handle supplied to last_id_value() --".
+		     "last_id and currval operations are connection-specific");
     }
     my $sth = $dbh->prepare("SELECT last_insert_id()");
     my $rv  = $sth->execute();
-    my $rows = $sth->fetchall_arrayref();
     my $dbid;
-    if((! @$rows) || (($dbid = $rows->[0]->[0]) == 0)) {
-	$self->throw("no record inserted or wrong database handle -- ".
-		     "probably internal error");
+    if($rv) {
+	my $row = $sth->fetchrow_arrayref();
+	if(! ($row && @$row && ($dbid = $row->[0]))) {
+	    $self->throw("no record inserted or wrong database handle -- ".
+			 "probably internal error");
+	}
     }
     return $dbid;
 }

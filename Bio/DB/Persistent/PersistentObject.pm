@@ -371,6 +371,46 @@ sub adaptor{
     return $self->{'_adaptor'};
 }
 
+=head1 Methods for transactional control
+
+   Rollback and commit
+
+=cut
+
+=head2 commit
+
+ Title   : commit
+ Usage   :
+ Function: Commits the current transaction, if the underlying driver
+           supports transactions.
+ Example :
+ Returns : TRUE
+ Args    : none
+
+
+=cut
+
+sub commit{
+    return shift->adaptor->commit(@_);
+}
+
+=head2 rollback
+
+ Title   : rollback
+ Usage   :
+ Function: Triggers a rollback of the current transaction, if the
+           underlying driver supports transactions.
+ Example :
+ Returns : TRUE
+ Args    : none
+
+
+=cut
+
+sub rollback{
+    return shift->adaptor->rollback(@_);
+}
+
 =head1 Methods to mimic the wrapped object
 
 =cut

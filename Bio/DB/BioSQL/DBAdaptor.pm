@@ -58,10 +58,18 @@ sub new {
     my $self = $pkg->SUPER::new(@args);
 
     my ($dbc) = $self->_rearrange([qw(DBCONTEXT)],@args);
+
     $self->dbcontext($dbc) if $dbc;
     $self->{'_failed_objadp'} = {};
     $self->{'_objadp_cache'} = {};
     $self->{'_objadp_instances'} = {};
+
+    # we'll disable AutoCommit for the persistence adaptors of this
+    # database, and we'll also disable RaiseError
+    if($dbc) {
+	$dbc->dbi()->conn_params("Bio::DB::PersistenceAdaptorI",
+				 { RaiseError => 0, AutoCommit => 0 });
+    }
 
     return $self; # success - we hope!
 }

@@ -389,7 +389,7 @@ sub _map_select_slots_to_columns{
     # first, clone the array
     my $selcols = [@$selectcols];
     # loop over all columns and map from slot to column
-    for(my $i; $i < @$selcols; $i++) {
+    for(my $i = 0; $i < @$selcols; $i++) {
 	# match a pattern to locate alias.slot instead of assuming that the
 	# entire string is what we are looking for
 	my @pats = ('([\w0-9_]+)\.([\w0-9_]+)()',

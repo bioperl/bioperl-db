@@ -1416,7 +1416,7 @@ sub association_table_name{
     # descend the tree as we encounter the objects
     foreach my $obj (@$objs) {
 	$tbl = $self->table_name($obj);
-	$assocmap = $assocmap->{$tbl};
+	$assocmap = defined($tbl) ? $assocmap->{$tbl} : $tbl;
 	last if(! ref($assocmap));
     }
     # not mapped?

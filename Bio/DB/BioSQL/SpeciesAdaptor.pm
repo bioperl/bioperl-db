@@ -253,7 +253,7 @@ sub populate_from_row{
 	if($clf && @$clf) {
 	    # for the species object we do not maintain the nodes that don't
 	    # correspond to a standard rank, so remove them (e.g., 'root')
-	    while($clf->[0]->[1] eq "no rank") {
+	    while($clf->[0]->[1] && ($clf->[0]->[1] eq "no rank")) {
 		shift(@$clf);
 	    }
 	    # in the species object we store the species element without the

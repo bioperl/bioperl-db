@@ -382,33 +382,33 @@ sub populate_from_row{
 
 sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
-    my $uk_h = {};
+    my @ukqueries = ();
 
-    # UKs for PrimarySeqIs are (accession number,namespace,version),
-    # (display_id,namespace,version), (primary_id,namespace).
-    #
+    # UKs for PrimarySeqIs are (accession number,namespace,version)
+    # and (primary_id,namespace).
+
+    # all of the UKs include the namespace if provided, so get
+    # this right away.
+    my $ns;
+    if($obj->namespace()) {
+        $ns = Bio::BioEntry->new(-namespace => $obj->namespace());
+        $ns = $self->_bionamespace_adaptor()->find_by_unique_key($ns);
+    }
     if($obj->primary_id() && ($obj->primary_id() !~ /=(HASH|ARRAY)\(0x/)) {
-	$uk_h->{'primary_id'} = $obj->primary_id();
-    } else {
-	# all of the other UKs include the namespace if provided, so get
-	# this right away.
-	my $ns;
-	if($obj->namespace()) {
-	    $ns = Bio::BioEntry->new(-namespace => $obj->namespace());
-	    $ns = $self->_bionamespace_adaptor()->find_by_unique_key($ns);
-	}
-	if($obj->accession_number()) {
-	    $uk_h->{'accession_number'} = $obj->accession_number();
-	    $uk_h->{'bionamespace'} = $ns->primary_key() if $ns;
-	    $uk_h->{'version'} = $obj->version() || 0;
-	} elsif($obj->display_id()) {
-	    $uk_h->{'display_id'} = $obj->display_id();
-	    $uk_h->{'bionamespace'} = $ns->primary_key() if $ns;
-	    $uk_h->{'version'} = $obj->version() || 0;
-	}
+        my $uk_h = { 'primary_id' => $obj->primary_id(), };
+        $uk_h->{'bionamespace'} = $ns->primary_key() if $ns;
+	push(@ukqueries, $uk_h);
+    }
+    if($obj->accession_number()) {
+        my $uk_h = {
+            'accession_number' => $obj->accession_number(),
+	    'version' => ($obj->version() || 0),
+        };
+        $uk_h->{'bionamespace'} = $ns->primary_key() if $ns;
+	push(@ukqueries, $uk_h);
     }
 
-    return $uk_h;
+    return @ukqueries;
 }
 
 =head2 get_biosequence

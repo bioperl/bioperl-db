@@ -429,15 +429,16 @@ sub _seq_id_as_dblink{
     my $seqid = $loc->seq_id;
     my ($ns,$v);
 
-    my $i = index($seqid, ':');
-    if($i >= 0) {
-	$ns = substr($seqid, 0, $i);
-	$seqid = substr($seqid, $i+1);
+    if( # this is an Ensembl artifact
+        $seqid !~ /^Chr(X|Y|Un|\d+|Chr)/) {
+	if($seqid =~ /^(\w+):(.+)/) {
+	    $ns = $1;
+	    $seqid = $2;
+	}
     }
-    $i = rindex($seqid, '.');
-    if($i >= 0) {
-	$v = substr($seqid, $i+1);
-	$seqid = substr($seqid, 0, $i);
+    if($seqid =~ /^([0-9\w]+)\.([0-9]+)/) {
+	$seqid = $1;
+	$v = $2;
     }
     if(! $ns) {
 	if(! $feat) {
@@ -448,9 +449,9 @@ sub _seq_id_as_dblink{
 	$ns = $feat->entire_seq()->namespace();
     }
     # create DBLink object
-    my $dblink =  Bio::Annotation::DBLink->new(-database => $ns,
-					       -primary_id => $seqid);
-    $dblink->version($v);
+    my $dblink =  Bio::Annotation::DBLink->new(-database   => $ns,
+					       -primary_id => $seqid,
+					       -version    => $v);
     # return the persistent version of it
     return $self->_dblink_adaptor->create_persistent($dblink);
 }

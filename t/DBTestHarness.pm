@@ -77,7 +77,7 @@ my $counter=0;
 		'user'          => 'root',
 		'port'          => undef,
 		'password'      => undef,
-		'schema_sql'    => ['./sql/markerdb.sql'],
+		'schema_sql'    => ['./sql/markerdb-mysql.sql'],
 		'module'        => 'Bio::DB::Map::SQL::DBAdaptor'
 		};
 	}

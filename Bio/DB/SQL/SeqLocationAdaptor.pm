@@ -210,8 +210,8 @@ sub _store_component{
    my $acc = $1;
    my $v = $2;
    if ($location->is_remote) {
-       my $sth = $self->prepare("insert into remote_seqfeature_name (seqfeature_location_id,accession,version) values($id,'$acc',$v)");
-       $sth->execute;
+#       my $sth = $self->prepare("insert into remote_seqfeature_name (seqfeature_location_id,accession,version) values($id,'$acc',$v)");
+#       $sth->execute;
    }
    return $id;
 }

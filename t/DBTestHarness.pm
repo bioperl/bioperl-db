@@ -1,3 +1,4 @@
+# $Id$
 
 =pod
 
@@ -164,8 +165,6 @@ sub database {
     if($value && (! exists($self->{'database'}))) {
 	$self->{'database'} = $value;
     }
-    $self->{'database'} = $self->_create_db_name()
-	unless exists($self->{'database'});
     return $self->{'database'};
 }
 

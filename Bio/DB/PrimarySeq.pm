@@ -60,29 +60,29 @@ The rest of the documentation details each of the object methods. Internal metho
 
 
 package Bio::DB::PrimarySeq;
-use vars qw($@ISA);
+use vars qw(@ISA);
 use strict;
 
 # Object preamble - inherits from Bio::Root::RootI
 
 use Bio::Root::RootI;
+use Bio::PrimarySeqI;
 
-
-@ISA = qw(Bio::Root::RootI);
+@ISA = qw(Bio::PrimarySeqI Bio::Root::RootI);
 # new() can be inherited from Bio::Root::RootI
 
 
 sub new {
-    my ($class,$dbobj) = @_;
+    my ($class,@args) = @_;
 
     my $self = {};
     bless $self,$class;
 
-    my($primary_id,$display_id,$accession,$adaptor) = 
-	$self->_rearrange([qw(PRIMARY DISPLAY ACCESSION ADAPTOR LENGTH)],@args);
+    my($primary_id,$display_id,$accession,$adaptor,$length) = 
+	$self->_rearrange([qw(PRIMARY_ID DISPLAY_ID ACCESSION ADAPTOR LENGTH)],@args);
 
-    if( !defined $primary_id || !defined $display_id || !definded $accession || !defined $adaptor || !defined $length) {
-	$self->throw("Not got one of the arguments in DB::PrimarySeq new");
+    if( !defined $primary_id || !defined $display_id || !defined $accession || !defined $adaptor || !defined $length) {
+	$self->throw("Not got one of the arguments in DB::PrimarySeq new $primary_id,$display_id,$accession,$adaptor,$length");
     }
 
     $self->primary_id($primary_id);
@@ -218,6 +218,7 @@ sub length{
 sub seq{
    my ($self,@args) = @_;
 
+   # never cache sequences. Quite sane.
    return $self->adaptor->get_seq_as_string($self->primary_id);
 }
 
@@ -237,6 +238,35 @@ sub subseq{
    my ($self,$start,$end) = @_;
 
    return $self->adaptor->get_subseq_as_string($self->primary_id,$start,$end);
+}
+
+
+=head2 desc
+
+ Title   : desc
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub desc{
+   my ($self,@args) = @_;
+
+   if( defined $self->{'_desc_cache'} ) {
+       return $self->{'_desc_cache'};
+   }
+
+   my $d = $self->adaptor->get_description($self->primary_id);
+
+   if( !defined $d ) { $d = ""; }
+
+   $self->{'_desc_cache'} = $d;
+
+   return $d;
 }
 
 

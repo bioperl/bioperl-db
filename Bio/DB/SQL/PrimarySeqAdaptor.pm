@@ -60,14 +60,156 @@ The rest of the documentation details each of the object methods. Internal metho
 
 
 package Bio::DB::SQL::PrimarySeqAdaptor;
-use vars qw($@ISA);
+use vars qw(@ISA);
 use strict;
 
 use Bio::DB::SQL::BaseAdaptor;
+use Bio::DB::PrimarySeq;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
 # new inherieted from base adaptor.
+
+=head2 fetch_by_dbID
+
+ Title   : fetch_by_dbID
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub fetch_by_dbID{
+   my ($self,$id) = @_;
+
+   my $sth = $self->prepare("select en.display_id,en.accession,length(bs.biosequence_str) from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
+
+   $sth->execute;
+
+   my ($display,$acc,$len) = $sth->fetchrow_array;
+
+   if( !defined $display ) {
+       $self->throw("Bioentry id $id does not have a biosequence or bioentry ");
+   }
+
+   return Bio::DB::PrimarySeq->new( -primary_id => $id,
+				    -display_id => $display,
+				    -accession  => $acc,
+				    '-length'     => $len,
+				    -adaptor    => $self);
+   
+}
+
+=head2 store
+
+ Title   : store
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub store{
+   my ($self,$bioentry_id,$pseq) = @_;
+
+   if( !defined $pseq || !ref $pseq || !$pseq->isa('Bio::PrimarySeqI') ) {
+       $self->throw("Yikes. Don't have a primary seq to store $pseq");
+   }
+   my $seq = $pseq->seq;
+   my $sth = $self->prepare("insert into biosequence (biosequence_id,bioentry_id,biosequence_str) values (NULL,$bioentry_id,'$seq')");
+
+   $sth->execute;
+
+}
+
+
+=head2 get_seq_as_string
+
+ Title   : get_seq_as_string
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_seq_as_string{
+   my ($self,$id) = @_;
+
+   my $sth = $self->prepare("select biosequence_str from biosequence where bioentry_id = $id");
+
+   $sth->execute;
+
+   my ($str) = $sth->fetchrow_array;
+
+   return $str;
+
+}
+
+=head2 get_subseq_as_string
+
+ Title   : get_subseq_as_string
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_subseq_as_string{
+   my ($self,$id,$start,$end) = @_;
+
+
+   my $length = $end - $start +1;
+
+   if( $start < 0 || $end < 0 ) {
+       $self->throw("Bad start/end points $start,$end");
+   }
+   
+   my $sth = $self->prepare("select SUBSTRING(biosequence_str,$start,$length) from biosequence where bioentry_id = $id");
+
+   $sth->execute;
+
+   my ($str) = $sth->fetchrow_array;
+
+   return $str;
+}
+
+=head2 get_description
+
+ Title   : get_description
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_description{
+   my ($self,$id) = @_;
+
+   my $sth = $self->prepare("select description from bioentry_description where bioentry_id = $id");
+   $sth->execute;
+
+   my ($desc) = $sth->fetchrow_array;
+
+   return $desc;
+}
+
+1;
+
 
 
 

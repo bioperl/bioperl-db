@@ -44,6 +44,8 @@ use strict;
 # Object preamble - inherits from Bio::Root::Object
 
 use Bio::Root::RootI;
+use Bio::DB::SQL::SeqAdaptor;
+use Bio::DB::SQL::PrimarySeqAdaptor;
 
 use DBI;
 
@@ -119,6 +121,9 @@ sub host {
 }
 
 
+
+
+
 =head2 prepare
 
  Title   : prepare
@@ -143,6 +148,52 @@ sub prepare {
    return $self->_db_handle->prepare($string);
 }
 
+
+=head2 get_PrimarySeqAdaptor
+
+ Title   : get_PrimarySeqAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_PrimarySeqAdaptor{
+   my ($self) = @_;
+
+   if( !defined $self->{'_primaryseqadaptor'} ) {
+       $self->{'_primaryseqadaptor'} = Bio::DB::SQL::PrimarySeqAdaptor->new($self);
+   }
+
+   return $self->{'_primaryseqadaptor'}
+}
+
+=head2 get_SeqAdaptor
+
+ Title   : get_SeqAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_SeqAdaptor{
+   my ($self,@args) = @_;
+
+   if( !defined $self->{'_primaryseqadaptor'} ) {
+       $self->{'_seqadaptor'} = Bio::DB::SQL::SeqAdaptor->new($self);
+   }
+
+   return $self->{'_seqadaptor'}
+
+
+}
 
 
 =head2 _db_handle
@@ -190,4 +241,5 @@ sub DESTROY {
        $obj->{'_db_handle'} = undef;
    }
 }
+
 

@@ -9,7 +9,6 @@
 CREATE TABLE biodatabase (
   biodatabase_id int(10) unsigned NOT NULL auto_increment,
   name        varchar(40) NOT NULL,
-  version     varchar(40) NOT NULL,
   PRIMARY KEY(biodatabase_id)
 );
 
@@ -59,29 +58,28 @@ CREATE TABLE bioentry_taxa (
 # a reserved word
 
 CREATE TABLE biosequence (
-  biosequence_id int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
-  bioentry_id    int(10),
-  seq_version    int(6) NOT NULL,
-  biosequence    mediumtext NOT NULL,
-  created        datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+  biosequence_id  int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
+  bioentry_id     int(10),
+  seq_version     int(6) NOT NULL,
+  biosequence_str mediumtext NOT NULL,
   UNIQUE (bioentry_id)
 );
 
 
-
-
-
 #
-# DR links. As we add more databases this table is going to
-# become richer and richer
-#
+# Direct links. It is tempting to do this
+# from primary_id to primary_id. But that wont work
+# during updates of one database - we will have to edit
+# this table each time. Better to do the join through accession
+# and db each time. Should be almost as cheap
 
-# this currently has direction. Maybe it shouldn't. Hmmmm.
 
-CREATE TABLE bioentry_bioentry (
+
+CREATE TABLE bioentry_direct_links (
        source_bioentry_id      int(10) NOT NULL,
-       destination_bioentry_id int(10) NOT NULL,
-       PRIMARY KEY (source_bioentry_id,destination_bioentry_id)
+       dbname                  varchar(40) NOT NULL,
+       accession               varchar(40) NOT NULL,
+       PRIMARY KEY (source_bioentry_id)
 );
 
 

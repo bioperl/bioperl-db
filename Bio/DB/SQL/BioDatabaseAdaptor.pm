@@ -65,7 +65,7 @@ use strict;
 # Object preamble - inherits from Bio::Root::RootI
 
 use Bio::DB::SQL::BaseAdaptor;
-
+use Bio::DB::BioSeqDatabase;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
@@ -120,6 +120,109 @@ sub fetch_by_name{
 
    return $id;
 }
+
+
+
+=head2 fetch_BioSeqDatabase_by_name
+
+ Title   : fetch_BioSeqDatabase_by_name
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub fetch_BioSeqDatabase_by_name{
+   my ($self,$name) = @_;
+   
+   my $id = $self->fetch_by_name($name);
+   my $db = Bio::DB::BioSeqDatabase->new( -adaptor => $self,
+					  -dbid    => $id);
+
+}
+
+
+=head2 fetch_Seq_by_display_id
+
+ Title   : fetch_Seq_by_display_id
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub fetch_Seq_by_display_id{
+   my ($self,$dbid,$id) = @_;
+
+   my $sth = $self->prepare("select bioentry_id from bioentry where biodatabase_id = $dbid and display_name = '$id'");
+   $sth->execute;
+   my ($bid) = $sth->fetchrow_array();
+
+   if( !defined $bid ) {
+       $self->throw("Unable to find sequence in $dbid database for $id");
+   }
+   return $self->db->get_SeqAdaptor->fetch_by_dbID($dbid);
+}
+
+=head2 fetch_Seq_by_display_id
+
+ Title   : fetch_Seq_by_display_id
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub fetch_Seq_by_accession{
+   my ($self,$dbid,$acc) = @_;
+
+   my $sth = $self->prepare("select bioentry_id from bioentry where biodatabase_id = $dbid and accession = '$acc'");
+   $sth->execute;
+   my ($bid) = $sth->fetchrow_array();
+
+   if( !defined $bid ) {
+       $self->throw("Unable to find sequence in $dbid database for $acc");
+   }
+   return $self->db->get_SeqAdaptor->fetch_by_dbID($dbid);
+}
+
+
+=head2 list_bioentry_ids
+
+ Title   : list_bioentry_ids
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub list_bioentry_ids{
+   my ($self,$dbid) = @_;
+
+   my $sth = $self->prepare("select bioentry_id from bioentry where biodatabase_id = $dbid");
+   $sth->execute;
+   
+   my @out;
+   while( (my $ref = $sth->fetchrow_arrayref()) ) {
+       push(@out,shift @{$ref});
+   }
+	  
+   return @out;
+}
+
+
 
 =head2 store
 

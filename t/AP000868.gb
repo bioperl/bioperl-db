@@ -24,7 +24,7 @@ COMMENT     In unfinished, rough draft DNA sequence gene structures can cross
             fragments is likely to be different from the order in the the 
             International Nucleotide Sequence Databases DDBJ/EMBL/GenBank.
 FEATURES             Location/Qualifiers
-     CDS             <17624..>18595
+     CDS             17624..18595
                      /gene_id="ENSG00000019414"
                      /cds_id="ENSP00000021003"
                      /translation="GNPAHHIVVVMGNWSTVTEITLIAFPALLEIRISLFVVLVVTYTL
@@ -39,7 +39,7 @@ FEATURES             Location/Qualifiers
                      /start_phase=0
                      /exon_id="ENSE00000079110"
                      /end_phase=0
-     CDS             complement(<132147..>132740)
+     CDS             complement(132147..132740)
                      /gene_id="ENSG00000019478"
                      /cds_id="ENSP00000021029"
                      /translation="MSFDCYVAICDPLHYTIIMNSRACLLLVLGCWVGAFLSVLCPTIV
@@ -52,7 +52,7 @@ FEATURES             Location/Qualifiers
                      /start_phase=0
                      /exon_id="ENSE00000079116"
                      /end_phase=0
-     CDS             <37794..>38333
+     CDS             37794..38333
                      /gene_id="ENSG00000019435"
                      /cds_id="ENSP00000020979"
                      /translation="MTSKLCLQLALSSWVVGFTIVFCQTMLLIQLPFCGNNVISHFYCD
@@ -65,8 +65,8 @@ FEATURES             Location/Qualifiers
                      /start_phase=0
                      /exon_id="ENSE00000079111"
                      /end_phase=0
-     CDS             join(<26133..26534,27112..27406,29423..29542,
-                     30027..>31021)
+     CDS             join(26133..26534,27112..27406,29423..29542,
+                     30027..31021)
                      /gene_id="ENSG00000019457"
                      /cds_id="ENSP00000021021"
                      /translation="MATAVEPEDQDLWEEEGILMVKLEDDFTCRPESVLQRDDPVLETS

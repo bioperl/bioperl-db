@@ -22,10 +22,12 @@ CREATE TABLE biodatabase (
 # we could insist that taxa are NCBI taxa id, but on reflection I made this
 # an optional extra line, as many flat file formats do not have the NCBI id
 
+# full lineage is : delimited string starting with species.
+
+# no organelle/sub species
+
 CREATE TABLE taxa (
-  taxa_id   int(10) unsigned NOT NULL PRIMARY KEY,
-  species   varchar(255) NOT NULL,
-  genus     varchar(255) NOT NULL,
+  taxa_id   int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
   full_lineage mediumtext NOT NULL,
   common_name varchar(255) NOT NULL,
   ncbi_taxa_id int(10)
@@ -82,10 +84,11 @@ CREATE TABLE biosequence (
 
 
 CREATE TABLE bioentry_direct_links (
+       bio_dblink_id           int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
        source_bioentry_id      int(10) NOT NULL,
        dbname                  varchar(40) NOT NULL,
        accession               varchar(40) NOT NULL,
-       PRIMARY KEY (source_bioentry_id)
+       KEY (source_bioentry_id)
 );
 
 
@@ -95,7 +98,8 @@ CREATE TABLE bioentry_direct_links (
 CREATE TABLE comment (
   comment_id  int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
   bioentry_id    int(10) NOT NULL,
-  text           mediumtext NOT NULL
+  comment_text   mediumtext NOT NULL,
+  comment_rank   int(5) NOT NULL
 );
 
 # separate description table separate to save on space when we
@@ -146,7 +150,7 @@ CREATE TABLE seqfeature_qualifier_value (
    seqfeature_id int(10) NOT NULL,
    seqfeature_qualifier_id int(10) NOT NULL,
    seqfeature_qualifier_rank int(5) NOT NULL,
-   qualifier_value varchar(255) NOT NULL,
+   qualifier_value  mediumtext NOT NULL,
    PRIMARY KEY(seqfeature_id,seqfeature_qualifier_id,seqfeature_qualifier_rank)
 );
    

@@ -1,5 +1,3 @@
-
-
 use lib 't';
 
 BEGIN {
@@ -8,7 +6,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 20;
+    plan tests => 16;
 }
 
 use DBTestHarness;
@@ -25,7 +23,7 @@ $db = $harness->get_DBAdaptor();
 ok $db;
 
 
-$seqio = Bio::SeqIO->new('-format' => 'GenBank',-file => 't/parkin.gb');
+$seqio = Bio::SeqIO->new('-format' => 'swiss',-file => 't/swiss.dat');
 
 $seq = $seqio->next_seq();
 
@@ -37,7 +35,7 @@ ok $seqadaptor;
 
 $biodbadaptor = $db->get_BioDatabaseAdaptor;
 
-$id = $biodbadaptor->fetch_by_name_store_if_needed('genbank');
+$id = $biodbadaptor->fetch_by_name_store_if_needed('swissprot');
 
 $seqadaptor->store($id,$seq);
 
@@ -65,34 +63,19 @@ $test_desc =~ s/\s+$//g;
 
 ok ($dbseq->desc       eq $test_desc);
 
+@dblinks = $dbseq->annotation->each_DBLink;
+@stdlinks = $seq->annotation->each_DBLink;
 
-$dbseq = $seqadaptor->fetch_by_db_and_accession("genbank",$seq->accession);
-
-ok $dbseq;
-
-my ($source,$cds) = $dbseq->top_SeqFeatures;
-
-ok $source;
-
-ok ($cds->start == 71 );
-
-ok ($cds->end   == 1465 );
-
-#$harness->pause;
-
-($dbxref) = $cds->each_tag_value('db_xref');
-
-ok ($dbxref eq 'GI:5456930');
+ok (scalar(@dblinks));
+ok (scalar(@stdlinks));
 
 
-$biodb = $db->get_BioDatabaseAdaptor->fetch_BioSeqDatabase_by_name("genbank");
+@dblinks = sort { $a->primary_id cmp $b->primary_id } @dblinks;
 
-ok $biodb;
+@stdlinks = sort { $a->primary_id cmp $b->primary_id } @stdlinks;
 
-$dbseq = $biodb->get_Seq_by_acc($seq->accession);
+$dl1 = shift @dblinks;
+$std1 = shift @stdlinks;
 
-ok $dbseq;
-
-
-
+ok ( $dl1->primary_id eq $std1->primary_id);
 

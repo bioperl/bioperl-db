@@ -1,5 +1,4 @@
 
-
 use lib 't';
 
 BEGIN {
@@ -8,7 +7,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 20;
+    plan tests => 14;
 }
 
 use DBTestHarness;
@@ -25,7 +24,7 @@ $db = $harness->get_DBAdaptor();
 ok $db;
 
 
-$seqio = Bio::SeqIO->new('-format' => 'GenBank',-file => 't/parkin.gb');
+$seqio = Bio::SeqIO->new('-format' => 'GenBank',-file => 't/AP000868.gb');
 
 $seq = $seqio->next_seq();
 
@@ -66,33 +65,11 @@ $test_desc =~ s/\s+$//g;
 ok ($dbseq->desc       eq $test_desc);
 
 
-$dbseq = $seqadaptor->fetch_by_db_and_accession("genbank",$seq->accession);
-
-ok $dbseq;
-
-my ($source,$cds) = $dbseq->top_SeqFeatures;
-
-ok $source;
-
-ok ($cds->start == 71 );
-
-ok ($cds->end   == 1465 );
-
 #$harness->pause;
 
-($dbxref) = $cds->each_tag_value('db_xref');
-
-ok ($dbxref eq 'GI:5456930');
+$out = Bio::SeqIO->new( -file => '>t/ensembl_test.gb' , -format => 'GenBank');
 
 
-$biodb = $db->get_BioDatabaseAdaptor->fetch_BioSeqDatabase_by_name("genbank");
-
-ok $biodb;
-
-$dbseq = $biodb->get_Seq_by_acc($seq->accession);
-
-ok $dbseq;
-
-
-
-
+$out->write_seq($dbseq);
+ 
+ok $out;

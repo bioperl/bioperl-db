@@ -59,13 +59,13 @@ The rest of the documentation details each of the object methods. Internal metho
 
 
 package Bio::DB::SQL::SeqFeatureAdaptor;
-use vars qw($@ISA);
+use vars qw(@ISA);
 use strict;
 
 # Object preamble - inherits from Bio::Root::RootI
 
 use Bio::DB::SQL::BaseAdaptor;
-
+use Bio::SeqFeature::Generic;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
@@ -91,24 +91,107 @@ sub fetch_by_dbID{
 
    # first pick out the central feature information
 
-   my $sth = $self->prepare("select k.key_name,s.source_name from seqfeature sf,seqfeature_key k,seqfeature_source s,f.seqfeature_key_id = k.seqfeature_key_id and and f.seqfeature_source_id = s.seqfeature_source_id and f.seqfeature_id = $id");
+   my $sth = $self->prepare("select k.key_name,s.source_name from seqfeature f,seqfeature_key k,seqfeature_source s where f.seqfeature_key_id = k.seqfeature_key_id and f.seqfeature_source_id = s.seqfeature_source_id and f.seqfeature_id = $id");
    $sth->execute();
 
    my ($key,$source) = $sth->fetchrow_array();
 
    $generic->primary_tag($key);
-   $generic->source($source);
+   $generic->source_tag($source);
 
-   # get out the location
-   # we are not dealing with remote locations here.
+   my $loc = $self->db->get_SeqLocationAdaptor->fetch_by_dbID($id);
 
-   $sth = $self->prepare("select seq_start,seq_end,seq_strand from seqfeature_location where seqfeature_id = $id order by reverse location_rank");
+   $generic->location($loc);
+
+   $sth = $self->prepare("select q.qualifier_name,qv.qualifier_value from seqfeature_qualifier q,seqfeature_qualifier_value qv where q.seqfeature_qualifier_id = qv.seqfeature_qualifier_id and qv.seqfeature_id = $id");
    $sth->execute();
    
-   
 
-   my $loc = Bio::SeqFeature::Location->new();
-   
+   while( my $arrayref = $sth->fetchrow_arrayref ) {
+       my ($name,$value) = @{$arrayref};
+       $generic->add_tag_value($name,$value);
+   }
+
+   return $generic;
+}
+
+=head2 fetch_by_bioentry_id
+
+ Title   : fetch_by_bioentry_id
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub fetch_by_bioentry_id{
+   my ($self,$bioentry_id) = @_;
+
+   # yes - not optimised. We could removed quite a few nested gets here
+   my $sth = $self->prepare("select seqfeature_id from seqfeature where bioentry_id = $bioentry_id");
+   $sth->execute;
+
+   my @out;
+   while( my $arrayref = $sth->fetchrow_arrayref )  {
+       my ($sf_id) = @{$arrayref};
+       push(@out,$self->fetch_by_dbID($sf_id));
+   }
+
+   return @out;
+}
+
+
+=head2 store
+
+ Title   : store
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub store{
+   my ($self,$feature,$rank,$bioentryid) = @_;
+
+   if( !defined $bioentryid ) {
+       $self->throw("Must store a seqfeature with a rank and bioentry id");
+   }
+
+   my $keyid = $self->db->get_SeqFeatureKeyAdaptor->store_if_needed($feature->primary_tag);
+   my $sourceid = $self->db->get_SeqFeatureSourceAdaptor->store_if_needed($feature->source_tag);
+
+   my $sth = $self->prepare("insert into seqfeature (seqfeature_id,bioentry_id,seqfeature_key_id,seqfeature_source_id,seqfeature_rank) VALUES (NULL,$bioentryid,$keyid,$sourceid,$rank)");
+
+   $sth->execute();
+   $sth = $self->prepare("select last_insert_id()");
+   $sth->execute();
+   my ($last_id) = $sth->fetchrow_array;
+
+   if( !defined $last_id ) {
+       $self->throw("Dont have last insert id...");
+   }
+
+   $self->db->get_SeqLocationAdaptor->store($feature->location,$last_id);
+
+   my $adp = $self->db->get_SeqFeatureQualifierAdaptor();
+
+   foreach my $tag ( $feature->all_tags() ) {
+       my $qid = $adp->store_if_needed($tag);
+
+       # placeholder would be more efficient here
+       my $qrank = 1;
+       foreach my $value ( $feature->each_tag_value($tag) ) {
+	   $sth= $self->prepare("INSERT into seqfeature_qualifier_value (seqfeature_id,seqfeature_qualifier_id,qualifier_value,seqfeature_qualifier_rank) VALUES ($last_id,$qid,'$value',$rank)");
+	   $sth->execute;
+	   $rank++;
+       }
+   }
 
 }
 

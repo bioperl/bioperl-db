@@ -136,6 +136,11 @@ sub display_id{
 
 }
 
+sub accession_number {
+    my $self = shift;
+    return $self->accession;
+}
+
 =head2 accession
 
  Title   : accession

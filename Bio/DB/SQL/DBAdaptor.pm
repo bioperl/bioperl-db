@@ -51,6 +51,11 @@ use Bio::DB::SQL::SeqFeatureKeyAdaptor;
 use Bio::DB::SQL::SeqFeatureQualifierAdaptor;
 use Bio::DB::SQL::SeqFeatureSourceAdaptor;
 use Bio::DB::SQL::SeqLocationAdaptor;
+use Bio::DB::SQL::SeqFeatureAdaptor;
+use Bio::DB::SQL::CommentAdaptor;
+use Bio::DB::SQL::DBLinkAdaptor;
+use Bio::DB::SQL::SpeciesAdaptor;
+
 
 use DBI;
 
@@ -317,6 +322,104 @@ sub get_SeqLocationAdaptor{
    return $self->{'_seq_location_adaptor'}
 
 }
+
+
+
+=head2 get_SeqLocationAdaptor
+
+ Title   : get_SeqLocationAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_SeqFeatureAdaptor{
+   my ($self) = @_;
+
+   if( !defined $self->{'_seq_feature_adaptor'} ) {
+       $self->{'_seq_feature_adaptor'} = Bio::DB::SQL::SeqFeatureAdaptor->new($self);
+   }
+
+   return $self->{'_seq_feature_adaptor'}
+
+}
+
+
+=head2 get_CommentAdaptor
+
+ Title   : get_CommentAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_CommentAdaptor{
+   my ($self) = @_;
+
+   if( !defined $self->{'_commet_adaptor'} ) {
+       $self->{'_comment_adaptor'} = Bio::DB::SQL::CommentAdaptor->new($self);
+   }
+
+   return $self->{'_comment_adaptor'}
+
+}
+
+
+=head2 get_DBLinkAdaptor
+
+ Title   : get_DBLinkAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_DBLinkAdaptor{
+   my ($self) = @_;
+
+   if( !defined $self->{'_dblink_adaptor'} ) {
+       $self->{'_dblink_adaptor'} = Bio::DB::SQL::DBLinkAdaptor->new($self);
+   }
+
+   return $self->{'_dblink_adaptor'}
+
+}
+
+
+=head2 get_SpeciesAdaptor
+
+ Title   : get_SpeciesAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_SpeciesAdaptor{
+   my ($self) = @_;
+
+   if( !defined $self->{'_species_adaptor'} ) {
+       $self->{'_species_adaptor'} = Bio::DB::SQL::SpeciesAdaptor->new($self);
+   }
+
+   return $self->{'_species_adaptor'}
+
+}
+
 
 =head2 _db_handle
 

@@ -12,6 +12,12 @@ for sequence file storage in a relational (currently only mysql)
 database and a system for storage of marker and map information within
 a relational database (currently only mysql supported).
 
+Note: the schema is now stored in a seperate repository since it is no
+longer perl specific.
+
+cvs users, use the repository "bio.perl.org:/home/repository/biosql"
+and check out "biosql-schema"
+
 
 Information about Bio::DB Interface with a mysql Sequence database.
 ===================================================================
@@ -56,7 +62,7 @@ DBTestHarness.conf
 
 4) do the following (substituting your db name where appropriate)
 
-   % mysql -u someone -D sqldbname < sql/basicseqdb-mysql.sql
+   % mysql -u someone -D sqldbname < ../biosql-schema/sql/basicseqdb-mysql.sql
 
 5) scripts/load_seqdatabase.pl should now work.
 

@@ -53,7 +53,7 @@ eval {
 	my $dbseq = $seqdb->get_Seq_by_id($seq->display_id);
 	if( defined $dbseq && ref($dbseq) ) {
 	    $out->write_seq($dbseq);
-#	    $seqdb->write_seqs(undef, undef, [ $dbseq ] );	    
+	    $seqdb->write_seqs(undef, undef, [ $dbseq ] );	    
 	} else {
 	    print STDERR "did not get a seq back\n";
 	}

@@ -258,7 +258,9 @@ foreach $file ( @files ) {
 		# skip the rest if we are not supposed to update
 		next if $no_update_flag;
 		# merge old and new if a function for this is provided
-		$seq = &$merge_objs($lseq, $seq) if $merge_objs;
+		$seq = &$merge_objs($lseq, $seq, $db) if $merge_objs;
+		# the return value may indicate to skip to the next
+		next unless $seq;
 	    }
 	}
 	# create a persistent object out of the seq

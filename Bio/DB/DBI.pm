@@ -138,6 +138,26 @@ sub last_id_value{
    $self->throw_not_implemented();
 }
 
+=head2 ifnull_sqlfunc
+
+ Title   : nvl_sqlfunc
+ Usage   :
+ Function: Get the name of the SQL function that takes two arguments
+           and returns the first if it is not null, and the second
+           otherwise.
+
+           Most RDBMSs will have such a function, but unfortunately
+           the naming is different between them. E.g., in MySQL the
+           name is IFNULL(), whereas in Oracle it is NVL().
+
+ Example :
+ Returns : the name of the function as a string, without parentheses
+ Args    : none
+
+
+=cut
+
+
 =head2 get_connection
 
  Title   : get_connection

@@ -206,7 +206,14 @@ sub store_children{
 		# the FK here, and also supply the rank in case it's needed
 		my $key = $self->_annotation_map_key($annotmap,$ann);
 		if($annotmap->{$key}->{"link"} eq "child") {
-		    $ann->rank(++$rank);
+		    # we need to assign a rank if there isn't one already --
+		    # likewise, if there is one already make sure we don't
+		    # clash with that
+		    if(my $r = $ann->rank()) {
+			$rank = $r+1 if $rank <= $r;
+		    } else {
+			$ann->rank(++$rank);
+		    }
 		    push(@params, -fkobjs => $fkobjs);
 		}
 		# now store the annotation object
@@ -275,6 +282,10 @@ sub attach_children{
  AnnotationCollection currently is only a virtual entity in the
  database. Hence, a number of operations greatly reduce or don't make
  sense at all.
+
+=cut
+
+#'
 
 =head2 remove
 
@@ -406,7 +417,14 @@ sub add_association{
 	    if($ann->isa("Bio::DB::PersistentObjectI")) {
 		my $key = $self->_annotation_map_key($annotmap,$ann);
 		if($annotmap->{$key}->{"link"} eq "association") {
-		    $ann->rank(++$rank);
+		    # we need to assign a rank if there isn't one already --
+		    # likewise, if there is one already make sure we don't
+		    # clash with that
+		    if(my $r = $ann->rank()) {
+			$rank = $r+1 if $rank <= $r;
+		    } else {
+			$ann->rank(++$rank);
+		    }
 		    push(@$objs, $ann);
 		    $params{-values} = {"rank" => $ann->rank()};
 		    $ok = $ann->adaptor()->add_association(%params) && $ok;

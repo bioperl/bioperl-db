@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 40;
+    plan tests => 48;
 }
 
 use DBTestHarness;
@@ -112,7 +112,7 @@ eval {
     ok ($dbf->end, 10);
     ok $dbf->location->is_remote;
     ok ($dbf->location->seq_id, "mytestnamespace:AB123456");
-    # without explicit namespace:
+    # with explicit namespace:
     ok ($pfeat->remove(), 1);
     $pfeat->location->is_remote(1);
     $pfeat->location->seq_id('XZ:AB123456.4');
@@ -125,7 +125,26 @@ eval {
     ok ($dbf->end, 10);
     ok $dbf->location->is_remote;
     ok ($dbf->location->seq_id, "XZ:AB123456.4");
-    
+    # redundant namespace removal
+    ok ($pseq->remove, 1);
+    ok $pfeat->remove;
+    $pseq->flush_SeqFeatures();
+    $pseq->annotation->remove_Annotations();
+    $pseq->add_SeqFeature($pfeat);
+    ok $pseq->store;
+    # re-retrieve
+    $dbseq = $pseq->adaptor->find_by_primary_key($pseq->primary_key);
+    ($dbf) = $dbseq->top_SeqFeatures();
+    ok $dbf;
+    ok ($dbf->location->seq_id, "XZ:AB123456.4"); # no removal
+    # same game as before but now with implicit namespace
+    $pfeat->location->seq_id('AB123456');
+    ok $pfeat->store();
+    # re-retrieve
+    $dbseq = $pseq->adaptor->find_by_primary_key($pseq->primary_key);
+    ($dbf) = $dbseq->top_SeqFeatures();
+    ok $dbf;
+    ok ($dbf->location->seq_id, "AB123456");
 };
 
 print STDERR $@ if $@;

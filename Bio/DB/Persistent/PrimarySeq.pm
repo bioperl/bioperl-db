@@ -92,7 +92,7 @@ sub new {
     my $self = $class->SUPER::new(@args);
 
     my $has_seq = $self->obj()->seq() ? 1 : 0;
-    # initially, the seq is `dirty'
+    # initially, the seq is always `dirty'
     $self->seq_has_changed($has_seq);
     $self->_seq_is_fetched(0);
     # get the seq length if there is a sequence
@@ -149,6 +149,8 @@ sub seq{
 	# we allow set
 	$self->obj()->seq($value);
 	$self->seq_has_changed(1);
+	# we don't need to fetch any more
+	$self->_seq_is_fetched(1);
     } else {
 	# does the object have it pre-set?
         $value = $self->obj()->seq();
@@ -156,7 +158,7 @@ sub seq{
 	   (! $self->_seq_is_fetched()) && $self->primary_key()) {
 	    # no, but we can retrieve it from the datastore
 	    $value = $self->adaptor()->get_biosequence($self->primary_key());
-	    $self->obj()->seq($value);
+	    $self->obj()->seq($value) if defined($value) || $self->alphabet();
 	    $self->seq_has_changed(0);
 	    # we only fetch once -- if sequences change frequently in the
 	    # datastore, this will disconnect us from that
@@ -183,7 +185,7 @@ sub subseq{
     my ($self,$start,$end,$replace) = @_;
 
     if($self->_seq_is_fetched() ||
-       $self->seq_has_changed() || (! $self->primary_key())) {
+       defined($self->obj()->seq()) || (! $self->primary_key())) {
 	# the sequence or its latest version is in the object or we don't know
 	# yet how to find ourselves in the database -- delegate the call
 	$self->seq_has_changed(1) if $replace;

@@ -189,7 +189,13 @@ sub store_children{
     # loop over the seqfeatures and store
     my $i = 0;
     foreach my $feat ($obj->top_SeqFeatures()) {
-	$feat->rank(++$i) if $feat->can('rank');
+	# we need to assign a rank if there isn't one already -- likewise,
+	# if there is one already make sure we don't clash with that
+	if(my $rank = $feat->rank()) {
+	    $i = $rank+1 if $i <= $rank;
+	} else {
+	    $feat->rank(++$i);
+	}
 	$ok = $feat->store() && $ok;
     }
     # done
@@ -242,6 +248,26 @@ sub attach_children{
 				   -values => [$obj->primary_key()]);
     while(my $feat = $qres->next_object()) {
 	$obj->add_SeqFeature($feat);
+	# try to cleanup a possibly redundant namespace in remote location
+	# seq IDs - we don't usually print that although we should
+	if(my $ns = $obj->namespace()) {
+	    my @locs = $feat->location->each_Location();
+	    foreach my $subloc (@locs) {
+		if($subloc->is_remote()) {
+		    my $seqid = $subloc->seq_id();
+		    if($seqid =~ s/^$ns://) {
+			$subloc->seq_id($seqid);
+		    }
+		}
+	    }
+	    # set top object seqid
+	    my $toploc = $feat->location();
+	    if($toploc && 
+	       (! $toploc->is_remote()) && (! $toploc->seq_id())) {
+		$toploc->seq_id($obj->accession_number().
+				($obj->version ? ".".$obj->version : ""));
+	    }
+	}
     }
     # done
     return $ok;

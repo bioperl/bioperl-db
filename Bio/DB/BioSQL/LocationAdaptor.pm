@@ -431,7 +431,7 @@ sub _seq_id_as_dblink{
 
     if( # this is an Ensembl artifact
         $seqid !~ /^Chr(X|Y|Un|\d+|Chr)/) {
-	if($seqid =~ /^(\w+):(.+)/) {
+	if($seqid =~ /^(\w+?):(.+)/) {
 	    $ns = $1;
 	    $seqid = $2;
 	}

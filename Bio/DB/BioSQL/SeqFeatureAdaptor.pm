@@ -338,10 +338,11 @@ sub attach_children{
 	$obj->location($locs->[0]);
     } elsif(@$locs > 1) {
 	$obj->location(Bio::Location::Split->new(-locations => $locs));
-    } else {
-	$ok = 0;
     }
+    $ok = @$locs > 0;
+    #
     # look up annotation for this feature by association
+    #
     my $annadp = $self->_anncoll_adaptor();
     # we use an adaptor to transparently add all annotation through the
     # AnnotationCollectionI interface

@@ -531,8 +531,9 @@ sub update_object{
 		push(@attrs, $fkattr);
 	    }
 	}
+	my $ifnull = $adp->dbcontext->dbi->ifnull_sqlfunc();
 	my $sql = "UPDATE $table SET " .
-	    join(", ", map {" $_ = ?";} @attrs) .
+	    join(", ", map {"$_ = $ifnull\(?,$_\)";} @attrs) .
 	    " WHERE " . $self->primary_key_name($table) . " = ?";
 	$adp->debug("preparing UPDATE statement: $sql\n");
 	$sth = $adp->dbh()->prepare($sql);

@@ -473,13 +473,13 @@ sub insert_object{
 	$pk = $adp->dbcontext()->dbi()->last_id_value(
 					   $dbh, $self->sequence_name($table));
     } else {
-	$self->warn("insert in ".ref($self)." failed, values were (\"".
+	$self->warn("insert in ".ref($adp)." (driver) failed, values were (\"".
 		    join("\",\"",@$slotvals)."\") ".
 		    ($fkobjs ?
 		     "FKs (".join(",",
 				  map {
 				      $_ && ref($_) ?
-					  $_->primary_key() : "<undef>";
+					  $_->primary_key() : "<NULL>";
 				  } @$fkobjs).
 		     ")\n" : "\n").
 		    $sth->errstr);
@@ -594,6 +594,18 @@ sub update_object{
     $sth->bind_param($j, $obj->primary_key());
     # execute
     my $rv = $sth->execute();
+    if(! $rv) {
+	$self->warn("update in ".ref($adp)." (driver) failed, values were (\"".
+		    join("\",\"",@$slotvals)."\") ".
+		    ($fkobjs ?
+		     "FKs (".join(",",
+				  map {
+				      $_ && ref($_) ?
+					  $_->primary_key() : "<NULL>";
+				  } @$fkobjs).
+		     ")\n" : "\n").
+		    $sth->errstr);
+    }
     # done, return
     return $rv;
 }

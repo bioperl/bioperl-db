@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;
-    plan tests => 20;
+    plan tests => 21, todo => [17]; # test #17 is for optional_id() in DBLink
 }
 
 # -----------------------------------------------
@@ -43,6 +43,7 @@ ok $seqadp;
 
 eval {
     my $sequk = Bio::Seq::RichSeq->new(-accession_number => "AB030700",
+				       -version   => 1,
 				       -namespace => "mytestnamespace");
     $dbseq = $seqadp->find_by_unique_key($sequk);
     ok $dbseq;

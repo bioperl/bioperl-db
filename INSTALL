@@ -25,16 +25,15 @@ such privileges.
 work. The previous stable branch 1.0.x or the development series 1.1.1
 will _not_ suffice.
 
-   3a) If you decide on the 1.2.1 release of bioperl (which is the
-   best choice for everyone who wants to program against a stable
-   API), you need to apply a small patch that comes with bioperl-db,
-   onto-term.patch. Change directory into the root of your bioperl
-   source tree, than issue the following command (replacing the path
-   with what is appropriate for your download):
+   3a) If you are using the 1.2.1 release of bioperl you need to apply 
+   a small patch that comes with bioperl-db, onto-term.patch. Change 
+   directory into the root of your bioperl source tree, than issue the 
+   following command (replacing the path with what is appropriate for 
+   your download):
 
 	$ patch -p0 < /path/to/bioperl-db/onto-term.patch
 
-   Afterwards install bioperl.
+   Afterwards install bioperl by 'make install'.
 
 4) Download biosql-schema from open-bio.org. Instantiate the schema
 appropriate for your RDBMS. The Oracle version of the schema is in
@@ -56,12 +55,15 @@ After that running 'make test' should work fine.
 
 6) For the real stuff you want to instantiate the schema. If you
 haven't done this already, do it now. As an example, assuming MySQL
-and you downloaded biosql-schema next to bioperl-db:
+and you untarred biosql-schema next to bioperl-db:
 
-   % mysql -u someone -p -D sqldbname < ../biosql-schema/sql/biosqldb-mysql.sql
+  % mysql -u someone -p -D sqldbname < ../biosql-schema/sql/biosqldb-mysql.sql
 
-7) Use scripts/load_seqdatabase.pl to upload sequences from
-flatfiles. See its POD (--help option) for the available options.
+7) It is advisable to pre-load the taxonomy database (see
+load_taxonomy.pl in the biosql-schema module). Otherwise you'll see 
+errors from misparsed organisms. Then use scripts/load_seqdatabase.pl 
+to upload sequences from flatfiles. See its POD (--help option) for
+the available options.
 
 8) Write down any problems, complaints and send them to 
 bioperl-l@bioperl.org  ;-)

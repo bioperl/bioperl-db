@@ -102,7 +102,7 @@ sub get {
 	    $self->warn("Must specify an array ref for the parameter -names");
 	    return undef;
 	}
-	@n = @$names;
+	@n = @$names;       
     } elsif( defined $name ) {
 	@n = ($name);	
     } 
@@ -110,11 +110,11 @@ sub get {
 	if( ref($ids ) !~ /array/i ) {
 	    $self->warn("Must specify an array ref for the parameter - ids");
 	    return undef;
-	}
+	}	
+	@i = @$ids;
     } elsif( defined $id ) {
 	@i = ($id);
     }
-    
     # should we try and be sure that the lists produce a unique list?    
     return ( $self->_get_markers_by_ids(@i),
 	     $self->_get_markers_by_names(@n) );

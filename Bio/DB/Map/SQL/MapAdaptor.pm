@@ -224,9 +224,12 @@ sub get_markers_for_region{
 	   push @m, $markerid;
        }
    };
-   if( $@ ) {  $self->throw($@); }
-   my @markers = $marker_adaptor->get_Markers('-ids' => \@m);   
-   return @markers;
+   if( $@ ) {  $self->warn($@); }
+
+   if( @m ) {
+       my @markers = $marker_adaptor->get('-ids' => \@m);   
+       return @markers;
+   }   
 }
 
 =head2 get_next_marker
@@ -278,9 +281,73 @@ sub get_Chrom_length{
        $sth->finish();
    };
    if( $@ ) {
-       $self->throw($@);
+       $self->warn($@);
    }
    return $len || '0';
+}
+
+=head2 get_all_markerids_for_map
+
+ Title   : get_all_markerids_for_map
+ Usage   : my @markerids = $mapadaptor->get_all_markerid_for_map($mapid);
+ Function: returns a list of marker ids which are associated with a map
+ Returns : list of markerids
+ Args    : $mapid
+
+
+=cut
+
+sub get_all_markerids_for_map{
+   my ($self,$mapid) = @_;
+   if( ! $mapid ) { return (); }
+   
+   my @ids;
+   my $SQL = 'SELECT markerid from map_position where mapid = ?';
+   eval { 
+       my $sth = $self->prepare($SQL);       
+       $sth->execute($mapid);
+       while( my ( $id ) = $sth->fetchrow_array ) {
+	   push @ids, $id;
+       }
+   };
+   if( $@ ) {
+       $self->warn($@);
+   }
+   return @ids;
+}
+
+
+=head2 create_ePCR_DB
+
+ Title   : create_ePCRDB
+ Usage   : $mapadaptor->create_ePCR_DB ( $mapid, $fh );
+ Function: writes an ePCR format database to $fh based on a mapid
+ Returns : boolean on success
+ Args    : mapid to build db on
+           filehandle to write to
+                      someday will add option to write each chrom
+                      to different file
+
+# Later on maps may become a bit more dynamic, ie collections of
+# markers, so perhaps we'll want to do this based on a mapobj
+
+=cut
+
+sub create_ePCR_DB{
+   my ($self,$mapid,$fh) = @_;   
+   my @markerids = $self->get_all_markerids_for_map($mapid);
+   if( ! @markerids ) {
+       $self->warn("No markers associated with map $mapid");
+       return 0;
+   }
+   my $map = $self->get($mapid);
+   my $marker_adaptor = new Bio::DB::Map::SQL::MarkerAdaptor($self);
+   foreach my $marker ( $marker_adaptor->get('-ids' => \@markerids) ) {
+       print $fh join("\t", ( $marker->id, $marker->pcrfwd,$marker->pcrrev,
+			      $marker->length, $marker->chrom, $marker->locus,
+			      $marker->get_position($map->name). " " . 
+			      $map->units )), "\n";
+   }   
 }
 
 1;

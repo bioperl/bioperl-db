@@ -179,12 +179,18 @@ with parameter names and values delimited by comma.
 Usually you will want to protect the argument list from interpretation
 by the shell, so surround it with double or single quotes.
 
+If a parameter value contains a comma, escape it with a backslash
+(which means you also must protect the whole argument from the shell
+in order to preserve the backslash)
+
 Examples:
 
     # turn parser exceptions into warnings (don't try this at home)
     --fmtargs "-verbose,-1"
     # verbose parser with an additional path argument
     --fmtargs "-verbose,1,-indexpath,/home/luke/warp"
+    # escape commas in values
+    --fmtargs "-ontology_name,Big Blue\, v2,-indent_string,\,"
 
 =item --mergeobjs
 
@@ -388,8 +394,19 @@ if(@fmtelems > 1) {
 }
 $objio = "Bio::".$objio if $objio !~ /^Bio::/;
 my $nextobj = $nextobj_map{$objio}||"next_ontology"; 
+
 # the format might come with argument specifications
-my @fmtargs = split(/\s*,\s*/,$fmtargs);
+my @fmtargs = split(/,/,$fmtargs,-1);
+# arguments might have had commas in them - we require them to be
+# escaped by backslash and need to stitch them back together now
+my $i = 0;
+while($i+1 < @fmtargs) {
+    if($fmtargs[$i] =~ s/\\$//) {
+	splice(@fmtargs, $i, 2, $fmtargs[$i].",".$fmtargs[$i+1]);
+    } else {
+	$i++;
+    }
+}
 
 #
 # create the DBAdaptorI for our database

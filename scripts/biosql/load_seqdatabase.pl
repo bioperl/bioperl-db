@@ -105,10 +105,14 @@ Examples:
 
 Use this argument to specify initialization parameters for the parser
 for the input format. The argument value is expected to be a string
-with parameter names and values delimited by comma.
+with parameter names and values delimited by commas.
 
 Usually you will want to protect the argument list from interpretation
 by the shell, so surround it with double or single quotes.
+
+If a parameter value contains a comma, escape it with a backslash
+(which means you also must protect the whole argument from the shell
+in order to preserve the backslash)
 
 Examples:
 
@@ -116,6 +120,8 @@ Examples:
     --fmtargs "-verbose,-1"
     # verbose parser with an additional path argument
     --fmtargs "-verbose,1,-indexpath,/home/luke/warp"
+    # escape commas in values
+    --fmtargs "-myspecialchar,\,"
 
 =item --pipeline
 
@@ -331,8 +337,19 @@ if(@fmtelems > 1) {
 }
 $objio = "Bio::".$objio if $objio !~ /^Bio::/;
 my $nextobj = $nextobj_map{$objio} || "next_seq"; # next_seq is the default
+
 # the format might come with argument specifications
-my @fmtargs = split(/\s*,\s*/,$fmtargs);
+my @fmtargs = split(/,/,$fmtargs,-1);
+# arguments might have had commas in them - we require them to be
+# escaped by backslash and need to stitch them back together now
+my $i = 0;
+while($i+1 < @fmtargs) {
+    if($fmtargs[$i] =~ s/\\$//) {
+	splice(@fmtargs, $i, 2, $fmtargs[$i].",".$fmtargs[$i+1]);
+    } else {
+	$i++;
+    }
+}
 
 #
 # setup the pipeline if desired

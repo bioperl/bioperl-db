@@ -1,7 +1,7 @@
 Hard and Fast install instructions.
 
 1) You need a supported database server. Currently supported are
-MySQL, Oracle, and Postgres (coming, ask if you need this).
+MySQL, Oracle, and Postgres.
 
 	a) MySQL: downloads and installation instructions are at
 	http://www.mysql.com/. You must have at least version 3.23.52
@@ -21,8 +21,20 @@ schemas. See the RDBMS's instructions or your DBA if you don't have
 such privileges.
 
 3) You need at least the latest bioperl release of the 1.2.x series
-for the whole functionality to work. The previous stable branch 1.0.x
-or the development series 1.1.1 will _not_ suffice.
+(currently no earlier than 1.2.1) for the whole functionality to
+work. The previous stable branch 1.0.x or the development series 1.1.1
+will _not_ suffice.
+
+   3a) If you decide on the 1.2.1 release of bioperl (which is the
+   best choice for everyone who wants to program against a stable
+   API), you need to apply a small patch that comes with bioperl-db,
+   onto-term.patch. Change directory into the root of your bioperl
+   source tree, than issue the following command (replacing the path
+   with what is appropriate for your download):
+
+	$ patch -p0 < /path/to/bioperl-db/onto-term.patch
+
+   Afterwards install bioperl.
 
 4) Download biosql-schema from open-bio.org. Instantiate the schema
 appropriate for your RDBMS. The Oracle version of the schema is in

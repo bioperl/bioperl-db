@@ -511,13 +511,14 @@ operation. Hence, here is where the real stuff happens.
 
  Title   : create_persistent
  Usage   :
- Function: Takes the given object and turns it onto a PersistentObjectI
-           implementing object. Returns the result. Does not actually create
-           the object in a database.
+ Function: Takes the given object and turns it onto a
+           PersistentObjectI implementing object. Returns the
+           result. Does not actually create the object in a database.
 
-           Calling this method is expected to have a recursive effect such
-           that all children of the object, i.e., all slots that are objects
-           themselves, are made persistent objects, too.
+           Calling this method is expected to have a recursive effect
+           such that all children of the object, i.e., all slots that
+           are objects themselves, are made persistent objects, too.
+
  Example :
  Returns : A Bio::DB::PersistentObjectI implementing object wrapping the
            passed object.
@@ -542,7 +543,7 @@ sub create_persistent{
 	$pobj = $pwrapper->new(-object => $obj, -adaptor => $self);
     }
     # now we have to go for all children that are eligible for persistence.
-    $self->_create_persistent($pobj, $pwrapper);
+    $self->_create_persistent($pobj->obj, $pwrapper);
     # done (hopefully)
     return $pobj;
 }
@@ -551,9 +552,10 @@ sub create_persistent{
 
  Title   : _create_persistent
  Usage   :
- Function: Calling this method recursively replaces all eligible children of the
-           object, i.e., all slots that are objects themselves and for which an
-           adaptor exists, with instances of Bio::DB::PersistentObjectI.
+ Function: Calling this method recursively replaces all eligible
+           children of the object, i.e., all slots that are objects
+           themselves and for which an adaptor exists, with instances
+           of Bio::DB::PersistentObjectI.
 
            This is an internal method. Do not call from outside.
  Example :
@@ -570,67 +572,27 @@ sub _create_persistent {
     # loop over children first and replace each one with the recursively
     # made persistent object (depth-first traversal)
     my $class = ref($obj);
+    # we only alter references
     if($class &&
+       # but not references to scalars, code, or symbols, which basically
+       # leaves arrays, hashes, and blessed references
        ($class ne "SCALAR") && ($class ne "CODE") && ($class ne "GLOB")) {
-	# if this is a PersistentObjectI, we need to grab the wrapped object
-	my ($o, $o_class);
+	# some operations are different for blessed refs than for unblessed
 	my $is_blessed = ($class ne "HASH") && ($class ne "ARRAY");
-	if($is_blessed) {
-	    if($obj->isa("Bio::DB::PersistentObjectI")) {
-		# if the wrapped object is persistent too, we assume the object
-		# knows what it's doing and terminate this recursion
-		return $obj if $obj->obj()->isa("Bio::DB::PersistentObjectI");
-		# otherwise we go for the wrapped object instead
-		$o = $obj->obj();
-		$o_class = ref($o);
-	    } elsif($obj->isa("Bio::DB::PersistenceAdaptorI")) {
-		# likewise, we don't try to locate an adaptor for an adaptor
-		return $obj;
-	    } else {
-		# if we can find a persistence adaptor for it, let that one
-		# do the recursive work
-		my $objadp;
-		eval {
-		    $objadp = $self->db->get_object_adaptor($obj);
-		};
-		$self->debug("no adaptor found for class $class\n") if($@);
-		if($objadp) {
-		    # yeah, found someone to do the work
-		    # cache this recursion to prevent infinite loops if we
-		    # meet it again
-		    if(! $self->{'_pers_recurs_cache'}->{$obj}) {
-			my $key = $obj;
-			$self->{'_pers_recurs_cache'}->{$key} = 1;
-			$obj = $objadp->create_persistent($obj, $pwrapper);
-			delete $self->{'_pers_recurs_cache'}->{$key};
-		    } else {
-			$self->warn("recursion detected for ".ref($obj).
-				    " object");
-		    }
-		    return $obj;
-		} else {
-		    # we'll have to do this ourselves
-		    $o = $obj;
-		    $o_class = $class;
-		}
+	# loop over the elements and process each element
+	if(($class eq "HASH") || ($is_blessed && $obj->isa("HASH"))) {
+	    foreach my $key (keys %$obj) {
+		my $child = $obj->{$key};
+		next if ! ($child && ref($child)); # omit non-refs
+		$obj->{$key} = $self->_process_child($child, $pwrapper);
 	    }
-	} else {
-	    $o = $obj;
-	    $o_class = $class;
-	}	
-	# loop over the elements
-	if(($o_class eq "HASH") || ($is_blessed && $o->isa("HASH"))) {
-	    foreach my $key (keys %$o) {
-		my $child = $o->{$key};
-		next if ! ($child && ref($child));
-		$o->{$key} = $self->_create_persistent($child, $pwrapper);
-	    }
-	} elsif(($o_class eq "ARRAY") || ($is_blessed && $o->isa("ARRAY"))) {
+	} elsif(($class eq "ARRAY") || ($is_blessed && $obj->isa("ARRAY"))) {
 	    my $i = 0;
-	    while($i < @$o) {
-		my $child = $o->[$i];
+	    while($i < @$obj) {
+		my $child = $obj->[$i];
+		# omit non-refs
 		if($child  && ref($child) ) {
-		    $o->[$i] = $self->_create_persistent($child, $pwrapper);
+		    $obj->[$i] = $self->_process_child($child, $pwrapper);
 		}
 		$i++;
 	    }
@@ -638,6 +600,58 @@ sub _create_persistent {
     }
     # done -- I hope
     return $obj;
+}
+
+sub _process_child{
+    my ($self,$obj,$pwrapper) = @_;
+
+    # some operations are different for blessed refs than for unblessed
+    my $class = ref($obj);
+    my $is_blessed = ! (($class eq "SCALAR") || ($class eq "CODE") ||
+			($class eq "GLOB") || ($class eq "HASH") ||
+			($class eq "ARRAY"));
+    if($is_blessed) {
+	# if this is a PersistentObjectI, its adaptor needs to do the job
+	if($obj->isa("Bio::DB::PersistentObjectI")) {
+	    # if the wrapped object is persistent too, we assume the object
+	    # knows what it's doing and terminate this recursion
+	    return $obj if $obj->obj->isa("Bio::DB::PersistentObjectI");
+	    # otherwise we let the persistence adaptor do the job
+	    return $obj->adaptor->create_persistent($obj);
+	} elsif($obj->isa("Bio::DB::PersistenceAdaptorI")) {
+	    # likewise, we don't try to locate an adaptor for an adaptor
+	    return $obj;
+	} 
+	# if we can find a persistence adaptor for it, let that one
+	# do the recursive work
+	my $objadp;
+	eval {
+	    $objadp = $self->db->get_object_adaptor($obj);
+	};
+	if($objadp) {
+	    # yeah, found someone to do the work
+	    #
+	    # cache this recursion to prevent infinite loops if we
+	    # meet it again
+	    if(! $self->{'_pers_recurs_cache'}->{$obj}) {
+		my $key = $obj;
+		$self->{'_pers_recurs_cache'}->{$key} = 1;
+		$obj = $objadp->create_persistent($obj, $pwrapper);
+		delete $self->{'_pers_recurs_cache'}->{$key};
+	    } else {
+		$self->warn("recursion detected for ".ref($obj).
+			    " object");
+	    }
+	} else {
+	    $self->debug("no adaptor found for class $class\n");
+	    # we won't venture into something we don't have an
+	    # adaptor for, meaning we do nothing in this case
+	}
+	return $obj;
+    } else { 
+	# a reference, but not a blessed object: we can do that ourselves
+	return $self->_create_persistent($obj,$pwrapper);
+    }	
 }
 
 =head1 Finding objects by some property

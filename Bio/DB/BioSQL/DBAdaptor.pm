@@ -134,7 +134,6 @@ sub get_object_adaptor{
 
 sub _get_object_adaptor_class{
     my ($self,$class) = @_;
-    my ($adpclass);
 
     # is it cached directly, as success or failure?
     if(exists($self->{'_objadp_cache'}->{$class})) {
@@ -145,51 +144,49 @@ sub _get_object_adaptor_class{
     # no, not cached.
     #
     # can we load it directly?
+    my ($adpclass);
     eval {
 	$self->debug("attempting to load adaptor class for $class\n");
 	$adpclass = $self->_load_object_adaptor($class);
     };
-    # return if success
-    if($adpclass) {
-	return $adpclass;
-    }
     #
-    # otherwise recursively and depth-first traverse inheritance tree
+    # upon failure recursively and depth-first traverse inheritance tree
     #
-    # we need to bring in this class here in order to have access to @ISA.
-    eval {
-	$self->_load_module($class);
-    };
-    if($@) {
-	$self->throw("weird: got object of class $class, ".
-		     "but cannot load class: ".$@);
-    }
-    my $aryname = "${class}::ISA"; # this is a soft reference
-    # hence, allow soft refs
-    no strict "refs";
-    my @ancestors = @$aryname;
-    # and disallow again
-    use strict "refs";
-    # loop; this is depth first traversal
-    # note that this may need tuning as to e.g. traverse interfaces first
-    foreach my $ancestor (@ancestors) {
-	# did this fail once already?
-	next if $self->{'_failed_objadp'}->{$ancestor};
-	# no, first attempt
+    my @ancestors = ();
+    if(! $adpclass) {
+	# we need to bring in this class here in order to have access to @ISA.
 	eval {
-	    $adpclass = $self->_get_object_adaptor_class($ancestor);
+	    $self->_load_module($class);
 	};
-	if($adpclass) {
-	    # cache right here, calling function doesn't know what we traversed
-	    $self->set_object_adaptor($ancestor, $adpclass);
-	    # terminate loop
-	    last;
-	} else {
-	    # cache failure as well ...
-	    $self->{'_failed_objadp'}->{$ancestor} = 1;
+	if($@) {
+	    $self->throw("weird: got object of class $class, ".
+			 "but cannot load class: ".$@);
+	}
+	my $aryname = "${class}::ISA"; # this is a soft reference
+	# hence, allow soft refs
+	no strict "refs";
+	@ancestors = @$aryname;
+	# and disallow again
+	use strict "refs";
+	# loop; this is depth first traversal
+	# note that this may need tuning as to e.g. traverse interfaces first
+	foreach my $ancestor (@ancestors) {
+	    # did this fail once already?
+	    next if $self->{'_failed_objadp'}->{$ancestor};
+	    # no, first attempt
+	    eval {
+		$adpclass = $self->_get_object_adaptor_class($ancestor);
+	    };
+	    # terminate the loop if success
+	    last if $adpclass;
 	}
     }
-    return $adpclass if $adpclass;
+    # success (immediately, or after inheritance tree traversal) ?
+    if($adpclass) {
+	# cache success right here
+	$self->set_object_adaptor($class, $adpclass);
+	return $adpclass;
+    } # else failure
     # cache failure as well ...
     $self->{'_failed_objadp'}->{$class} = 1;
     # and raise the exception ...

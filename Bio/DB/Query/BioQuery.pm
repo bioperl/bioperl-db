@@ -242,18 +242,30 @@ sub translate_query{
 	    my $ptbl;
 	    foreach my $ent ($child, $parent) {
 		$tbl = $mapper->table_name($ent);
+		# we need to memorize the table the parent maps to
 		$ptbl = $tbl if $ent eq $parent;
 		$self->throw("failed to map $ent to a table") unless $tbl;
 		# store aliases and datacollections
+		if(! $aliases{$ent}) {
+		    $aliases{$ent} = exists($entitymap->{$tbl}) ?
+			$entitymap->{$tbl}->[0] : $tbl;
+		}
 		$entitymap->{$tbl} = [] unless exists($entitymap->{$tbl});
-		$aliases{$ent} = $tbl unless $aliases{$ent};
-		if(! exists($aliasmap->{$ent})) {
+		if(! exists($aliasmap->{$aliases{$ent}})) {
 		    # add this alias to the table's aliases
 		    push(@{$entitymap->{$tbl}}, $aliases{$ent});
-		    # record the mapping of both the object entity and
-		    # the alias to the table
-		    $aliasmap->{$ent} = $aliases{$ent};
-		    $aliasmap->{$aliases{$ent}} = $tbl;
+		    # register entity and alias to table mapping
+		    my $basealias = &_register_table_alias($aliasmap,
+							   $ent, $tbl,
+							   $aliases{$ent});
+		    if($basealias ne $aliases{$ent}) {
+			if($ent eq $parent) {
+			    $parent .= substr($aliases{$ent},
+					      length($basealias));
+			    $ent = $parent;
+			}
+			$aliases{$ent} = $basealias;
+		    }
 		    # add table and alias to data colletions, omit alias if
 		    # identical to table
 		    push(@tablelist,
@@ -266,8 +278,8 @@ sub translate_query{
 	    my $fk = $mapper->foreign_key_name($parent);
 	    my $pk = $mapper->primary_key_name($ptbl);
 	    push(@joins,
-		 $aliasmap->{$child} .".". $fk ." = ".
-		 $aliasmap->{$parent} .".". $pk);
+		 $aliases{$child} .".". $fk ." = ".
+		 $aliases{$parent} .".". $pk);
 	} else {
 	    # "simple" table
 	    $tbl = $mapper->table_name($entity);
@@ -278,16 +290,8 @@ sub translate_query{
 	    if(! exists($aliasmap->{$alias})) {
 		# add this alias to the table's aliases
 		push(@{$entitymap->{$tbl}}, $alias);
-		# record the mapping of both the object entity and the alias
-		# to the table
-		$aliasmap->{$entity} = $alias unless $aliasmap->{$entity};
-		$aliasmap->{$alias} = $tbl;
-		# check whether a context was added to the alias, and if so
-		# also record the alias without the context
-		if($alias && (index($alias, '::') >= 0)) {
-		    ($alias) = split(/::/, $alias);
-		    $aliasmap->{$alias} = $tbl;
-		}
+		# register entity and alias to table mapping
+		$alias = &_register_table_alias($aliasmap,$entity,$tbl,$alias);
 		# add table and alias to the list of data collections, but
 		# omit the alias if it's the same as the table
 		push(@tablelist, $tbl . ($alias ne $tbl ? " $alias" : ""));
@@ -319,6 +323,21 @@ sub translate_query{
     #@{$entitymap}{(keys %aliasmap)} = values %aliasmap;
     # done
     return $tquery;
+}
+
+sub _register_table_alias{
+    my ($aliasmap,$entity,$tbl,$alias) = @_;
+    # record the mapping of both the object entity and the alias
+    # to the table
+    $aliasmap->{$entity} = $alias unless $aliasmap->{$entity};
+    $aliasmap->{$alias} = $tbl;
+    # check whether a context was added to the alias, and if so
+    # also record the alias without the context
+    if($alias && (index($alias, '::') >= 0)) {
+	($alias) = split(/::/, $alias);
+	$aliasmap->{$alias} = $tbl;
+    }
+    return $alias;
 }
 
 sub _map_constraint_slots_to_columns{

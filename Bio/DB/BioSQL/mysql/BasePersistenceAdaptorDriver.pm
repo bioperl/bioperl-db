@@ -120,6 +120,11 @@ my %object_entity_map = (
 		"Bio::Annotation::OntologyTerm"       => "term",
 		"Bio::Ontology::TermI"                => "term",
 		"Bio::DB::BioSQL::TermAdaptor"        => "term",
+		"Bio::Ontology::RelationshipI"        => "term_relationship",
+		"Bio::DB::BioSQL::RelationshipAdaptor"=> "term_relationship",
+		"Bio::Ontology::PathI"                => "term_path",
+		"Bio::Ontology::Path"                 => "term_path",
+		"Bio::DB::BioSQL::PathAdaptor"        => "term_path",
                 "Bio::Ontology::OntologyI"            => "ontology",
 		"Bio::DB::BioSQL::OntologyAdaptor"    => "ontology",
 		   );
@@ -131,6 +136,13 @@ my %association_entity_map = (
 	     "bioentry"       => {
 		 "term"       => "bioentry_relationship",
 	     }
+	 },
+	 "ontology" => {
+	     "term"           => {
+		 "term"       => {
+		     "term"   => "term_relationship",
+		 },
+	     },
 	 },
 	 "seqfeature" => {
 	     "term"           => "seqfeature_qualifier_value",
@@ -151,6 +163,19 @@ my %association_entity_map = (
 	 "term" => {
 	     "bioentry"       => "bioentry_qualifier_value",
 	     "seqfeature"     => "seqfeature_qualifier_value",
+	     "term"           => {
+		 "term"       => {
+		     "ontology" => "term_relationship",
+		 },
+		 "ontology"   => {
+		     "term"   => "term_relationship",
+		 }
+	     },
+	     "ontology"       => {
+		 "term"       => {
+		     "term"   => "term_relationship",
+		 }
+	     }
 	 },
 			       );
 my %slot_attribute_map = (
@@ -189,6 +214,7 @@ my %slot_attribute_map = (
 	     "version"        => "version",
 	     "division"       => "division",
 	     "bionamespace"   => "biodatabase_id",
+	     # these are for context-sensitive FK name resolution
 	     "parent"         => "parent_bioentry_id",
 	     "child"          => "child_bioentry_id",
 	 },
@@ -239,6 +265,23 @@ my %slot_attribute_map = (
              "definition"     => "definition",
 	     "value"          => "=>{bioentry_qualifier_value,seqfeature_qualifier_value}.value",
 	     "ontology"       => "ontology_id",
+	     # these are for context-sensitive FK name resolution
+	     "subject"        => "subject_term_id",
+	     "predicate"      => "predicate_term_id",
+	     "object"         => "object_term_id",
+	 },
+	 "term_relationship" => {
+	     "subject"        => "subject_term_id",
+	     "predicate"      => "predicate_term_id",
+	     "object"         => "object_term_id",
+	     "ontology"       => "ontology_id",
+	 },
+	 "term_path" => {
+	     "distance"       => "distance",
+	     "subject"        => "subject_term_id",
+	     "predicate"      => "predicate_term_id",
+	     "object"         => "object_term_id",
+	     "ontology"       => "ontology_id",
 	 },
          "ontology" => {
              "name"           => "name",
@@ -254,6 +297,7 @@ my %slot_attribute_map = (
 	     "primary_tag"    => "type_term_id",
 	     "source_tag"     => "source_term_id",
 	     "entire_seq"     => "bioentry_id",
+	     # these are for context-sensitive FK name resolution
 	     "parent"         => "parent_seqfeature_id",
 	     "child"          => "child_seqfeature_id",
 	 },

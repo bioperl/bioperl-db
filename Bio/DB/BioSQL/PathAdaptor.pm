@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::OntologyAdaptor
+# BioPerl module for Bio::DB::BioSQL::PathAdaptor
 #
 # Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
@@ -23,15 +23,15 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::OntologyAdaptor - DB Adaptor for Ontology objects
+Bio::DB::BioSQL::PathAdaptor - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
-   # don't use directly
+Give standard usage here
 
 =head1 DESCRIPTION
 
-DB adaptor for Bio::Ontology::OntologyI compliant objects.
+Bio::Ontology::PathI DB adaptor 
 
 =head1 FEEDBACK
 
@@ -68,41 +68,19 @@ methods. Internal methods are usually preceded with a _
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::OntologyAdaptor;
+package Bio::DB::BioSQL::PathAdaptor;
 use vars qw(@ISA);
 use strict;
 
 # Object preamble 
 
-use Bio::DB::BioSQL::BasePersistenceAdaptor;
+use Bio::DB::BioSQL::RelationshipAdaptor;
 use Bio::DB::PersistentObjectI;
-use Bio::Ontology::Ontology;
+use Bio::Ontology::Path;
 
-@ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
+@ISA = qw(Bio::DB::BioSQL::RelationshipAdaptor);
 
-
-=head2 new
-
- Title   : new
- Usage   :
- Function: Instantiates the persistence adaptor.
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub new{
-   my ($class,@args) = @_;
-
-   # we want to enable object caching
-   push(@args, "-cache_objects", 1) unless grep { /cache_objects/i; } @args;
-   my $self = $class->SUPER::new(@args);
-
-   return $self;
-}
-
+# new is inherited
 
 =head2 get_persistent_slots
 
@@ -123,7 +101,7 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("name", "definition");
+    return ($self->SUPER::get_persistent_slots(@args), "distance");
 }
 
 =head2 get_persistent_slot_values
@@ -145,30 +123,9 @@ sub get_persistent_slots{
 
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
-    my @vals = ($obj->name(),
-		$obj->definition()
-		);
+    my @vals = (@{$self->SUPER::get_persistent_slot_values($obj,$fkobjs)},
+		$obj->distance());
     return \@vals;
-}
-
-=head2 remove_children
-
- Title   : remove_children
- Usage   :
- Function: This method is to cascade deletes in maintained objects.
-
-           We just return TRUE here.
-
- Example :
- Returns : TRUE on success and FALSE otherwise
- Args    : The persistent object that was just removed from the database.
-           Additional (named) parameter, as passed to remove().
-
-
-=cut
-
-sub remove_children{
-    return 1;
 }
 
 =head2 instantiate_from_row
@@ -179,14 +136,19 @@ sub remove_children{
            it with values from columns of the row.
 
            This implementation call populate_from_row() to do the real job.
+
+           We override this here in order to create a
+           Bio::Ontology::Path object by default.
+
  Example :
  Returns : An object, or undef, if the row contains no values
- Args    : A reference to an array of column values. The first column is the
-           primary key, the other columns are expected to be in the order 
-           returned by get_persistent_slots().
-           Optionally, the object factory to be used for instantiating the
-           proper class. The adaptor must be able to instantiate a default
-           class if this value is undef.
+ Args    : A reference to an array of column values. The first column
+           is the primary key, the other columns are expected to be in
+           the order returned by get_persistent_slots().
+
+           Optionally, the object factory to be used for instantiating
+           the proper class. The adaptor must be able to instantiate a
+           default class if this value is undef.
 
 
 =cut
@@ -199,7 +161,7 @@ sub instantiate_from_row{
 	if($fact) {
 	    $obj = $fact->create_object();
 	} else {
-	    $obj = Bio::Ontology::Ontology->new();
+	    $obj = Bio::Ontology::Path->new();
 	}
 	$self->populate_from_row($obj, $row);
     }
@@ -224,100 +186,13 @@ sub instantiate_from_row{
 =cut
 
 sub populate_from_row{
-    my ($self,$obj,$rows) = @_;
+    my ($self,$obj,$row) = @_;
 
-    if(! ref($obj)) {
-	$self->throw("\"$obj\" is not an object. Probably internal error.");
+    $obj = $self->SUPER::populate_from_row($obj, $row);
+    if($obj && $row && @$row) {
+	$obj->distance($row->[1]) if defined($row->[1]);
     }
-    if($rows && @$rows) {
-	$obj->name($rows->[1]) if $rows->[1];
-	$obj->definition($rows->[2]) if $rows->[2];
-	if($obj->isa("Bio::DB::PersistentObjectI")) {
-	    $obj->primary_key($rows->[0]);
-	}
-	return $obj;
-    }
-    return undef;
-}
-
-=head2 get_unique_key_query
-
- Title   : get_unique_key_query
- Usage   :
- Function: Obtain the suitable unique key slots and values as determined by the
-           attribute values of the given object and the additional foreign
-           key objects, in case foreign keys participate in a UK. 
-
- Example :
- Returns : A reference to a hash with the names of the object''s slots in the
-           unique key as keys and their values as values.
- Args    : The object with those attributes set that constitute the chosen
-           unique key (note that the class of the object will be suitable for
-           the adaptor).
-           A reference to an array of foreign key objects if not retrievable 
-           from the object itself.
-
-
-=cut
-
-sub get_unique_key_query{
-    my ($self,$obj,$fkobjs) = @_;
-    my $uk_h = {};
-
-    # UK for ontology is its name
-    if($obj->name()) {
-	$uk_h->{'name'} = $obj->name();
-    }
-    
-    return $uk_h;
-}
-
-=head1 Methods overriden from BasePersistenceAdaptor
-
-=cut
-
-=head2 create_persistent
-
- Title   : create_persistent
- Usage   :
- Function: Takes the given object and turns it onto a
-           PersistentObjectI implementing object. Returns the
-           result. Does not actually create the object in a database.
-
-           Calling this method is expected to have a recursive effect
-           such that all children of the object, i.e., all slots that
-           are objects themselves, are made persistent objects, too.
-
-           We override this method here because we need to temporarily
-           break the cycle between ontology and its term and
-           relationship objects.
-
- Example :
- Returns : A Bio::DB::PersistentObjectI implementing object wrapping the
-           passed object.
- Args    : An object to be made into a PersistentObjectI object (the class
-           will be suitable for this adaptor).
-           Optionally, the class which actually implements wrapping the object
-           to become a PersistentObjectI.
-
-
-=cut
-
-sub create_persistent{
-    my ($self,$obj,$pwrapper) = @_;
-
-    return unless $obj;
-
-    my $engine;
-    if($obj->can('engine')) {
-	$engine = $obj->engine();
-	$obj->engine(undef);
-    }
-    my $pobj = $self->SUPER::create_persistent($obj,$pwrapper);
-    # restore engine
-    $pobj->engine($engine) if $engine;
-    
-    return $pobj;
+    return $obj;
 }
 
 =head1 Methods specific to this adaptor
@@ -397,10 +272,66 @@ sub create_persistent{
 =cut
 
 sub compute_transitive_closure{
-    my $self = shift;
-    # the main implementation actually sits in the path adaptor
-    my $pathadp = $self->db->get_object_adaptor("Bio::Ontology::PathI");
-    return $pathadp->compute_transitive_closure(@_);
+    my ($self,$ont,@args) = @_;
+
+    # check whether we need to create predicate relationships on the fly
+    my ($trunc, $ancestor_pred, $subclass_pred, $identity_pred) =
+	$self->_rearrange([qw(TRUNCATE
+			      PREDICATE_SUPERCLASS
+			      SUBCLASS_PREDICATE
+			      IDENTITY_PREDICATE
+			      )],
+			  @args);
+    # need to create identity relationships?
+    if($identity_pred) {
+	# set up the relationship object we'll reuse
+	my $rel = Bio::Ontology::Relationship->new(
+				   -ontology => $identity_pred->ontology());
+	$rel = $self->db->create_persistent($rel);
+	# set the constant(s) (only one here)
+	$rel->predicate_term($identity_pred);
+	# create an identity rel.ship for each predicate
+	my @preds = $ont->get_predicate_terms();
+	# if there is a superclass predicate, we need to create an identity
+	# relationship for that, too
+	push(@preds, $ancestor_pred) if $ancestor_pred;
+	# now loop over the list of predicates
+	foreach my $pred (@preds) {
+	    $rel->primary_key(undef);
+	    $rel->subject_term($pred);
+	    $rel->object_term($pred);
+	    $rel->create();
+	}
+    }
+    # need to create subclass relationships?
+    if($ancestor_pred) {
+	# set up the relationship object we'll reuse
+	my $rel = Bio::Ontology::Relationship->new(
+				   -ontology => $ancestor_pred->ontology());
+	$rel = $self->db->create_persistent($rel);
+	# create a subclasses predicate if none supplied
+	$subclass_pred = Bio::Ontology::Term->new(
+                                   -name     => "subclasses",
+				   -ontology => $ancestor_pred->ontology())
+	    unless $subclass_pred;
+	# and make it persistent if it isn't already
+	$subclass_pred = $self->db->create_persistent($subclass_pred)
+	    unless $subclass_pred->isa("Bio::DB::PersistentObjectI");
+	# set the constants
+	$rel->object_term($ancestor_pred);
+	$rel->predicate_term($subclass_pred);
+	# create one subclass rel.ship for each predicate
+	foreach my $pred ($ont->get_predicate_terms()) {
+	    $rel->primary_key(undef);
+	    $rel->subject_term($pred);
+	    $rel->create();
+	}
+    }
+    # make sure the ontology object is a persistent object
+    $ont = $self->db->create_persistent($ont)
+	unless $ont->isa("Bio::DB::PeristentObjectI");
+    # now delegate to the driver
+    return $self->dbd->compute_transitive_closure($self,$ont,$trunc);
 }
 
 1;

@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 17;
+    plan tests => 18;
 }
 
 use Bio::DB::Query::SqlQuery;
@@ -185,3 +185,23 @@ ok ($sql,
     "AND p.bioentry_id = bioentry_relationship.parent_bioentry_id ".
     "AND term.term_id = bioentry_relationship.term_id ".
     "AND (p.accession = 'Hs.2' AND term.name = 'cluster member')");
+
+$query = Bio::DB::Query::BioQuery->new(
+               -datacollections => ["Bio::Ontology::OntologyI=>Bio::Ontology::PathI o",
+				    "Bio::Ontology::TermI=>Bio::Ontology::PathI ts::subject",
+				    "Bio::Ontology::TermI=>Bio::Ontology::PathI to::object",
+			 ],
+	       -where => ["o.name = 'My Test Ontology'",
+			  "ts.name = 'exon'",
+			  "to.name = 'gene'"]
+				       );
+$tquery = $query->translate_query($mapper);
+$sql = $sqlgen->generate_sql($tquery);
+ok ($sql,
+    "SELECT * ".
+    "FROM term_path, ontology o, term ts, term to ".
+    "WHERE term_path.ontology_id = o.ontology_id ".
+    "AND term_path.subject_term_id = ts.term_id ".
+    "AND term_path.object_term_id = to.term_id ".
+    "AND (o.name = 'My Test Ontology' ".
+    "AND ts.name = 'exon' AND to.name = 'gene')");

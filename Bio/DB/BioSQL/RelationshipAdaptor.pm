@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::OntologyAdaptor
+# BioPerl module for Bio::DB::BioSQL::RelationshipAdaptor
 #
 # Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
@@ -23,15 +23,15 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::OntologyAdaptor - DB Adaptor for Ontology objects
+Bio::DB::BioSQL::RelationshipAdaptor - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
-   # don't use directly
+Give standard usage here
 
 =head1 DESCRIPTION
 
-DB adaptor for Bio::Ontology::OntologyI compliant objects.
+Bio::Ontology::RelationshipI DB adaptor 
 
 =head1 FEEDBACK
 
@@ -68,7 +68,7 @@ methods. Internal methods are usually preceded with a _
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::OntologyAdaptor;
+package Bio::DB::BioSQL::RelationshipAdaptor;
 use vars qw(@ISA);
 use strict;
 
@@ -76,7 +76,7 @@ use strict;
 
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
 use Bio::DB::PersistentObjectI;
-use Bio::Ontology::Ontology;
+use Bio::Ontology::Relationship;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
@@ -97,7 +97,8 @@ sub new{
    my ($class,@args) = @_;
 
    # we want to enable object caching
-   push(@args, "-cache_objects", 1) unless grep { /cache_objects/i; } @args;
+   #well I'm not sure about this
+   #push(@args, "-cache_objects", 1) unless grep { /cache_objects/i; } @args;
    my $self = $class->SUPER::new(@args);
 
    return $self;
@@ -123,7 +124,7 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("name", "definition");
+    return ();
 }
 
 =head2 get_persistent_slot_values
@@ -145,10 +146,101 @@ sub get_persistent_slots{
 
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
-    my @vals = ($obj->name(),
-		$obj->definition()
-		);
+    my @vals = ();
     return \@vals;
+}
+
+=head2 get_foreign_key_objects
+
+ Title   : get_foreign_key_objects
+ Usage   :
+ Function: Gets the objects referenced by this object, and which therefore need
+           to be referenced as foreign keys in the datastore.
+
+           Note that the objects are expected to implement
+           Bio::DB::PersistentObjectI.
+
+           An implementation needs to make sure that the
+           order of foreign key objects returned is always the same.
+
+ Example :
+ Returns : an array of Bio::DB::PersistentObjectI implementing objects
+ Args    : The object about to be inserted or updated, or undef if the call
+           is for a SELECT query. In the latter case return class or interface
+           names that are mapped to the foreign key tables.
+
+           Optionally, additional named parameters. A common parameter
+           will be -fkobjs, with a reference to an array of foreign
+           key objects that are not retrievable from the persistent
+           object itself.
+
+=cut
+
+sub get_foreign_key_objects{
+    my ($self,$obj,$fkobjs) = @_;
+    my ($subj_term,$pred_term,$obj_term,$ont);
+
+    # initialize with defaults
+    if(ref($obj)) {
+	$subj_term = $obj->subject_term();
+	$pred_term = $obj->predicate_term();
+	$obj_term = $obj->object_term();
+	# make sure the contexts are set
+	$subj_term->foreign_key_slot(ref($self) ."::subject");
+	$obj_term->foreign_key_slot(ref($self) ."::object");
+	$pred_term->foreign_key_slot(ref($self) ."::predicate");
+	# and the ontology FK
+	$ont = $obj->ontology();
+    } 
+    $ont = "Bio::Ontology::OntologyI" unless $ont;
+    $subj_term = "Bio::Ontology::TermI::subject" unless $subj_term;
+    $pred_term = "Bio::Ontology::TermI::predicate" unless $pred_term;
+    $obj_term = "Bio::Ontology::TermI::object" unless $obj_term;
+    return ($subj_term,$pred_term,$obj_term,$ont);
+}
+
+=head2 attach_foreign_key_objects
+
+ Title   : attach_foreign_key_objects
+ Usage   :
+ Function: Attaches foreign key objects to the given object as far as
+           necessary.
+
+           This method is called after find_by_XXX() queries, not for INSERTs
+           or UPDATEs.
+
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The object to which to attach foreign key objects.
+           A reference to an array of foreign key values, in the order of
+           foreign keys returned by get_foreign_key_objects().
+
+
+=cut
+
+sub attach_foreign_key_objects{
+    my ($self,$obj,$fks) = @_;
+    my $ok = 1;
+    
+    if($fks && @$fks) {
+	# we expect to find 4 foreign keys: subject, predicate, object, and
+	# namespace (ontology)
+	my $i = 0;
+	foreach my $meth ("subject_term", "predicate_term", "object_term") {
+	    next unless $fks->[$i]; # this actually always be defined
+	    my $term = $self->_term_adaptor->find_by_primary_key($fks->[$i]);
+	    $ok = defined($term) && $ok;
+	    $obj->$meth($term) if $term;
+	    $i++;
+	}
+	# foreign key to ontology 
+	if($fks->[$i]) {
+	    my $ont = $self->_ont_adaptor->find_by_primary_key($fks->[$i]);
+	    $ok = defined($ont) && $ok;
+	    $obj->ontology($ont) if $ont;
+	}
+    }
+    return $ok;
 }
 
 =head2 remove_children
@@ -199,7 +291,7 @@ sub instantiate_from_row{
 	if($fact) {
 	    $obj = $fact->create_object();
 	} else {
-	    $obj = Bio::Ontology::Ontology->new();
+	    $obj = Bio::Ontology::Relationship->new();
 	}
 	$self->populate_from_row($obj, $row);
     }
@@ -230,8 +322,6 @@ sub populate_from_row{
 	$self->throw("\"$obj\" is not an object. Probably internal error.");
     }
     if($rows && @$rows) {
-	$obj->name($rows->[1]) if $rows->[1];
-	$obj->definition($rows->[2]) if $rows->[2];
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($rows->[0]);
 	}
@@ -264,9 +354,25 @@ sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
     my $uk_h = {};
 
-    # UK for ontology is its name
-    if($obj->name()) {
-	$uk_h->{'name'} = $obj->name();
+    # UK for a relationship is the tuple of all its foreign keys:
+    # (subject,predicate,object,ontology)
+    if(ref($obj)) {
+	my $tadp = $self->_term_adaptor;
+	my %name_map = ("subject_term"   => "subject",
+			"object_term"    => "object",
+			"predicate_term" => "predicate");
+	foreach my $meth (keys %name_map) {
+	    my $term = $obj->$meth;
+	    if($term && (!$term->isa("Bio::DB::PersistentObjectI"))) {
+		$term = $tadp->find_by_unique_key($term);
+	    }
+	    $uk_h->{$name_map{$meth}} = $term ? $term->primary_key : undef;
+	}
+	my $ont = $obj->ontology();
+	if($ont && (!$ont->isa("Bio::DB::PersistentObjectI"))) {
+	    $ont = $self->_ont_adaptor->find_by_unique_key($ont);
+	}
+	$uk_h->{"ontology"} = $ont ? $ont->primary_key : undef;
     }
     
     return $uk_h;
@@ -276,131 +382,58 @@ sub get_unique_key_query{
 
 =cut
 
-=head2 create_persistent
+=head1 Private methods
 
- Title   : create_persistent
- Usage   :
- Function: Takes the given object and turns it onto a
-           PersistentObjectI implementing object. Returns the
-           result. Does not actually create the object in a database.
+ These are mostly convenience and/or short-hand methods.
 
-           Calling this method is expected to have a recursive effect
-           such that all children of the object, i.e., all slots that
-           are objects themselves, are made persistent objects, too.
+=cut
 
-           We override this method here because we need to temporarily
-           break the cycle between ontology and its term and
-           relationship objects.
+=head2 _ont_adaptor
 
- Example :
- Returns : A Bio::DB::PersistentObjectI implementing object wrapping the
-           passed object.
- Args    : An object to be made into a PersistentObjectI object (the class
-           will be suitable for this adaptor).
-           Optionally, the class which actually implements wrapping the object
-           to become a PersistentObjectI.
+ Title   : _ont_adaptor
+ Usage   : $obj->_ont_adaptor($newval)
+ Function: Get/set the ontology persistence adaptor. 
+ Example : 
+ Returns : value of _ont_adaptor (a Bio::DB::PersistenceAdaptorI object)
+ Args    : on set, new value (a Bio::DB::PersistenceAdaptorI object
+           or undef, optional)
 
 
 =cut
 
-sub create_persistent{
-    my ($self,$obj,$pwrapper) = @_;
+sub _ont_adaptor{
+    my $self = shift;
 
-    return unless $obj;
-
-    my $engine;
-    if($obj->can('engine')) {
-	$engine = $obj->engine();
-	$obj->engine(undef);
+    return $self->{'_ont_adaptor'} = shift if @_;
+    if(! exists($self->{'_ont_adaptor'})) {
+	$self->{'_ont_adaptor'} =
+	    $self->db->get_object_adaptor("Bio::Ontology::OntologyI");
     }
-    my $pobj = $self->SUPER::create_persistent($obj,$pwrapper);
-    # restore engine
-    $pobj->engine($engine) if $engine;
-    
-    return $pobj;
+    return $self->{'_ont_adaptor'};
 }
 
-=head1 Methods specific to this adaptor
+=head2 _term_adaptor
 
-=cut
-
-=head2 compute_transitive_closure
-
- Title   : compute_transitive_closure
- Usage   :
- Function: Compute the transitive closure over a given ontology
-           and populate the respective path table in the relational
-           schema.
-
-           There are options that allow one to create certain
-           necessary relationships between predicates on-the-fly. Read
-           below.
-
- Example :
- Returns : TRUE on success, and FALSE otherwise
- Args    : The ontology over which to create the transitive closure
-           (a Bio::Ontology::OntologyI compliant object).
-
-           In addition, named parameters. Currently, the following are
-           recognized.
-
-             -truncate   If assigned a true value, will cause an existing
-                         transitive closure for the ontology be deleted
-                         from the path table. Usually, this option should
-                         be enabled.
-
-             -predicate_superclass A Bio::Ontology::TermI compliant object
-                         that specifies a common ancestor predicate
-                         for all predicates in the ontology. If this
-                         is specified, the method will create and
-                         serialize relationships between all
-                         predicates in the ontology and the ancestor
-                         predicate, where the ancestor predicate is
-                         the object, the predicate is either the one
-                         given by -subclass_predicate or the term
-                         'subclasses', and the ontology is the
-                         ontology referenced by the ancestor
-                         predicate.
-
-                         If this is not provided, the aforementioned
-                         relationships should be present in an
-                         ontology in the database already, unless the
-                         ontology over which to compute the transitive
-                         closure has only one predicate, or if paths
-                         over mixed predicates are void. Otherwise the
-                         transitive closure will not be complete for
-                         mixed predicate paths.
-
-             -subclass_predicate A Bio::Ontology::TermI compliant object
-                         that represents the predicate for the
-                         relationship between predicate A and
-                         predicate B if predicate A can be considered
-                         to subclass predicate B.
-
-             -identity_predicate A Bio::Ontology::TermI compliant object
-                         that represents the predicate for the
-                         identity of a predicate with itself. If
-                         provided, the method will create
-                         relationships for all predicates in the
-                         ontology, where subject and object are the
-                         predicate of the ontology, the predicate is
-                         the supplied identity predicate, and the
-                         ontology is the ontology referenced by the
-                         supplied term object.
-
-                         If this is not provided, the aforementioned
-                         relationships should be present in an
-                         ontology in the database already. Otherwise the
-                         transitive closure will be incomplete.
+ Title   : _term_adaptor
+ Usage   : $obj->_term_adaptor($newval)
+ Function: Get/set the ontology term persistence adaptor. 
+ Example : 
+ Returns : value of _term_adaptor (a Bio::DB::PersistenceAdaptorI object)
+ Args    : on set, new value (a Bio::DB::PersistenceAdaptorI object
+           or undef, optional)
 
 
 =cut
 
-sub compute_transitive_closure{
+sub _term_adaptor{
     my $self = shift;
-    # the main implementation actually sits in the path adaptor
-    my $pathadp = $self->db->get_object_adaptor("Bio::Ontology::PathI");
-    return $pathadp->compute_transitive_closure(@_);
+
+    return $self->{'_term_adaptor'} = shift if @_;
+    if(! exists($self->{'_term_adaptor'})) {
+	$self->{'_term_adaptor'} =
+	    $self->db->get_object_adaptor("Bio::Ontology::TermI");
+    }
+    return $self->{'_term_adaptor'};
 }
 
 1;

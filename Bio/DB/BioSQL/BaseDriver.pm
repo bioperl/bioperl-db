@@ -425,6 +425,91 @@ sub prepare_delete_association_sth{
     return $adp->dbh()->prepare($sql);
 }
 
+=head2 prepare_delete_query_sth
+
+ Title   : prepare_delete_query_sth
+ Usage   :
+ Function: Prepares a DBI statement handle suitable for deleting rows
+           from a table that match a number of attributes.
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : The calling adaptor.
+
+           Named parameters. Currently recognized are:
+
+               -fkobjs optional; a reference to an array of foreign
+                       key objects by which to constrain; this is
+                       complementary to -values
+
+               -contexts optional; if given it denotes a reference
+                       to an array of context keys (strings), which
+                       allow the foreign key name to be determined
+                       through the association map rather than through
+                       foreign_key_name().  This may be necessary if
+                       an entity has more than one foreign key to the
+                       same entity. The array must be in the same
+                       order as -fkobjs, and have the same number of
+                       elements. Put undef for objects for which there
+                       are no multiple contexts.
+
+               -values optional; a reference to a hash the keys of
+                       which are attribute names by which to constrain
+                       the query
+
+
+=cut
+
+sub prepare_delete_query_sth{
+    my ($self,$adp,@args) = @_;
+    my ($i);
+
+    # get arguments
+    my ($fkobjs, $values, $contexts) =
+	$self->_rearrange([qw(FKOBJS VALUES CONTEXTS)], @args);
+    # obtain column map for attributes
+    my $table = $self->table_name($adp);
+    my $columnmap = $self->slot_attribute_map($table);
+    my @attrs = ();
+    my $attr;
+    # add the query constraint columns for foreign key columns if any
+    if($fkobjs && @$fkobjs) {
+	foreach my $obj (@$fkobjs) {
+	    my $fktable = $self->table_name($obj);
+	    if(! $fktable) {
+		$self->throw("no object-relational map for class ".
+			     (ref($obj) ? ref($obj) : $obj));
+	    }
+	    if($contexts && $contexts->[$i]) {
+		$attr = $columnmap->{$contexts->[$i]};
+	    } else {
+		$attr = $self->foreign_key_name($obj);
+	    }
+	    if(! $attr) {
+		$self->throw("unable to determine column for FK to class ".
+			     (ref($obj) ? ref($obj) : $obj));
+	    }
+	    push(@attrs, $attr);
+	}
+    }
+    # add any other query constraint columns
+    if($values) {
+	foreach my $colkey (keys %$values) {
+	    $self->throw("unmapped association column $colkey")
+		unless exists($columnmap->{$colkey});
+	    $attr = $columnmap->{$colkey};
+	    push(@attrs, $attr) if $attr;
+	}
+    }
+    # construct SQL straightforwardly
+    my $sql = "DELETE FROM $table";
+    if(@attrs) {
+	$sql .= " WHERE " . join(" AND ", map { $_ . " = ?"; } @attrs);
+    }
+    $adp->debug("preparing DELETE QUERY statement: $sql\n");
+    # prepare sth and return
+    return $adp->dbh()->prepare($sql);
+}
+
 =head2 cascade_delete
 
  Title   : cascade_delete
@@ -725,6 +810,7 @@ sub update_object{
            to facilitate object construction.
  Args    : The calling adaptor.
            The query as a Bio::DB::Query::BioQuery or derived object.
+           A reference to an array of foreign key objects.
 
 
 =cut

@@ -371,9 +371,10 @@ sub populate_from_row{
 
  Title   : get_unique_key_query
  Usage   :
- Function: Obtain the suitable unique key slots and values as determined by the
-           attribute values of the given object and the additional foreign
-           key objects, in case foreign keys participate in a UK. 
+ Function: Obtain the suitable unique key slots and values as
+           determined by the attribute values of the given object and
+           the additional foreign key objects, in case foreign keys
+           participate in a UK.
 
  Example :
  Returns : One or more references to hash(es) where each hash
@@ -381,11 +382,12 @@ sub populate_from_row{
            represent the names of the object's slots that are part of
            the particular unique key and their values are the values
            of those slots as suitable for the key.
- Args    : The object with those attributes set that constitute the chosen
-           unique key (note that the class of the object will be suitable for
-           the adaptor).
-           A reference to an array of foreign key objects if not retrievable 
-           from the object itself.
+ Args    : The object with those attributes set that constitute the
+           chosen unique key (note that the class of the object will
+           be suitable for the adaptor).
+
+           A reference to an array of foreign key objects if not
+           retrievable from the object itself.
 
 
 =cut
@@ -406,7 +408,7 @@ sub get_unique_key_query{
 	    });
 	}
     }
-    if($obj->medline()) {
+    if($obj->pubmed()) {
 	my $dbl = Bio::Annotation::DBLink->new(-database => "PubMed",
 					       -primary_id => $obj->pubmed);
 	$dbl = $self->_dbxref_adaptor->find_by_unique_key($dbl);

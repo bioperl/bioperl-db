@@ -646,3 +646,26 @@ sub get_keywords{
 
    return $desc;
 }
+
+=head2 get_description_by_accession
+
+ Title   : get_description_by_accession
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_description_by_accession{
+   my ($self,$acc) = @_;
+
+   my $sth = $self->prepare("select bd.description from bioentry_description bd, bioentry be where be.accession = '$acc' and be.bioentry_id = bd.bioentry_id");
+   $sth->execute;
+
+   my ($desc) = $sth->fetchrow_array;
+
+   return $desc;
+}

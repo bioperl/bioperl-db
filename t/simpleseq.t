@@ -8,7 +8,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 20;
+    plan tests => 21;
 }
 
 use DBTestHarness;
@@ -70,6 +70,9 @@ $dbseq = $seqadaptor->fetch_by_db_and_accession("genbank",$seq->accession);
 
 ok $dbseq;
 
+$desc = $seqadaptor->get_description_by_accession($seq->accession);
+ok $desc;
+
 my ($source,$cds) = $dbseq->top_SeqFeatures;
 
 ok $source;
@@ -92,7 +95,6 @@ ok $biodb;
 $dbseq = $biodb->get_Seq_by_acc($seq->accession);
 
 ok $dbseq;
-
 
 
 

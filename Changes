@@ -1,5 +1,10 @@
-Revision history for Perl extension Bio.
+Revision history for bioperl-db.
 
-0.01  Fri Jun 30 11:06:14 2000
-	- original version; created by h2xs 1.19
+0.01 - Ewan Birney's code committed to handle a simple relation schema
+       for roundtripping Genbank/EMBL (swissprot MOSTLY handled)
 
+       Support built in for seqdb to serve as a BioCORBA seq caching server.
+
+       Maps objects built on old schema - still in flux but included in release.
+
+       Released with bioperl-0.7.2 stable branch release.

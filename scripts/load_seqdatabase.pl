@@ -56,6 +56,7 @@ There are more options than the ones shown above. See below.
 
 
 use Getopt::Long;
+use Bio::Root::Root;
 use Bio::DB::BioDB;
 use Bio::Annotation::SimpleValue;
 use Bio::SeqIO;
@@ -73,6 +74,7 @@ my $dbpass;
 my $format = 'genbank';
 my $namespace = "bioperl";
 my $seqfilter;
+my $pipeline;
 # flags
 my $remove_flag = 0;
 my $help = 0;
@@ -103,6 +105,7 @@ my $ok = GetOptions( 'host:s'   => \$host,
 		     'format:s' => \$format,
 		     'seqfilter:s' => \$seqfilter,
 		     'namespace:s' => \$namespace,
+		     'pipeline:s'  => \$pipeline,
 		     'safe'     => \$safe_flag,
 		     'remove'   => \$remove_flag,
 		     'debug'    => \$debug,
@@ -157,6 +160,34 @@ $objio = "Bio::".$objio if $objio !~ /^Bio::/;
 my $nextobj = $nextobj_map{$objio} || "next_seq"; # next_seq is the default
 
 #
+# setup the pipeline if desired
+#
+my @pipemods = ();
+if($pipeline) {
+    if($objio ne "Bio::SeqIO") {
+	die "pipelining sequence processors not supported for non-SeqIOs\n";
+    }
+    # split into modules
+    my @mods = split(/[,;\|\s]+/, $pipeline);
+    # instantiate a module 'loader'
+    my $loader = Bio::Root::Root->new();
+    # load and instantiate each one, then concatenate
+    foreach my $mod (@mods) {
+	$loader->_load_module($mod);
+	my $proc = $mod->new();
+	if(! $proc->isa("Bio::Factory::SequenceProcessorI")) {
+	    die "Pipeline processing module $mod does not implement ".
+		"Bio::Factory::SequenceProcessorI. Bummer.\n";
+	}
+	$proc->source_stream($pipemods[$#pipemods]) if @pipemods;
+	push(@pipemods, $proc);
+    }
+    if(! @pipemods) {
+	warn "you specified -pipeline, but no processor modules resulted\n";
+    }
+}
+
+#
 # create the DBAdaptorI for our database
 #
 my $db = Bio::DB::BioDB->new(-database => "biosql",
@@ -195,6 +226,12 @@ foreach $file ( @files ) {
 			  " does not support control by ObjectBuilderIs");
 	}
 	$seqin->sequence_builder->add_object_condition($condition);
+    }
+
+    # chain to pipeline if pipelining is requested
+    if(@pipemods) {
+	$pipemods[0]->source_stream($seqin);
+	$seqin = $pipemods[$#pipemods];
     }
 
     while( my $seq = $seqin->$nextobj ) {

@@ -131,6 +131,8 @@ specify initialization parameters for each of the modules by enclosing
 a comma-separated list of alternating parameter name and value pairs
 in parentheses or angle brackets directly after the module.
 
+This option will be ignored if no value is supplied.
+
 Examples: 
     # one module
     --pipeline "My::SeqProc" 
@@ -161,6 +163,8 @@ object. Email bioperl-l@bioperl.org to find out which ones do. In
 fact, at the time of writing this, only Bio::SeqIO::genbank supports
 it.
 
+This option will be ignored if no value is supplied.
+
 =item --mergeobjs
 
 This is also a string or a file defining a closure. If provided, the
@@ -188,6 +192,8 @@ L<Bio::DB::PersistentObjectI>). Since the third argument is the
 persistent object and adaptor factory for the database, there is
 literally no limit as to the database operations the closure could
 possibly do.
+
+This option will be ignored if no value is supplied.
 
 =item more args
 
@@ -266,10 +272,10 @@ my $ok = GetOptions( 'host=s'         => \$host,
 		     'dbpass=s'       => \$dbpass,
 		     'format=s'       => \$format,
 		     'fmtargs=s'      => \$fmtargs,
-		     'seqfilter=s'    => \$seqfilter,
+		     'seqfilter:s'    => \$seqfilter,
 		     'namespace=s'    => \$namespace,
-		     'pipeline=s'     => \$pipeline,
-		     'mergeobjs=s'    => \$mergefunc,
+		     'pipeline:s'     => \$pipeline,
+		     'mergeobjs:s'    => \$mergefunc,
 		     'safe'           => \$safe_flag,
 		     'remove'         => \$remove_flag,
 		     'lookup'         => \$lookup_flag,
@@ -367,7 +373,7 @@ foreach $file ( @files ) {
     # create a handle if it's not one already
     if(! ref($fh)) {
 	$fh = gensym;
-	my $fspec = $uncompress ? "gunzip $file |" : "<$file";
+	my $fspec = $uncompress ? "gunzip -d $file |" : "<$file";
 	if(! open($fh, $fspec)) {
 	    warn "unable to open $file for reading, skipping: $!\n";
 	    next;

@@ -131,7 +131,7 @@ sub store_if_needed{
    $name = $self->quote($name);
  
       # could be in database
-      my $sth = $self->prepare("select seqfeature_key_id from seqfeature_key where key_name = $name");
+      $sth = $self->prepare("select seqfeature_key_id from seqfeature_key where key_name = $name");
       
       $sth->execute;
       my ($dbid) = $sth->fetchrow_array();

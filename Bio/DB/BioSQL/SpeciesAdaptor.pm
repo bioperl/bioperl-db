@@ -144,7 +144,7 @@ sub store_if_needed{
    $common_name = $self->quote($common_name);
 
 
-	my $sth = $self->prepare("insert into taxa (full_lineage,common_name) values ($str,$common_name)");
+	$sth = $self->prepare("insert into taxa (full_lineage,common_name) values ($str,$common_name)");
 	$sth->execute;
 
 	my $id = $self->get_last_id;

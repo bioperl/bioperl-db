@@ -322,6 +322,7 @@ sub _store_qual {
     return unless defined $slot;
     # get the qualifier from the controlled vocab
     my $qual_id = $self->db->get_OntologyTermAdaptor->get_id($qual);
+    print STDERR "*** Trying to store slot $slot and int slot ".int($slot)."\n";
     $self->insert("location_qualifier_value",
                   {ontology_term_id=>$qual_id,
                    seqfeature_location_id=>$loc_id,

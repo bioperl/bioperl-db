@@ -8,13 +8,25 @@ Bio::DB::BioSQL::DBAdapter - Object representing an instance of a bioperl databa
 
 =head1 SYNOPSIS
 
-    $db = Bio::DB::BioSQL::DBAdaptor->new(
+    $dbcontext = Bio::DB::SimpleContext->new(
         -user   => 'root',
         -dbname => 'pog',
         -host   => 'caldy',
         -driver => 'mysql',
-	    );
+	);
+    
+    $db = Bio::DB::BioSQL::DBAdaptor->new(
+        -dbcontext => $dbcontext
+    );
 
+    # You can also create db adaptor by calling Bio::DB::BioDB constructor.
+    $db = Bio::DB::BioDB->new(
+        -database => 'biosql',
+        -user   => 'root',
+        -dbname => 'pog',
+        -host   => 'caldy',
+        -driver => 'mysql',
+    );
 
 =head1 DESCRIPTION
 

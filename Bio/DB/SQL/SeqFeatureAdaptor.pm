@@ -212,9 +212,7 @@ sub store{
    my $keyid = $self->db->get_OntologyTermAdaptor->get_id($feature->primary_tag);
    my $sourceid = $self->db->get_SeqFeatureSourceAdaptor->store_if_needed($feature->source_tag);
 
-   if ($self->db->bulk_import){
-      $self->_storeText($feature, $rank, $bioentryid, $keyid, $sourceid);       
-   } else {
+
       my $sth = $self->prepare("insert into seqfeature (bioentry_id,seqfeature_key_id,seqfeature_source_id,seqfeature_rank) VALUES ($bioentryid,$keyid,$sourceid,$rank)");
 
       $sth->execute();
@@ -236,7 +234,6 @@ sub store{
             $rank++;
          }
       }
-   }
 }
 
 sub _storeText {

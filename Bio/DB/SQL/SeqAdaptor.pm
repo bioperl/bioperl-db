@@ -446,11 +446,6 @@ sub store{
        $self->throw("no display id ($did) or no accession ($accession). Cannot process");
    }
 
-   if ($self->db->bulk_import){
-       # this one is complex enough that I put it into its own subroutine
-       my $id = $self->_storeText($dbid, $seq, $did, $accession, $version, $division);
-       return $id;
-   } else {
        my $sth;
        my $uniqueh =
          {biodatabase_id=>$dbid,
@@ -562,110 +557,10 @@ sub store{
 
 		
        return $id;
-   }
-}
-
-
-=head2 _storeText
-
- Title   : _storeText
- Usage   :
- Function: to store to a local file for bulk_import
- Example :
- Returns : 
- Args    : for internal use only
-
-
-=cut
-
-
-sub _nextid {
-	my ($self) = @_;
-	unless ($self->{_nextid}){$self->{_nextid} = 0}
-	return ++$self->{_nextid};
-}
-
-sub _storeText {
-	my ($self, $dbid, $seq, $did, $accession, $version, $division) = @_;
-
-	my $id = $self->_nextid;
-	my $fh = $self->db->{"__bioentry"};
-	print $fh "$id\t$dbid\t$did\t$accession\t$version\t$division\n";
-
-	$self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
-        
-	my $desc = self->quote($seq->desc);
-
-        #' emacs hack
-
-	if( defined $seq->desc && $seq->desc ne '' ) {
-		my $fh = $self->db->{"__bioentry_description"};
-		print $fh "$id\t$desc\n";
-	}
-
-	if( $seq->isa('Bio::Seq::RichSeqI') ) {
-		foreach my $date ($seq->get_dates) {
-			my $fh = $self->db->{"__bioentry_date"};
-			print $fh "$id\t$date\n";
-		}
-		if (my $kw = $seq->keywords) {
-			my $fh = $self->db->{"__bioentry_keywords"};
-			print $fh "$id\t$kw\n";
-		}
-	}
-
-	my $species = $seq->species;
-
-	if( defined $species ) {
-		my $species_id = $self->db->get_SpeciesAdaptor->store_if_needed($species);
-		my $fh = $self->db->{"__bioentry_taxa"};
-		print $fh "$id\t$species_id\n";
-	}   
-
-	my $rank = 1;
-	my $adp  = $self->db->get_SeqFeatureAdaptor();
-
-	foreach my $sf ( $seq->top_SeqFeatures ) {
-		 $adp->store($sf,$rank,$id);
-		 $rank++; 
-	}
-
-	$rank = 1;
-	$adp = $self->db->get_CommentAdaptor();
-
-	foreach my $comment ( $seq->annotation->get_Annotations('comment') ) {
-		 $adp->store($comment,$rank,$id);
-		 $rank++;
-	}
-	
-	$rank = 1;
-	my $rdp = $self->db->get_ReferenceAdaptor();
-	foreach my $ref ( $seq->annotation->get_Annotations('reference') ) {
-		my $rid = $rdp->store_if_needed($ref);
-
-		my $start='\N';  # note that this keeps the text file
-		my $end='\N';    # compatible with the SQL text, which converts NULL to '0' upon insertion.
-		if ($ref->start) {
-			$start=$ref->start;
-		}
-		if ($ref->end) {
-			$end=$ref->end;
-		}
-		my $fh= $self->db->{"__bioentry_reference"};
-		print $fh "$id\t$rid\t$start\t$end\t$rank\n";
-		$rank++;
-	}
-
-
-	$adp = $self->db->get_DBLinkAdaptor();
-	foreach my $dblink ( $seq->annotation->get_Annotations('dblink') ) {
-		 $adp->store($dblink,$id);
-	}
-
-	
-	return $id;	
 
 }
+
+
 
 
 =head2 remove_by_dbID 

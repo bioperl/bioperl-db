@@ -126,14 +126,8 @@ sub store{
    }
    my $seq = $pseq->seq;
    
-   if ($self->db->bulk_import){
-       my $fh = $self->db->{"__biosequence"};
-       print $fh "NULL\t$bioentry_id\t0\t$seq\t$mol\n";
-       return;
-   } else {
-       my $sth = $self->prepare("insert into biosequence (bioentry_id,biosequence_str,molecule) values ($bioentry_id,'$seq','$mol')");
-       $sth->execute;
-   }
+   my $sth = $self->prepare("insert into biosequence (bioentry_id,biosequence_str,molecule) values ($bioentry_id,'$seq','$mol')");
+   $sth->execute;
 }
 
 

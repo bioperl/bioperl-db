@@ -119,14 +119,6 @@ sub store_if_needed{
        return $self->{'_name_dbID'}->{$name};
    }
 
-   if ($self->db->bulk_import){
-		my $id = $self->_nextid;
-      my $fh = $self->db->{"__seqfeature_qualifier"};
-      print $fh "$id\t$name\n";
-      $self->{'_name_dbID'}->{$name} = $id;
-      return $id;
-   } else {
-
       # could be in database 
       my $sth = $self->prepare("select seqfeature_qualifier_id from seqfeature_qualifier where qualifier_name = '$name'");
       $sth->execute;
@@ -147,7 +139,6 @@ sub store_if_needed{
       } else {
           $self->throw("Very weird - we got a successful insert but no valid db id. Truly bizarre");
       }
-   }
 }
 
 =head2 _clean_orphans

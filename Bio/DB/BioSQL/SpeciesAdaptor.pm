@@ -125,17 +125,15 @@ sub store_if_needed{
        return $self->{'_linneage_hash'}->{$str};
    }
    $str = $self->quote($str);
-   unless ($self->db->bulk_import){
-      my $sth = $self->prepare("select taxa_id from taxa where full_lineage = $str");
-      $sth->execute();
+	my $sth = $self->prepare("select taxa_id from taxa where full_lineage = $str");
+	$sth->execute();
 
-      my ($taxa) = $sth->fetchrow_array();
-      
-      if( defined $taxa ) {
-          $self->{'_linneage_hash'}->{$str} = $taxa;
-          return $taxa;
-      }
-   }
+	my ($taxa) = $sth->fetchrow_array();
+
+	if( defined $taxa ) {
+	  $self->{'_linneage_hash'}->{$str} = $taxa;
+	  return $taxa;
+	}
    
    # write it into the database
    my $common_name  = $species->common_name;
@@ -145,23 +143,15 @@ sub store_if_needed{
    
    $common_name = $self->quote($common_name);
 
-   if ($self->db->bulk_import){
-		my $id = $self->_nextid;
-      my $fh = $self->db->{"__taxa"};
-      print $fh "$id\t$str\t$common_name\n";
-      $self->{'_linneage_hash'}->{$str} = $id;
-      return $id;
-   } else {
 
-      my $sth = $self->prepare("insert into taxa (full_lineage,common_name) values ($str,$common_name)");
-      $sth->execute;
+	my $sth = $self->prepare("insert into taxa (full_lineage,common_name) values ($str,$common_name)");
+	$sth->execute;
 
-      my $id = $self->get_last_id;
+	my $id = $self->get_last_id;
 
-      $self->{'_linneage_hash'}->{$str} = $id;
+	$self->{'_linneage_hash'}->{$str} = $id;
 
-      return $id;
-   }
+	return $id;
 }
 
 

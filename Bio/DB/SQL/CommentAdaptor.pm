@@ -145,14 +145,8 @@ sub store{
    }
    my $text = $self->quote($comment->text);
   
-   if ($self->db->bulk_import){
-      my $fh = $self->db->{"__comment"};
-      print $fh "NULL\t$bioentry_id\t$text\t$rank\n";
-      return;
-   } else {
       my $sth = $self->prepare("insert into comment (bioentry_id,comment_text,comment_rank) values ($bioentry_id,$text,$rank)");
       $sth->execute();
-   }
 }
 
 

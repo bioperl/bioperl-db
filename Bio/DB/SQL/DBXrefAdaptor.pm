@@ -133,49 +133,43 @@ sub store{
    my $db  = $dbxref->database();
 
    my $id;
-   if ($self->db->bulk_import){
-       $self->throw("to fix");
-#        my $fh = $self->db->{"__bioentry_direct_xrefs"};
-#        print $fh "NULL\t$bioentry_id\t$db\t$acc\n";       $self->
-        return;
-   } else {
-       my $h =
-         {dbname=>$db,
-          accession=>$acc};
-       $id =
-         $self->select_colval("dbxref",
-                              $h,
-                              "dbxref_id");
-       if ($id) {
-       }
-       else {
-           $id =
-             $self->insert("dbxref",
-                           $h);
-       }
-       if ($dbxref->optional_id) {
-           my $TERM_ID =
-             $self->db->get_OntologyTermAdaptor->OPTIONAL_ID_ID;
-           $self->deleterows("dbxref_qualifier_value",
-                             {dbxref_id=>$id,
-                              ontology_term_id=>$TERM_ID});
-           $self->insert("dbxref_qualifier_value",
-                         {dbxref_id=>$id,
-                          ontology_term_id=>$TERM_ID,
-                          qualifier_value=>$dbxref->optional_id});
-       }
-       if ($dbxref->comment) {
-           my $TERM_ID =
-             $self->db->get_OntologyTermAdaptor->COMMENT_ID;
-           $self->deleterows("dbxref_qualifier_value",
-                             {dbxref_id=>$id,
-                              ontology_term_id=>$TERM_ID});
-           $self->insert("dbxref_qualifier_value",
-                         {dbxref_id=>$id,
-                          ontology_term_id=>$TERM_ID,
-                          qualifier_value=>$dbxref->comment});
-       }
+   my $h =
+     {dbname=>$db,
+      accession=>$acc};
+   $id =
+     $self->select_colval("dbxref",
+                          $h,
+                          "dbxref_id");
+   if ($id) {
    }
+   else {
+       $id =
+         $self->insert("dbxref",
+                       $h);
+   }
+   if ($dbxref->optional_id) {
+       my $TERM_ID =
+         $self->db->get_OntologyTermAdaptor->OPTIONAL_ID_ID;
+       $self->deleterows("dbxref_qualifier_value",
+                         {dbxref_id=>$id,
+                          ontology_term_id=>$TERM_ID});
+       $self->insert("dbxref_qualifier_value",
+                     {dbxref_id=>$id,
+                      ontology_term_id=>$TERM_ID,
+                      qualifier_value=>$dbxref->optional_id});
+   }
+   if ($dbxref->comment) {
+       my $TERM_ID =
+         $self->db->get_OntologyTermAdaptor->COMMENT_ID;
+       $self->deleterows("dbxref_qualifier_value",
+                         {dbxref_id=>$id,
+                          ontology_term_id=>$TERM_ID});
+       $self->insert("dbxref_qualifier_value",
+                     {dbxref_id=>$id,
+                      ontology_term_id=>$TERM_ID,
+                      qualifier_value=>$dbxref->comment});
+   }
+   
    return $id;
 }
 

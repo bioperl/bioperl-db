@@ -18,18 +18,13 @@ name you wish to load this into and then any number of files. The
 files are assumed to be SeqIO formatted files with the format given
 in the -format flag.
 
-Loading large numbers of e.g. embl files can take a long time
-(many hours).  A boolean flag has been added, '-bulk',which allows
-you to load the flatfile into a tab-delimited set of output files
-in your /tmp/ folder (*.bulk) which may then be imported en masse
-using e.g. mysqlimport
-
 
 =head1 ARGUMENTS
    
   The last two arguments are data_title, and then the filelist.
   These are the only args that are absolutely required.
-  Default values for each parameter are shown in brackets:
+  Default values for each parameter are shown in brackets.
+  (Note that -bulk is no longer available):
 
   -host    $URL        : the IP addy incl. port (localhost)
   -sqldb   $db_name    : the name of the sql database (bioperl_db)
@@ -38,15 +33,14 @@ using e.g. mysqlimport
   -format  $FileFormat : format of the flat files (embl)
                        : Can be any format read by Bio::SeqIO
   -safe                : flag to ignore errors
-  -bulk    0/1         : write to tab-delim flat files (0)
-                       : this cuts down loading time by about
-                       : half, including the manual mysqlimport.
   *data_title          : A name to associate with this data
   *file1 file2 file3...: the flatfiles to import
  
 
 =cut
 
+use lib 'c:\bioperl\bioperl\db';
+use lib 'c:\bioperl\bioperl\core';
 
 
 use Getopt::Long;
@@ -63,7 +57,6 @@ my $format = 'genbank';
 my $removeflag = '';
 #If safe is turned on, the script doesn't die because of one bad entry..
 my $safe = 0;
-my $bulkload = 0;
 
 &GetOptions( 'host:s' => \$host,
              'driver:s' => \$driver,
@@ -73,7 +66,6 @@ my $bulkload = 0;
 	     'format:s' => \$format,
 	     'safe'     => \$safe,
 	     'remove'     => \$remove,
-	     'bulk:s'   => \$bulkload
 	     );
 
 my $dbname = shift;
@@ -89,7 +81,6 @@ $dbadaptor = Bio::DB::SQL::DBAdaptor->new( -host => $host,
                                            -driver=> $driver,
 					   -user => $dbuser,
 					   -pass => $dbpass,
-						-bulk => $bulkload,
 					   );
 
 $dbid = $dbadaptor->get_BioDatabaseAdaptor->fetch_by_name_store_if_needed($dbname);

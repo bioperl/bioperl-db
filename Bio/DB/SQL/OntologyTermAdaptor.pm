@@ -192,35 +192,27 @@ sub store_if_needed{
        return $self->{'_name_dbID'}->{$name};
    }
 
-   if ($self->db->bulk_import){
-		my $id = $self->_nextid;
-      my $fh = $self->db->{"__ontology_term"};
-      print $fh "$id\t$name\n";
-      $self->{'_name_dbID'}->{$name} = $id;
-      return $id;
-   } else {
 
-      # could be in database 
-      my $sth = $self->prepare("select ontology_term_id from ontology_term where qualifier_name = '$name'");
-      $sth->execute;
-      my ($dbid) = $sth->fetchrow_array();
-      if( defined $dbid ) {
-          $self->{'_name_dbID'}->{$name} = $dbid;
-          return $dbid;
-      }
-      
-      # nope - insert
-      $sth = $self->prepare("insert into ontology_term (qualifier_name) VALUES ('$name')");
-      $sth->execute;
+    # could be in database 
+    my $sth = $self->prepare("select ontology_term_id from ontology_term where qualifier_name = '$name'");
+    $sth->execute;
+    my ($dbid) = $sth->fetchrow_array();
+    if( defined $dbid ) {
+      $self->{'_name_dbID'}->{$name} = $dbid;
+      return $dbid;
+    }
 
-      $dbid = $self->get_last_id;
-      if( defined $dbid ) {
-          $self->{'_name_dbID'}->{$name} = $dbid;
-          return $dbid;
-      } else {
-          $self->throw("Very weird - we got a successful insert but no valid db id. Truly bizarre");
-      }
-   }
+    # nope - insert
+    $sth = $self->prepare("insert into ontology_term (qualifier_name) VALUES ('$name')");
+    $sth->execute;
+
+    $dbid = $self->get_last_id;
+    if( defined $dbid ) {
+      $self->{'_name_dbID'}->{$name} = $dbid;
+      return $dbid;
+    } else {
+      $self->throw("Very weird - we got a successful insert but no valid db id. Truly bizarre");
+    }
 }
 
 =head2 _clean_orphans

@@ -293,12 +293,6 @@ sub _store_component{
 
    #print STDERR "Got $seqfeature_id $start $end $strand with $location\n";
 
-   if ($self->db->bulk_import){
-       my $id = $self->_nextid;
-       my $fh = $self->db->{"__seqfeature_location"};
-       print $fh "$id\t$seqfeature_id\t$start\t$end\t$strand\t$rank\n";
-       return $id;
-   } else {
        my $sth = $self->prepare("insert into seqfeature_location (seqfeature_id,seq_start,seq_end,seq_strand,location_rank) VALUES ($seqfeature_id,$start,$end,$strand,$rank)");
        $sth->execute;
        my $id= $self->get_last_id;
@@ -320,7 +314,6 @@ sub _store_component{
            #       $sth->execute;
        }
        return $id;
-   }
 }
 
 sub _store_qual {

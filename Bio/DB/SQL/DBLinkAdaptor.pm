@@ -145,15 +145,10 @@ sub store{
    my $acc = $dblink->primary_id();
    my $db  = $dblink->database();
 
-   if ($self->db->bulk_import){
-        my $fh = $self->db->{"__bioentry_direct_links"};
-        print $fh "NULL\t$bioentry_id\t$db\t$acc\n";
-        return;
-   } else {
        my $id = $self->db->get_DBXrefAdaptor->store($dblink);
        my $sth = $self->prepare("insert into bioentry_direct_links (source_bioentry_id,dbxref_id) VALUES ($bioentry_id,$id)");
        $sth->execute;
-   }
+
    return;
 }
 

@@ -323,16 +323,9 @@ sub _nextid {
 sub store{
    my ($self,$name) = @_;
 
-   if ($self->db->bulk_import){
-		my $id = $self->_nextid;
-		my $fh = $self->db->{"__biodatabase"};
-      print $fh "$id\t$name\n";
-      return $id;
-   } else {
-		my $sth = $self->prepare("insert into biodatabase (name) values ('$name')");
-		$sth->execute;
-                return $self->get_last_id;
-	}
+	my $sth = $self->prepare("insert into biodatabase (name) values ('$name')");
+	$sth->execute;
+	return $self->get_last_id;
 }
 
 

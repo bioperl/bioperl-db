@@ -291,9 +291,9 @@ sub store{
 }
 
 
-=head2 remove
+=head2 remove_by_name
 
- Title   : remove
+ Title   : remove_by_name
  Usage   : remove(database_name)
  Function: Deletes biodatabase from SQL database. 
  Example : 
@@ -322,13 +322,16 @@ sub remove_by_name{
 	$sth = $self->prepare("SELECT bioentry_id FROM bioentry WHERE biodatabase_id=$dbid");
 	$sth->execute();
 	my $be = $sth->fetchrow_array(); 
+	return unless $be; 
+
+	my @be; 
+	
 	while (my $a = $sth->fetchrow_array) {
-		$be = $be.",".$a; 
+		unshift @be, $a; 
 	}
 	
-	return unless $be; 
 	
-#	$self->db->get_SeqAdaptor->remove_by_dbID(@be);  
+	$self->db->get_SeqAdaptor->remove_by_dbID(@be);  
 
 	   
 }

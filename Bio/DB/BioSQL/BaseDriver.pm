@@ -472,6 +472,17 @@ sub insert_object{
 	# get the primary key that was just inserted
 	$pk = $adp->dbcontext()->dbi()->last_id_value(
 					   $dbh, $self->sequence_name($table));
+    } else {
+	$self->warn("insert in ".ref($self)." failed, values were (\"".
+		    join("\",\"",@$slotvals)."\") ".
+		    ($fkobjs ?
+		     "FKs (".join(",",
+				  map {
+				      $_ && ref($_) ?
+					  $_->primary_key() : "<undef>";
+				  } @$fkobjs).
+		     ")\n" : "\n").
+		    $sth->errstr);
     }
     # done, return
     return $pk;

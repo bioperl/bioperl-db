@@ -1166,9 +1166,6 @@ sub find_by_query{
 	    # We generally don't want to raise an exception.
 	    my $rv;
 	    eval { $rv = $sth->bind_param($i, $qvalues->[$i-1]); };
-        if($@){
-            $self->throw($@);
-        }
 	    if(! $rv) {
 		# This is either due to an internal bug or to a constraint
 		# column not supported by the underlying schema (i.e., mapped

@@ -1,4 +1,4 @@
-# $Id: DBHarness.biosql.conf,v 1.1 2004-07-08 02:25:02 bosborne Exp $
+# $Id: DBHarness.conf.example,v 1.10 2004-07-08 11:51:17 bosborne Exp $
 
 # FILE: t/DBHarness.biosql.conf
 # 

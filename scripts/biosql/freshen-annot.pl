@@ -33,5 +33,10 @@ sub {
 	    $anncoll->remove(-fkobjs => [$old]);
 	}
     }
+    # remove cluster members if this is a cluster
+    if($old->isa("Bio::ClusterI")) {
+	$old->adaptor->remove_members($old);
+    }
+
     return $new;
 }

@@ -356,15 +356,15 @@ sub remove_by_name{
 			  "WHERE e.biodatabase_id = db.biodatabase_id ".
 			  "AND db.name = ?");
     $sth->execute($name);
-    my $be = $sth->fetchrow_array();
-    $sth->finish();
+    my ($be_id) = $sth->fetchrow_array();
 
-    if($be) {
-	my @be; 
+    if($be_id) {
+	my @be = ($be_id); 
 	
-	while (my $a = $sth->fetchrow_array) {
-	    unshift @be, $a; 
+	while ($be_id = $sth->fetchrow_array) {
+	    push(@be, $be_id); 
 	}
+	$sth->finish();
 	$self->db->get_SeqAdaptor->remove_by_dbID(@be);
     }
 

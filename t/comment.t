@@ -28,6 +28,7 @@ $seq = $biosql->store_seq(Bio::SeqIO->new('-format' => 'genbank',
 ok $seq;
 ok $seq->primary_id();
 
+# start try/finally
 eval {
     $adp = $biosql->db()->get_CommentAdaptor();
     ok $adp;

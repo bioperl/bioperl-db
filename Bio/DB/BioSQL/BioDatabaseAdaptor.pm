@@ -285,7 +285,34 @@ sub list_biodatabase_names{
 
 =cut
 
-sub list_bioentry_ids{
+sub list_bioentry_ids {
+   my ($self,$dbid) = @_;
+
+   my $sth = $self->prepare("select bioentry_id from bioentry where biodatabase_id = $dbid");
+   $sth->execute;
+   
+   my @out;
+   while( (my $ref = $sth->fetchrow_arrayref()) ) {
+       push(@out,@{$ref});
+   }
+	  
+   return @out;
+}
+
+
+=head2 list_bioentry_accessions
+
+ Title   : list_bioentry_accessions
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub list_bioentry_accessions {
    my ($self,$dbid) = @_;
 
    my $sth = $self->prepare("select accession from bioentry where biodatabase_id = $dbid");
@@ -298,7 +325,6 @@ sub list_bioentry_ids{
 	  
    return @out;
 }
-
 
 
 =head2 store

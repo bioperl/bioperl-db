@@ -322,12 +322,23 @@ sub _store_qual {
     return unless defined $slot;
     # get the qualifier from the controlled vocab
     my $qual_id = $self->db->get_OntologyTermAdaptor->get_id($qual);
-    print STDERR "*** Trying to store slot $slot and int slot ".int($slot)."\n";
+
+    #This silly code is just to avoid warnings when trying to int a string
+    #There must be a better way to check if a scalar is numeric???
+    my $intslot=$slot;    
+    $intslot =~ s/E|e|\+|\-//;
+    if($intslot =~ /^\d+$/)    {
+	$intslot = int($slot);
+    }
+    else {
+	$intslot = 0;
+    }
+
     $self->insert("location_qualifier_value",
                   {ontology_term_id=>$qual_id,
                    seqfeature_location_id=>$loc_id,
                    qualifier_value=>$slot,
-                   qualifier_int_value=>int($slot)});
+                   qualifier_int_value=>$intslot});
 }
 
 =head2 remove_by_dbID

@@ -71,6 +71,7 @@ use strict;
 
 use Bio::Root::RootI;
 use Bio::DB::Map::SQL::MapAdaptor;
+use Bio::DB::Map::SQL::MarkerAdaptor;
 
 @ISA = qw(Bio::Root::RootI );
 
@@ -90,83 +91,174 @@ use Bio::DB::Map::SQL::MapAdaptor;
 =cut
 
 sub new {
-  my($class,@args) = @_;
+    my($class,@args) = @_;
 
-  my $self = $class->SUPER::new(@args);
+    my $self = $class->SUPER::new(@args);
+    my (
+        $db,
+        $host,
+        $driver,
+        $user,
+        $password,
+        $port,
+        ) = $self->_rearrange([qw(
+				  DBNAME
+				  HOST
+				  DRIVER
+				  USER
+				  PASS
+				  )],@args);
+    $db   || $self->throw("Database object must have a database name");
+    $user || $self->throw("Database object must have a user");
+
+    if( ! $driver ) {
+        $driver = 'mysql';
+    }
+    if( ! $host ) {
+        $host = 'localhost';
+    }
+    if ( ! $port ) {
+        $port = 3306;
+    }
+
+    my $dsn = "DBI:$driver:database=$db;host=$host;port=$port";
+
+    my $dbh = DBI->connect("$dsn","$user",$password, {RaiseError => 1});
+
+    $dbh || $self->throw("Could not connect to database $db user $user using [$dsn] as a locator");
+
+    $self->_db_handle($dbh);
+    $self->username( $user );
+    $self->host( $host );
+    $self->dbname( $db );
+
+    return $self;		# success - we hope!
 
 }
 
-=head2 get_all_maps
+#Simple getsets for the dbhandle parameters, in case they need to be called
 
- Title   : get_all_maps
+sub dbname {
+  my ($self, $arg ) = @_;
+  ( defined $arg ) &&
+    ( $self->{_dbname} = $arg );
+  $self->{_dbname};
+}
+
+sub username {
+  my ($self, $arg ) = @_;
+  ( defined $arg ) &&
+    ( $self->{_username} = $arg );
+  $self->{_username};
+}
+
+sub host {
+  my ($self, $arg ) = @_;
+  ( defined $arg ) &&
+    ( $self->{_host} = $arg );
+  $self->{_host};
+}
+
+=head2 prepare
+
+ Title   : prepare
+ Usage   : $sth = $dbobj->prepare("select seq_start,seq_end from feature where analysis = \" \" ");
+ Function: prepares a SQL statement on the DBI handle
+ Example :
+ Returns : A DBI statement handle object
+ Args    : a SQL string
+
+
+=cut
+
+sub prepare {
+   my ($self,$string) = @_;
+
+   if( ! $string ) {
+       $self->throw("Attempting to prepare an empty SQL query!");
+   }
+   if( !defined $self->_db_handle ) {
+      $self->throw("Database object has lost its database handle! getting otta here!");
+   }
+   return $self->_db_handle->prepare($string);
+}
+
+
+=head2 get_MapAdaptorAdaptor
+
+ Title   : get_MapAdaptor
  Usage   :
- Function:
- Returns : array of Bio::DB::Map::MapI objects
+ Function: get a MapAdaptor object
+ Returns : Bio::DB::Map::SQL::MapAdaptor object
  Args    : none
 
 =cut
 
-sub get_all_maps {
+sub get_MapAdaptor {
     my ($self) = @_;
-    my $SQL = 'SELECT mapid from map';
-    my ($sth, @maps);			
-
-    eval { 
-	$sth = $self->prepare($SQL);
-	$sth->execute;	
-	while( my ($idval) = $sth->fetchrow_array ) {	     
-	    my $map = new Bio::DB::Map::SQL::MapAdaptor( $self);
-	    $map->id( $idval);	
-	    push @maps, $map;
-	}
-	$sth->finish();
-    };
-    if( $@ ) {
-	$self->throw($@);
-    }
-    return @maps;    
+    return new Bio::DB::Map::SQL::MapAdaptor( $self);
 }
 
-=head2 get_map
 
- Title   : get_map
+=head2 get_MarkerAdaptor
+
+ Title   : get_MarkerAdaptor
  Usage   :
- Function:
- Returns : Bio::DB::Map::MapI object
- Args    : -id   => mapid  OR
-           -name => map name
+ Function: get a MarkerAdaptor object
+ Returns : Bio::DB::Map::SQL::MarkerAdaptor object
+ Args    : none
 
 =cut
 
-sub get_map {
-    my ($self, @args) = @_;
-    my ($id, $name) = $self->_rearrange([qw(ID NAME)], @args);
-    
-    if( $id && $name ) {
-	$self->warn("Cannot request both id and name");
-	return undef;
+sub get_MarkerAdaptor {
+    my ($self) = @_;
+    return new Bio::DB::Map::SQL::MarkerAdaptor( $self);
+}
+
+=head2 _db_handle
+
+ Title   : _db_handle
+ Usage   : $obj->_db_handle($newval)
+ Function: 
+ Example : 
+ Returns : value of _db_handle
+ Args    : newvalue (optional)
+
+
+=cut
+
+sub _db_handle{
+   my ($self,$value) = @_;
+   if( defined $value) {
+      $self->{'_db_handle'} = $value;
     }
-    
-    my $SQL ='SELECT mapid from map where ';
-    if( $id ) {
-	$SQL .= 'mapid = $id';
-    } elsif( $name ) {
-	$SQL .= sprintf('name = %s', $self->db->quote($name));
-    }
-    
-    my ($sth, $map) = ( undef, new Bio::DB::Map::SQL::MapAdaptor( $self) );
-			
-    eval { 
-	$sth = $self->prepare($SQL);
-	$sth->execute;	
-	my ($idval) = $sth->fetchrow_array;	     
-	$map->id( $idval);	
-	$sth->finish();
-    };
-    if( $@ ) {
-	$self->throw($@);
-    }
-    return $map;
+    return $self->{'_db_handle'};
+
+}
+
+
+
+=head2 DESTROY
+
+ Title   : DESTROY
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub DESTROY {
+   my ($obj) = @_;
+
+   #$obj->_unlock_tables();
+
+   if( $obj->{'_db_handle'} ) {
+       $obj->{'_db_handle'}->disconnect;
+       $obj->{'_db_handle'} = undef;
+   }
 }
 
 1;

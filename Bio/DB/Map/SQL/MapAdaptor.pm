@@ -64,32 +64,65 @@ use strict;
 use Bio::DB::SQL::BaseAdaptor;
 use Bio::DB::Map::MapI;
 
-@ISA = qw(Bio::DB::SQL::BaseAdaptor Bio::DB::Map::MapI );
+@ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
-sub new { 
-    my ( $class, @args) = @_;
-    my $self = $class->SUPER::new(@args);    
-    return $self;
-}
 
-=head2 id
+=head2 write
 
- Title   : id
- Usage   : $obj->id($newval)
- Function: 
- Example : 
- Returns : value of id
- Args    : newvalue (optional)
+ Title   : write
+ Usage   : $mapadaptor->write($map);
+ Function: adds a new map to the database
+ Returns : Bio::DB::Map::MapI object
+ Args    : Bio::DB::Map::MapI object
 
 =cut
 
-sub id{
-   my ($obj,$value) = @_;
-   if( defined $value) {
-      $obj->{'_id'} = $value;
-    }
-    return $obj->{'_id'};
+sub write{
+   my ($self,$map) = @_;
 
+   eval { 
+       my $sth = $self->prepare(q(INSERT INTO map ( name, units) 
+				  VALUES ( ?, ? ) ));
+       $sth->execute($map->name,$map->units);
+       $map->id($sth->{'mysql_insertid'});
+   };
+   if( $@ ){
+       $self->warn($@);
+       $map = undef;
+   }
+   return $map;
+}
+
+
+=head2 get_mapids_hash
+
+ Title   : get_mapids_hash
+ Usage   : my %mapnames = $adaptor->get_mapids_hash();
+ Function: returns a hash of mapnames => mapids and mapids => mapnames
+ Returns : hash which 
+ Args    : none
+
+
+=cut
+
+sub get_mapids_hash {
+   my ($self) = @_;
+   
+   my %mapinfo;
+   eval {
+       my $sth = $self->prepare("SELECT mapid, name FROM map");
+       $sth->execute();
+       
+       while( my($mapid,$name) = $sth->fetchrow_array ) {
+	   $mapinfo{$mapid} = $name;
+	   $mapinfo{$name} = $mapid;	   
+       }
+       $sth->finish();
+   };
+   if( $@ ){
+       $self->warn($@);       
+   }
+   return %mapinfo;
 }
 
 =head2 get_markers_for_region
@@ -105,39 +138,38 @@ sub id{
  Args    : -start => starting point or region (in units of this map)
            -end   => ending point of region (in units of this map)
            -chrom => chromosome [1,22,X,Y]
+           -id    => map id
 =cut
 
 sub get_markers_for_region{
    my ($self,@args) = @_;
    
-   my ( $start, $end,$chrom ) = $self->_rearrange([qw(START END CHROM)], 
-						  @args);
+   my ( $start, $end,$chrom,$id ) = $self->_rearrange([qw(START END 
+							  CHROM ID)], 
+						      @args);
 
    $start = 0 unless defined $start;
    if( !defined $end ) {
        $end = $self->map_length();
    }
    
-   my $SQL = <<SQL
-SELECT p.markerid from marker m, map_position p 
-WHERE m.chrom = ? AND m.mapid = ?
-AND m.mapid = p.mapid AND
-p.position >= ? AND p.position <= ?
-SQL;
+   my $SQL =q(SELECT p.markerid from marker m, map_position p 
+	      WHERE m.chrom = ? AND m.mapid = ?
+	      AND m.mapid = p.mapid AND
+	      p.position >= ? AND p.position <= ?
+	      );
 		
-   my ($sth,@markers);
+   my $marker_adaptor = new Bio::DB::Map::SQL::MarkerAdaptor($self);
+   my @m;   
    eval { 
-       $sth = $self->prepare($SQL);
-       $sth->execute($chrom,$self->id,$start,$end);       
+       my $sth = $self->prepare($SQL);
+       $sth->execute($chrom,$id,$start,$end);       
        while( my ($markerid) = $sth->fetchrow_array) {
-	   my $m = new Bio::DB::Map::SQL::MarkerAdaptor($self);
-	   $m->id($markerid);
-	   push @markers, $m;
+	   push @m, $markerid;
        }
    };
-   if( $@ ) {
-       $self->throw($@);
-   }
+   if( $@ ) {  $self->throw($@); }
+   my @markers = $marker_adaptor->get_markers('-ids' => \@m);   
    return @markers;
 }
 
@@ -165,25 +197,27 @@ sub get_next_marker{
 
 }
 
+
+
 =head2 map_length
 
  Title   : map_length
  Usage   : my $len = $map->map_length()
  Function: Returns the length of the Map in the map\'s units
  Returns : float
- Args    : none
+ Args    : map id
 
 
 =cut
 
 sub map_length{
-   my ($self) = @_;
+   my ($self,$id) = @_;
    
    my $SQL = sprintf("SELECT max(position) from map_position where mapid = %d",
-		     $self->id);
-   my ($sth,$len);
+		     $id);
+   my ($len);
    eval { 
-       $sth = $self->prepare($SQL);
+       my $sth = $self->prepare($SQL);
        $sth->execute();
        ($len) = $sth->fetchrow_array;
        $sth->finish();
@@ -200,17 +234,17 @@ sub map_length{
  Usage   : my $units = $map->map_units()
  Function: Returns the map\'s unit system (cM, cR, MB, ...)
  Returns : string
- Args    : none
+ Args    : map id
 
 =cut
 
 sub map_units{
-   my ($self) = @_;
-   my $SQL = sprintf("SELECT unit from map where mapid = %d", $self->id);
+   my ($self,$id) = @_;
+   my $SQL = sprintf("SELECT units from map where mapid = %d", $id);
    
-    my ($sth,$units);
+    my ($units);
    eval { 
-       $sth = $self->prepare($SQL);
+       my $sth = $self->prepare($SQL);
        $sth->execute();
        ($units) = $sth->fetchrow_array;
        $sth->finish();

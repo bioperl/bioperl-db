@@ -62,7 +62,7 @@ use vars qw(@ISA);
 use strict;
 
 use Bio::Root::RootI;
-
+use Carp;
 @ISA = qw(Bio::Root::RootI);
 
 
@@ -112,17 +112,17 @@ sub is_alias {
     $self->abstractDeath();
 }
 
-=head2 all_aliases
+=head2 each_alias
 
- Title   : all_aliases
- Usage   : my @aliases = $marker->all_aliases();
+ Title   : each_alias
+ Usage   : my @aliases = $marker->each_alias();
  Function: Get a list of all the aliases for a marker
  Returns : array
  Args    : none
 
 =cut
 
-sub all_aliases {
+sub each_alias {
     my($self) = @_;
     $self->abstractDeath();
 }
@@ -161,10 +161,10 @@ sub add_position {
     $self->abstractDeath();
 }
 
-=head2 all_positions
+=head2 each_position
 
- Title   : all_positions
- Usage   : my @positions = $marker->all_positions();
+ Title   : each_position
+ Usage   : my @positions = $marker->each_position();
  Function: returns a list of hashes, one per map,
            Hashes have 2 keys, 'map' and 'position'
  Returns : array of hashes
@@ -172,7 +172,7 @@ sub add_position {
 
 =cut
 
-sub all_positions {
+sub each_position {
     my($self) = @_;
     $self->_abstractDeath();
 }

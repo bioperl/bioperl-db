@@ -64,6 +64,7 @@ use vars qw(@ISA);
 use strict;
 
 use Bio::Root::RootI;
+use Carp;
 
 @ISA = qw(Bio::Root::RootI );
 
@@ -82,7 +83,8 @@ use Bio::Root::RootI;
 =cut
 
 sub get_markers_for_region {
-    $self->_abstractDeath();
+    
+    $_[0]->_abstractDeath();
 }
 
 =head2 get_next_marker
@@ -98,7 +100,7 @@ sub get_markers_for_region {
 =cut
 
 sub get_next_marker {
-    $self->_abstractDeath();
+    $_[0]->_abstractDeath();
 }
 
 =head2 map_length

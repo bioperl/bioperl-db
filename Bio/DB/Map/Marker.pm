@@ -82,6 +82,7 @@ use Bio::DB::Map::MarkerI;
            -pcrrev=> Rev PCR primer,
            -length=> product length,
            -type  => Marker type ('rh', 'msat', 'snp')
+           -adaptor => Bio::DB::Map::SQL::MarkerAdaptor object
 =cut
 
 sub new { 
@@ -92,10 +93,10 @@ sub new {
     $self->{'_aliases'} = {};    
 
     my ($id,$locus,$probe,$chrom, $fwd,
-	$rev,$type,$length) = 
+	$rev,$type,$length,$adaptor) = 
 	$self->_rearrange([qw(ID LOCUS PROBE CHROM 
 			      PCRFWD PCRREV TYPE 
-			      LENGTH )],@args);
+			      LENGTH ADAPTOR)],@args);
     $self->id($id);
     $self->locus($locus);
     $self->chrom($chrom);
@@ -104,6 +105,7 @@ sub new {
     $self->pcrrev($rev);
     $self->type($type);
     $self->length($length);
+    $self->adaptor($adaptor);
     return $self;
 }
 
@@ -150,23 +152,23 @@ sub get_map_for_alias {
 
 sub is_alias {
     my ($self,$name) = @_;
-    foreach my $a ( $self->all_aliases ) {
+    foreach my $a ( $self->each_alias ) {
 	return 1 if( $name =~ /$a/i );
     }
     return 0;
 }
 
-=head2 all_aliases
+=head2 each_alias
 
- Title   : all_aliases
- Usage   : my @aliases = $marker->all_aliases();
+ Title   : each_alias
+ Usage   : my @aliases = $marker->each_alias();
  Function: Get a list of all the aliases for a marker
  Returns : array
  Args    : none
 
 =cut
 
-sub all_aliases {
+sub each_alias {
     my($self) = @_;
     return keys %{$self->{'_aliases'}};
 }
@@ -208,10 +210,10 @@ sub add_position {
     $self->{'_positions'}->{$map} = $position;
 }
 
-=head2 all_positions
+=head2 each_positions
 
- Title   : all_positions
- Usage   : my @positions = $marker->all_positions();
+ Title   : each_positions
+ Usage   : my @positions = $marker->each_position();
  Function: returns a list of hashes, one per map,
            Hashes have 2 keys, 'map' and 'position'
  Returns : array of hashes
@@ -219,7 +221,7 @@ sub add_position {
 
 =cut
 
-sub all_positions {
+sub each_position {
     my($self) = @_;
     my @rval;
     foreach my $map ( keys %{$self->{'_positions'}} ) {
@@ -280,12 +282,13 @@ sub id {
 sub chrom { 
     my ($self,$value) = @_;
     if( defined $value ) { 
-	s/X/23/i;
-	s/Y/24/i;
-	if( $value !~ /^(\d+)$/ || 
+	$value =~ s/X/23/i;
+	$value =~ s/Y/24/i;
+	if( $value !~ /(\d+)$/ || 
 	    ($1 < 1 || $1 > 24) ) { 
-	    $self->throw("Must specify an integer [1-24] or X,Y for the chrom no ($value)");
-	}
+	    $self->chrom("Must specify an integer [1-24] or X,Y for the chrom no ($value)");
+	    $value = undef;
+	} else { $value = $1; }
 	$self->{'_chrom'} = $value; 
     }
     return $self->{'_chrom'};
@@ -391,6 +394,52 @@ sub type{
       $obj->{'_type'} = $value;
     }
     return $obj->{'_type'};
+}
+
+=head2 length
+
+ Title   : length
+ Usage   : $obj->length($newval)
+ Function: 
+ Example : 
+ Returns : value of length
+ Args    : newvalue (optional)
+
+
+=cut
+
+sub length{
+   my ($obj,$value) = @_;
+   if( defined $value) {
+       if( $value !~ /(\d+)/ ) {
+	   $obj->warn("must specify an integer to length");
+	   $value = 0;
+       } else { $value = $1; }
+       
+      $obj->{'length'} = $value;
+    }
+    return $obj->{'length'};
+
+}
+
+=head2 adaptor
+
+ Title   : adaptor
+ Usage   : $obj->adaptor($newval)
+ Function: 
+ Example : 
+ Returns : value of adaptor
+ Args    : newvalue (optional)
+
+=cut
+
+sub adaptor {
+   my ($obj,$value) = @_;
+   if( defined $value) {
+      $obj->{'adaptor'} = $value;
+    }
+    return $obj->{'adaptor'};
+
 }
 
 1;

@@ -17,35 +17,36 @@ CREATE TABLE marker (
 CREATE TABLE map (
        mapid integer(10) not null AUTO_INCREMENT,
        name   varchar(32) not null,
-       unit  char(5)	 not null,
-       PRIMARY KEY (mapid)
+       units  char(5)	 not null,
+       PRIMARY KEY (mapid),
+       UNIQUE KEY (name )       
 );
 
 CREATE TABLE map_position (
-	markerid	integer(11) not null,
+	markerid	integer(11) not null REFERENCES marker ( markerid ),
 	position	float(8,4)  not null,
-	mapid		integer(10) not null,
+	mapid		integer(10) not null REFERENCES map ( mapid ),
 	PRIMARY KEY (markerid,mapid),
 	KEY (position)
 );
 
 create table marker_alias (
-       markerid		  integer(11) not null,
+       markerid		  integer(11) not null REFERENCES marker (markerid),
        alias		  varchar(64) not null,
        mapid		  integer(10) null,
        UNIQUE KEY(markerid,alias)       
 );
 
-INSERT INTO map (name, unit) VALUES ( 'none', '');
-INSERT INTO map (name, unit) VALUES ( 'genethon', 'cM');
-INSERT INTO map (name, unit) VALUES ( 'genethon_male', 'cM');
-INSERT INTO map (name, unit) VALUES ( 'genethon_female', 'cM');
-INSERT INTO map (name, unit) VALUES ( 'marshfield', 'cM');
-INSERT INTO map (name, unit) VALUES ( 'marshfield_male', 'cM');
-INSERT INTO map (name, unit) VALUES ( 'marshfield_female', 'cM');
-INSERT INTO map (name, unit) VALUES ( 'gp07oct2000', 'Mb');
-INSERT INTO map (name, unit) VALUES ( 'gp05sep2000', 'Mb');
-INSERT INTO map (name, unit) VALUES ( 'gp12dec2000', 'Mb');
-INSERT INTO map (name, unit) VALUES ( 'whitehead', 'cR');
-INSERT INTO map (name, unit) VALUES ( 'genemap99gb4', 'cR');
-INSERT INTO map (name, unit) VALUES ( 'genemap99g3', 'cR');
+INSERT INTO map (name, units) VALUES ( 'none', '');
+INSERT INTO map (name, units) VALUES ( 'genethon', 'cM');
+INSERT INTO map (name, units) VALUES ( 'genethon_male', 'cM');
+INSERT INTO map (name, units) VALUES ( 'genethon_female', 'cM');
+INSERT INTO map (name, units) VALUES ( 'marshfield', 'cM');
+INSERT INTO map (name, units) VALUES ( 'marshfield_male', 'cM');
+INSERT INTO map (name, units) VALUES ( 'marshfield_female', 'cM');
+INSERT INTO map (name, units) VALUES ( 'gp07oct2000', 'Mb');
+INSERT INTO map (name, units) VALUES ( 'gp05sep2000', 'Mb');
+INSERT INTO map (name, units) VALUES ( 'gp12dec2000', 'Mb');
+INSERT INTO map (name, units) VALUES ( 'whitehead', 'cR');
+INSERT INTO map (name, units) VALUES ( 'genemap99gb4', 'cR');
+INSERT INTO map (name, units) VALUES ( 'genemap99g3', 'cR');

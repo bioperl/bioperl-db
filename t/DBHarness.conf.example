@@ -1,0 +1,29 @@
+
+# FILE: t/EnsTestDB.conf.example
+# 
+# These are the default values for the
+# EnsEMBL test db configuration.  Copy
+# this file to t/EnsTestDB.conf and edit
+# to change the defaults.
+
+{
+    # DBD driver to use - mandatory
+    'driver'        => 'mysql',
+    
+    # machine to connect to - mandatory
+    'host'          => 'localhost',
+    
+    # user to connect to server as - mandatory
+    'user'          => 'ensuser',
+    
+    # port the server is running on - optional
+    'port'          => '3306',
+    
+    # Password if needed
+    'password'      => undef,
+
+    # mandatory - schema file
+    'schema_sql'    => [ 'sql/basicseqdb-mysql.sql'],
+
+    'module'        => 'Bio::DB::SQL::DBAdaptor',
+}

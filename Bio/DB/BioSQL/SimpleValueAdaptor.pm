@@ -75,6 +75,7 @@ use strict;
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
 use Bio::DB::BioSQL::TermAdaptor;
 use Bio::DB::PersistentObjectI;
+use Bio::Ontology::Ontology;
 use Bio::Ontology::Term;
 use Bio::Annotation::SimpleValue;
 

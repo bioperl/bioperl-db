@@ -817,7 +817,7 @@ sub get_description_by_accession{
 
 sub get_all_available {
 	my ($self, $type) = @_;
-	my $query = "select be.display_id ".
+	my $query = "select be.accession ".
 		"from bioentry be, ".
 		"biosequence bs ".
 		"where be.bioentry_id = bs.bioentry_id ";

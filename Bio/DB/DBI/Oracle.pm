@@ -218,7 +218,7 @@ sub last_id_value{
 sub build_dsn{
     my ($self,$dbc) = @_;
 
-    my $dsn = "DBI:" . $dbc->driver() . ":";
+    my $dsn = "dbi:" . $dbc->driver() . ":";
     if($dbc->host()) {
 	$dsn .= "host=" . $dbc->host() if $dbc->host();
 	$dsn .= ";sid=" . $dbc->dbname();

@@ -54,13 +54,11 @@ of the bugs and their resolution. Bug reports can be submitted via
 email or the web:
 
   bioperl-bugs@bioperl.org
-  http://bioperl.org/bioperl-bugs/
+  http://bugzilla.bioperl.org/
 
 =head1 AUTHOR - Hilmar Lapp
 
 Email hlapp at gmx.net
-
-Describe contact details here
 
 =head1 CONTRIBUTORS
 
@@ -89,186 +87,117 @@ use Bio::DB::BioSQL::BaseDriver;
 @ISA = qw(Bio::DB::BioSQL::BaseDriver);
 
 #
-# here goes our entire object-relational mapping
+# we only put those attributes here that differ from the default one, and then
+# specifically stick those into the global map in the contructor such that
+# they override the default
 #
 my %object_entity_map = (
-		"Bio::BioEntry"                    => "BS_bioentry",
-		"Bio::PrimarySeqI"                 => "BS_bioentry",
-		"Bio::DB::BioSQL::PrimarySeqAdaptor"
-		                                   => "BS_bioentry",
-		"Bio::SeqI"                        => "BS_bioentry",
-		"Bio::DB::BioSQL::SeqAdaptor"      => "BS_bioentry",
-		"Bio::IdentifiableI"               => "BS_bioentry",
-		"Bio::ClusterI"                    => "BS_bioentry",
-		"Bio::DB::BioSQL::ClusterAdaptor"  => "BS_bioentry",
-		"Bio::DB::BioSQL::BiosequenceAdaptor"
-		                                   => "BS_biosequence",
-		"Bio::SeqFeatureI"                 => "BS_seqfeature",
-		"Bio::DB::BioSQL::SeqFeatureAdaptor"
-			                           => "BS_seqfeature",
-		"Bio::Species"                     => "BS_taxon",
-		"Bio::DB::BioSQL::SpeciesAdaptor"  => "BS_taxon",
-		"Bio::LocationI"                   => "BS_seqfeature_location",
-		"Bio::DB::BioSQL::LocationAdaptor" => "BS_seqfeature_location",
-		"Bio::DB::BioSQL::BioNamespaceAdaptor"
-                                                   => "BS_biodatabase",
-		"Bio::DB::Persistent::BioNamespace"=> "BS_biodatabase",
-		"Bio::Annotation::DBLink"          => "BS_dbxref",
-		"Bio::DB::BioSQL::DBLinkAdaptor"   => "BS_dbxref",
-		"Bio::Annotation::Comment"         => "BS_comment",
-		"Bio::DB::BioSQL::CommentAdaptor"  => "BS_comment",
-		"Bio::Annotation::Reference"       => "BS_reference",
-		"Bio::DB::BioSQL::ReferenceAdaptor"=> "BS_reference",
-		"Bio::Annotation::SimpleValue"     => "BS_ontology_term",
-		"Bio::Annotation::OntologyTerm"    => "BS_ontology_term",
-		"Bio::DB::BioSQL::SimpleValueAdaptor"
-                                                   => "BS_ontology_term",
-		"Bio::Ontology::TermI"             => "BS_ontology_term",
-		"Bio::DB::BioSQL::TermAdaptor"     => "BS_ontology_term",
+		"Bio::Annotation::Comment"            => "anncomment",
+		"Bio::DB::BioSQL::CommentAdaptor"     => "anncomment",
 		   );
-my %association_entity_map = (
-	 "BS_bioentry" => {
-	     "BS_dbxref"         => "BS_bioentry_dbxref_assoc",
-	     "BS_reference"      => "BS_bioentry_ref_assoc",
-	     "BS_ontology_term"  => "BS_bioentry_qualifier_assoc",
-	     "BS_bioentry"       => {
-		 "BS_ontology_term" => "BS_bioentry_assoc",
-	     }
-	 },
-	 "BS_seqfeature" => {
-	     "BS_ontology_term"  => "BS_seqfeature_qualifier_assoc",
-	     "BS_dbxref"         => undef,
-	     "BS_reference"      => undef,
-	     "BS_seqfeature"     => {
-		 "BS_ontology_term" => "BS_seqfeature_assoc",
-	     }
-	 },
-	 "BS_dbxref"   => {
-	     "BS_bioentry"       => "BS_bioentry_dbxref_assoc",
-	     "BS_seqfeature"     => undef,
-	 },
-	 "BS_reference"   => {
-	     "BS_bioentry"       => "BS_bioentry_ref_assoc",
-	     "BS_seqfeature"     => undef,
-	 },
-	 "BS_ontology_term" => {
-	     "BS_bioentry"       => "BS_bioentry_qualifier_assoc",
-	     "BS_seqfeature"     => "BS_seqfeature_qualifier_assoc",
-	 },
-			       );
 my %slot_attribute_map = (
-	 "BS_biodatabase" => {
-	     "namespace"      => "name",
-	     "authority"      => "authority",
+	 "taxon_name" => {
+	     # the following are hacks: there is no such thing on
+	     # the object model. The sole reason they are here is so that you
+	     # can set the physical column name of your taxon_name table.
+	     # You MUST have these columns on the taxon node table, NOT the
+	     # taxon name table.
+	     "parent_taxon"   => "tax_oid",
 	 },
-	 "BS_taxon" => {
-	     "classification" => "full_lineage",
-	     "common_name"    => "common_name",
-	     "ncbi_taxid"     => "ncbi_taxon_id",
-	     "binomial"       => "name",
-	     "variant"        => "variant",
+	 "taxon" => {
+	     # the following are hacks, see taxon_name mapping
+	     "parent_taxon"   => "tax_oid",
 	 },
-	 "BS_bioentry" => {
-	     "display_id"     => "display_id",
-	     "primary_id"     => "identifier",
-	     "accession_number" => "accession",
-	     "desc"           => "description",
-	     "description"    => "description",
-	     "version"        => "version",
+	 "bioentry" => {
 	     "bionamespace"   => "db_oid",
-	     "parent"         => "src_ent_oid",
-	     "child"          => "tgt_ent_oid",
+	     # these are for context-sensitive FK name resolution
+	     "object"         => "obj_ent_oid",
+	     "subject"        => "subj_ent_oid",
+	     # parent and child are for backwards compatibility
+	     "parent"         => "obj_ent_oid",
+	     "child"          => "subj_ent_oid",
 	 },
-	 "BS_bioentry_assoc" => {
-	     "parent"         => "src_ent_oid",
-	     "child"          => "tgt_ent_oid",
+	 "bioentry_relationship" => {
+	     "object"         => "obj_ent_oid",
+	     "subject"        => "subj_ent_oid",
+	     # parent and child are for backwards compatibility
+	     "parent"         => "obj_ent_oid",
+	     "child"          => "subj_ent_oid",
 	 },
-	 "BS_biosequence" => {
-	     "seq_version"    => "version",
-	     "length"         => "length",
-	     "seq"            => "seq",
-	     "alphabet"       => "alphabet",
-	     "division"       => "division",
+	 "biosequence" => {
 	     "primary_seq"    => "ent_oid",
 	 },
-	 "BS_dbxref" => {
-	     "database"       => "dbname",
-	     "primary_id"     => "accession",
-	     "version"        => "version",
+	 "reference" => {
+	     "medline"        => "dbx_oid",
+	     "pubmed"         => "dbx_oid",
 	 },
-	 "BS_bioentry_dbxref_assoc" => {
-	     "rank"           => undef,
+         "term" => {
+	     "ontology"       => "ont_oid",
+	     # these are for context-sensitive FK name resolution
+	     "subject"        => "subj_trm_oid",
+	     "predicate"      => "pred_trm_oid",
+	     "object"         => "obj_trm_oid",
 	 },
-	 "BS_reference" => {
-	     "authors"        => "authors",
-	     "title"          => "title",
-	     "location"       => "location",
-	     "medline"        => "document_id",
-	     "doc_id"         => "crc",
-	     "start"          => "=>BS_bioentry_ref_assoc.start",
-	     "end"            => "=>BS_bioentry_ref_assoc.end",
+	 # term_synonym is more a hack - it doesn't correspond to an object
+	 # in bioperl, but this does let you specify your column naming
+	 "term_synonym" => {
+	     "synonym"        => "name",
+	     "term"           => "trm_oid"
 	 },
-	 "BS_bioentry_ref_assoc" => {
-	     "start"          => "start_pos",
-	     "end"            => "end_pos",
-	     "rank"           => "rank",
+	 "term_relationship" => {
+	     "subject"        => "subj_trm_oid",
+	     "predicate"      => "pred_trm_oid",
+	     "object"         => "obj_trm_oid",
+	     "ontology"       => "ont_oid",
 	 },
-	 "BS_comment"            => {
-	     "text"           => "comment_text",
-	     "rank"           => "rank",
+	 "term_path" => {
+	     "subject"        => "subj_trm_oid",
+	     "predicate"      => "pred_trm_oid",
+	     "object"         => "obj_trm_oid",
+	     "ontology"       => "ont_oid",
 	 },
-         "BS_ontology_term"      => {
-	     "identifier"     => "identifier",
-             "name"           => "name",
-	     "tagname"        => "name",
-             "definition"     => "definition",
-             "category"       => "ont_oid",
-	     "value"          => "=>{BS_bioentry_qualifier_assoc,BS_seqfeature_qualifier_assoc}.value",
-	 },
-         "BS_bioentry_qualifier_assoc" => {
-	     "value"          => "value",
-	     "rank"           => "rank",
-	 },
-	 "BS_seqfeature"         => {
-	     "display_name"   => undef,
-	     "rank"           => "rank",
-	     "primary_tag"    => "ont_oid",
-	     "source_tag"     => "fsrc_oid",
+	 "seqfeature" => {
+	     "primary_tag"    => "type_trm_oid",
+	     "source_tag"     => "source_trm_oid",
 	     "entire_seq"     => "ent_oid",
+	     # these are for context-sensitive FK name resolution
+	     "object"         => "obj_fea_oid",
+	     "subject"        => "subj_fea_oid",
+	     # parent and child are for backwards compatibility
+	     "parent"         => "parent_fea_oid",
+	     "child"          => "child_feat_oid",
 	 },
-	 "BS_seqfeature_location" => {
-	     "start"          => "start_pos",
-	     "end"            => "end_pos",
-	     "strand"         => "strand",
-	     "rank"           => "rank",
-	 },
-	 "BS_seqfeature_qualifier_assoc" => {
-	     "value"          => "value",
-	     "rank"           => "rank",
+	 "seqfeature_relationship" => {
+	     "object"         => "obj_fea_oid",
+	     "subject"        => "subj_fea_oid",
+	     # parent and child are for backwards compatibility
+	     "parent"         => "parent_fea_oid",
+	     "child"          => "child_fea_oid",
 	 },
 			   );
-my %dont_select_attrs = (
-	 "BS_biosequence.seq" => 1,
-			);
-
 my %acronym_map = (
-	 "BS_biodatabase"                => "db",
-	 "BS_taxon"                      => "tax",
-	 "BS_bioentry"                   => "ent",
-	 "BS_bioentry_assoc"             => "enta",
-	 "BS_biosequence"                => "seq",
-	 "BS_dbxref"                     => "dbx",
-	 "BS_bioentry_dbxref_assoc"      => "dbxenta",
-	 "BS_reference"                  => "ref",
-	 "BS_bioentry_ref_assoc"         => "entrefa",
-	 "BS_comment"                    => "cmt",
-         "BS_ontology_term"              => "ont",
-         "BS_bioentry_qualifier_assoc"   => "entonta",
-	 "BS_seqfeature"                 => "fea",
-	 "BS_seqfeature_assoc"           => "feaa",
-	 "BS_seqfeature_location"        => "loc",
-	 "BS_seqfeature_qualifier_assoc" => "feaonta",
-			   );
+    "biodatabase"                => "db",
+    "taxon_name"                 => "tax",
+    "taxon"                      => "tax",
+    "bioentry"                   => "ent",
+    "bioentry_relationship"      => "enta",
+    "biosequence"                => "seq",
+    "dbxref"                     => "dbx",
+    "bioentry_dbxref"            => "dbxenta",
+    "reference"                  => "ref",
+    "bioentry_reference"         => "entrefa",
+    "anncomment"                 => "cmt",
+    "term"                       => "trm",
+    "term_dbxref"                => "trmdbxa",
+    "term_synonym"               => "syn",
+    "ontology"                   => "ont",
+    "bioentry_qualifier_value"   => "enttrma",
+    "seqfeature"                 => "fea",
+    "seqfeature_relationship"    => "feaa",
+    "seqfeature_dbxref"          => "dbxfeaa",
+    "location"                   => "loc",
+    "seqfeature_qualifier_value" => "featrma",
+);
 	 
 
 my $schema_sequence = "BS_SEQUENCE";
@@ -289,14 +218,27 @@ sub new {
 
     my $self = $class->SUPER::new(@args);
 
-    # copy into our private hash
-    $self->objrel_map(\%object_entity_map);
-    $self->slot_attribute_map(\%slot_attribute_map);
-    $self->not_select_attrs(\%dont_select_attrs);
-    $self->association_entity_map(\%association_entity_map);
+    # copy the overriding keys into the slot mapping
+    my $slotmap = $self->slot_attribute_map();
+    foreach my $tbl (keys %slot_attribute_map) {
+	foreach my $col (keys %{$slot_attribute_map{$tbl}}) {
+	    $slotmap->{$tbl}->{$col} = $slot_attribute_map{$tbl}->{$col};
+	}
+    }
+    # we need to copy the original mapping for the comment table to anncomment
+    # (all caused by comment being a reserved word in Oracle)
+    $slotmap->{"anncomment"} = $slotmap->{"comment"};
+    # now copy the overriding parts into the object-relational mapping
+    my $ormap = $self->objrel_map();
+    foreach my $ent (keys %object_entity_map) {
+	$ormap->{$ent} = $object_entity_map{$ent};
+    }
+    
+    # initialize our own stuff
     $self->acronym_map(\%acronym_map);
     $self->{'schema_sequence'} = $schema_sequence;
 
+    # we need to set LongReadLen to prevent truncation errors on LOBs
     my ($adp) = $self->_rearrange([qw(ADAPTOR)], @args);
     if($adp) {
 	my $dbh = $adp->dbh();
@@ -315,10 +257,11 @@ sub new {
 
  Title   : primary_key_name
  Usage   :
- Function: Obtain the name of the primary key attribute for the given table in
-           the relational schema.
+ Function: Obtain the name of the primary key attribute for the given
+           table in the relational schema.
 
-           For the oracle implementation, this is always oid.
+           For the oracle implementation, this is always oid (with two
+           exceptions that have a virtual primary key).
 
  Example :
  Returns : The name of the primary key (a string)
@@ -330,53 +273,36 @@ sub new {
 sub primary_key_name{
     my ($self,$table) = @_;
 
-    if($table eq "BS_biosequence") {
+    if($table eq "biosequence") {
 	return $self->foreign_key_name("Bio::BioEntry");
+    } elsif($table eq "taxon_name") {
+	return $self->foreign_key_name("TaxonNode");	
     }
     return "oid";
 }
 
-=head2 foreign_key_name
+=head2 _build_foreign_key_name
 
- Title   : foreign_key_name
+ Title   : _build_foreign_key_name
  Usage   :
- Function: Obtain the foreign key name for referencing an object, as 
-           represented by object, class name, or the persistence adaptor.
+ Function: Build the column name for a foreign key to the given table.
+
+           We override this here to obtain the acronym for the table
+           and then append '_oid' to it. Other than that we reuse how
+           the default foreign_key_name() determines the table name.
+
  Example :
- Returns : the name of the foreign key (a string)
- Args    : The referenced object, class name, or the persistence adaptor for
-           it. 
+ Returns : The name of the foreign key column as a string
+ Args    : The table name as a string
 
 
 =cut
 
-sub foreign_key_name{
-    my ($self,$obj) = @_;
-    my ($table,$fk);
+sub _build_foreign_key_name{
+    my $self = shift;
+    my $table = shift;
 
-    # if the object is a persistent object and has the foreign_key_slot value
-    # set, we start from there
-    if(ref($obj) &&
-       $obj->isa("Bio::DB::PersistentObjectI") &&
-       $obj->foreign_key_slot()) {
-	$obj = $obj->foreign_key_slot();
-    }
-    # default is to get the primary key of the respective table
-    $table = $self->table_name($obj);
-    if($table) {
-	$fk = $self->acronym_map->{$table} ."_oid";
-    } elsif(! ref($obj)) {
-	my @comps = split(/::/, $obj);
-	my $slot = pop(@comps);
-	$table = $self->table_name(join("::",@comps));
-	if($table) {
-	    my $slotmap = $self->slot_attribute_map($table);
-	    if($slotmap) {
-		$fk = $slotmap->{$slot};
-	    }
-	}
-    }
-    return $fk;
+    return $self->acronym_map->{$table} ."_oid";
 }
 
 =head2 sequence_name

@@ -54,7 +54,7 @@ of the bugs and their resolution. Bug reports can be submitted via
 email or the web:
 
   bioperl-bugs@bioperl.org
-  http://bioperl.org/bioperl-bugs/
+  http://bugzilla.bioperl.org/
 
 =head1 AUTHOR - Hilmar Lapp
 
@@ -117,11 +117,8 @@ sub insert_object{
     # obtain the object's slot values to be serialized
     my $slotvals = $adp->get_persistent_slot_values($obj, $fkobjs);
     # any value present?
-    my $isdef = $slotvals->[0];
-    for(my $i = 1; $i < @$slotvals; $i++) {
-	$isdef ||= $slotvals->[$i];
-	last if $isdef;
-    }
+    my $isdef;
+    foreach (@$slotvals) { $isdef ||= $_; last if $isdef; }
     return $self->SUPER::insert_object(@_) if $isdef;
     return -1;
 }

@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::mysql::TermAdaptorDriver
+# BioPerl module for Bio::DB::BioSQL::Oracle::TermAdaptorDriver
 #
 # Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
@@ -25,7 +25,7 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::mysql::TermAdaptorDriver - DESCRIPTION of Object
+Bio::DB::BioSQL::Oracle::TermAdaptorDriver - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -73,13 +73,13 @@ Internal methods are usually preceded with a _
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::mysql::TermAdaptorDriver;
+package Bio::DB::BioSQL::Oracle::TermAdaptorDriver;
 use vars qw(@ISA);
 use strict;
 
-use Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
+use Bio::DB::BioSQL::Oracle::BasePersistenceAdaptorDriver;
 
-@ISA = qw(Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver);
+@ISA = qw(Bio::DB::BioSQL::Oracle::BasePersistenceAdaptorDriver);
 
 
 =head2 store_synonym
@@ -134,7 +134,7 @@ sub store_synonym{
     my $rv = $isth->execute($syn, $obj->primary_key());
     if((! $rv) &&
 	# this might be a UK failure, not a bad statement error
-       (index($isth->errstr(), "Duplicate entry") >= 0)) {
+       (index($isth->errstr(), "ORA-00001") >= 0)) {
 	# we actually don't need to execute a look-up here because the
 	# synonym is not an object and hence has no primary key itself
 	$rv = "0E0"; # evaluates to TRUE, but numerically equals zero

@@ -70,11 +70,12 @@ sub to_string {
     my ($self) = @_;
     
     return join("\n", (sprintf("LOCUS: %s", $self->locus || ''),
-			     sprintf("PROBE: %s", $self->probe || ''),
-		             sprintf("CHROM: %s", $self->chrom || ''),
-			     sprintf("FWDP : %s", $self->pcrfwd || ''),
-			     sprintf("REVP : %s", $self->pcrrev || '' ),
-			     sprintf("LEN  : %s", $self->length || '?') )
+		       sprintf("PROBE: %s", $self->probe || ''),
+		       sprintf("CHROM: %s", $self->chrom || ''),
+		       sprintf("TYPE : %s", $self->type || ''),
+		       sprintf("FWDP : %s", $self->pcrfwd || ''),
+		       sprintf("REVP : %s", $self->pcrrev || '' ),
+		       sprintf("LEN  : %s", $self->length || '?') )
 		      );
 }
 

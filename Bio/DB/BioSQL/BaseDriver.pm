@@ -607,13 +607,14 @@ sub insert_object{
     }
     # execute
     my $rv = $sth->execute();
-    # I don't check $rv here because actually if anything failed it should
-    # really raise an exception (i.e., the insert may produce zero rows affected
-    # because internally the RDBMS encapsulation captures the exists-already
-    # condition).
-
-    # get the primary key that was just inserted
-    my $pk = $adp->dbcontext()->dbi()->last_id_value($dbh);
+    my $pk;
+    if($rv) {
+	# caveat: the insert may produce zero rows because internally the
+	# RDBMS encapsulation captures the exists-already condition
+	#
+	# get the primary key that was just inserted
+	$pk = $adp->dbcontext()->dbi()->last_id_value($dbh);
+    }
     # done, return
     return $pk;
 }

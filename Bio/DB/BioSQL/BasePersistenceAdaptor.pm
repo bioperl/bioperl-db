@@ -108,13 +108,12 @@ use Bio::DB::Query::PrebuiltResult;
 sub new {
     my($class,@args) = @_;
 
-    #my $self = $class->SUPER::new((@args, -verbose=>1));
     my $self = $class->SUPER::new(@args);
     my ($dbc, $do_cache) = $self->_rearrange([qw(DBCONTEXT
 						 CACHE_OBJECTS)
 					      ], @args);
 
-    $self->{'_obj_cache'} = $do_cache ? {} : "no_cache";
+    $self->caching_mode($do_cache);
     $self->{'_pers_recurs_cache'} = {};    
     $self->dbcontext($dbc) if $dbc;
 
@@ -154,18 +153,39 @@ sub create{
 	$self->throw("All foreign key objects must implement ".
 		     "Bio::DB::PersistentObjectI. Found one that doesn't.")
 	    unless $_->isa("Bio::DB::PersistentObjectI");
-	$_->store() unless $_->primary_key();
+	# no cascading updates of FK objects through create()
+	$_->create() unless $_->primary_key();
     }
-    # the object may already exist, and we don't want to duplicate it or
-    # violate a UK (since foreign keys may be part of the unique key, we can
-    # check this only now)
-    if(my $foundobj = $self->find_by_unique_key($obj, @args)) {
+    # The object may already exist, and we don't want to duplicate it.
+    # We'll rely on the RDBMS to catch UK violations unless this adaptor
+    # caches objects, in which case we'll do a query by UK first. The idea
+    # is that this will save many failing INSERTs for objects of a finite
+    # number (as the adaptors for those will have caching enabled hopefully),
+    # and save many unnecessary UK look-ups for objects of unlimited number,
+    # because those will be new in most cases.
+    #
+    # Note that since foreign keys may be part of the unique key, we can
+    # do this only now (i.e., after having stored the unique keys).
+    my $foundobj;
+    if($self->caching_mode() &&
+       ($foundobj = $self->find_by_unique_key($obj, @args))) {
 	$obj->primary_key($foundobj->primary_key);
-	# we remain in the game to store the children -- not sure yet this is
-	# such a good idea (as opposed to a straight return())
+	# should we return right here instead of storing children? Not sure.
     } else {
+	# either caching disabled or not found in cache
+	#
 	# insert and obtain primary key
 	my $pk = $self->dbd()->insert_object($self, $obj, \@fkobjs);
+	# if no primary key, it may be due to a UK violation (provided that
+	# caching is disabled)
+	if(! (defined($pk) || $self->caching_mode())) {
+	    $foundobj = $self->find_by_unique_key($obj, @args);
+	    $pk = $foundobj->primary_key() if $foundobj;
+	}
+	if(! defined($pk)) {
+	    $self->throw("create(): object (". ref($obj->obj) .
+			 ") failed to insert or to be found by unique key");
+	}
 	# store primary key
 	$obj->primary_key($pk);
     }
@@ -851,7 +871,9 @@ sub _build_object{
     }
     # make sure the primary key is stored (usually populate_from_row() should
     # have done this already)
-    $obj->primary_key($pk) if $pk && (! $obj->primary_key());
+    if(! $obj->primary_key()) {
+	$obj->primary_key($pk || $row->[0]);
+    }
     # attach foreign key objects (those that this entity references by
     # foreign key)
     if($numfks) {
@@ -1111,8 +1133,40 @@ sub finish{
     # reset the cache of statement handles
     delete $self->{'_sth'};
     # reset the object cache if any
-    $self->{'_obj_cache'} = {} if ref($self->{'_obj_cache'});
+    delete $self->{'_obj_cache'} if $self->{'_obj_cache'};
     # done
+}
+
+=head2 caching_mode
+
+ Title   : caching_mode
+ Usage   : $obj->caching_mode($newval)
+ Function: Get/set whether objects are cached for find_by_primary_key()
+           and find_by_unique_key().
+
+           See obj_cache() for documentation on how to use the object cache.
+
+           If disable caching through this method, the entire cache will
+           be flushed as a side effect.
+
+ Example : 
+ Returns : TRUE if caching of objects is enabled and FALSE otherwise
+ Args    : new value (a scalar, optional)
+
+
+=cut
+
+sub caching_mode{
+    my ($self,$value) = @_;
+
+    if(defined $value) {
+	if($value && (! exists($self->{'_obj_cache'}))) {
+	    $self->{'_obj_cache'} = {};
+	} elsif(! $value) {
+	    delete $self->{'_obj_cache'};
+	}
+    }
+    return $self->{'_obj_cache'} ? 1 : 0;
 }
 
 =head2 obj_cache
@@ -1126,30 +1180,32 @@ sub finish{
 
            A derived adaptor may want to override this method to cache only
            selectively. The constructor of this class turns off caching by
-           default; supply -cache_objects => 1 in order to turn it on.
+           default; supply -cache_objects => 1 in order to turn it on, or
+           call $adp->caching_mode(1).
 
  Example :
  Returns : The object cached under the key, or undef if there is no such key
  Args    : The key under which to cache the object.
-           Optionally, on set the object to be cached.
+           Optionally, on set the object to be cached. Pass undef to
+           un-cache an object stored under the key.
 
 
 =cut
 
 sub obj_cache{
-    my ($self,$key,$value) = @_;
+    my $self = shift;
+    my $key = shift;
+    my ($obj) = @_;
 
-    return $value unless ref($self->{'_obj_cache'}); # caching may be disabled
-    if(defined($value)) {
-	$self->{'_obj_cache'}->{$key} = $value;
-    }
+    return $obj unless $self->{'_obj_cache'}; # caching may be disabled
+    return $self->{'_obj_cache'}->{$key} = $obj if @_;
     return $self->{'_obj_cache'}->{$key};
 }
 
 sub _remove_from_obj_cache{
     my ($self, $obj) = @_;
 
-    return unless ref($self->{'_obj_cache'}); # caching may be disabled
+    return unless $self->{'_obj_cache'}; # caching may be disabled
 
     my ($key, $val);
     my @delkeys = ();
@@ -1176,7 +1232,6 @@ sub _remove_from_obj_cache{
 
 sub DESTROY {
     my ($self) = @_;
-    #$obj->_unlock_tables();
     
     $self->finish();
     $self->SUPER::DESTROY();

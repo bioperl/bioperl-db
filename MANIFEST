@@ -1,4 +1,3 @@
-Bio/DB/Annotation.pm
 Bio/DB/BioDatabasePSeqStream.pm
 Bio/DB/BioSeqDatabase.pm
 Bio/DB/CacheServer/SeqDB.pm
@@ -6,10 +5,9 @@ Bio/DB/Map/Map.pm
 Bio/DB/Map/MapI.pm
 Bio/DB/Map/Marker.pm
 Bio/DB/Map/MarkerI.pm
-Bio/DB/Map/SQL/DBAdaptor.pm
+Bio/DB/Map/DBAdaptor.pm
 Bio/DB/Map/SQL/MapAdaptor.pm
 Bio/DB/Map/SQL/MarkerAdaptor.pm
-Bio/DB/PrimarySeq.pm
 Bio/DB/BioSQL/AbstractQuery.pm
 Bio/DB/BioSQL/BaseAdaptor.pm
 Bio/DB/BioSQL/BioDatabaseAdaptor.pm
@@ -28,7 +26,6 @@ Bio/DB/BioSQL/SeqFeatureSourceAdaptor.pm
 Bio/DB/BioSQL/SeqLocationAdaptor.pm
 Bio/DB/BioSQL/SpeciesAdaptor.pm
 Bio/DB/BioSQL/SqlQuery.pm
-Bio/DB/Seq.pm
 Changes
 LICENSE
 MANIFEST
@@ -65,7 +62,6 @@ t/map.t
 t/marker.t
 t/remove.t
 t/seqfeature.t
-t/seqfeaturekey.t
 t/simpleseq.t
 t/species.t
 t/swiss.t

@@ -615,15 +615,14 @@ sub _ontology_term_fk{
     if(! exists($self->{'_ontology_term_fks'}->{$slot})) {
 	$term = Bio::Ontology::Term->new(-name => "dummy",
 					 -category => $slot_cat_map{$slot});
-	$term = $self->db()->create_persistent($term);
 	$self->{'_ontology_term_fks'}->{$slot} = $term;
     } else {
 	$term = $self->{'_ontology_term_fks'}->{$slot};
     }
-    if($term->name() ne $val) {
-	$term->name($val);
-	$term->primary_key(undef);
-    }
+    # always create a new persistence wrapper for it - otherwise we run the
+    # risk of messing with cached objects
+    $term->name($val);
+    $term = $self->db()->create_persistent($term);
     $term->foreign_key_slot(ref($self) ."::". $slot);
     return $term;
 }

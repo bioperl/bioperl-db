@@ -13,47 +13,42 @@ BEGIN {
 }
 #END { unlink( 't/ensembl_test.gb') }
 
-use BioSQLBase;
+use DBTestHarness;
 use Bio::DB::BioSQL::DBAdaptor;
 use Bio::SeqIO;
 use Bio::Root::IO;
 
-$biosql = BioSQLBase->new();
-ok $biosql;
+$biosql = DBTestHarness->new("biosql");
+$db = $biosql->get_DBAdaptor();
+ok $db;
+$db->verbose(1) if $ENV{HARNESS_VERBOSE};
 
-$seq = $biosql->store_seq(Bio::SeqIO->new('-format' => 'genbank',
-					  '-file' => Bio::Root::IO->catfile(
-					       't','data','AP000868.gb')),
-			  "mytestnamespace");
+my $seqio = Bio::SeqIO->new('-format' => 'genbank',
+			    '-file' => Bio::Root::IO->catfile(
+						  't','data','AP000868.gb'));
+my $seq = $seqio->next_seq();
 ok $seq;
-ok $seq->primary_id();
 
-$seqadaptor = $biosql->db()->get_SeqAdaptor;
-ok $seqadaptor;
+my $pseq = $db->create_persistent($seq);
+$pseq->namespace("mytestnamespace");
+$pseq->store();
+ok $pseq->primary_key();
+
+my $seqadp = $db->get_object_adaptor($seq);
 
 # try/finally block
 eval {
-    $dbseq = $seqadaptor->fetch_by_dbID($seq->primary_id());
+    $dbseq = $seqadp->find_by_primary_key($pseq->primary_key());
     ok $dbseq;
     
     ok ($dbseq->display_id, $seq->display_id);
-    
     ok ($dbseq->accession, $seq->accession);
-
-    ok ($dbseq->seq, $seq->seq);
-    
     ok ($dbseq->subseq(3,10), $seq->subseq(3,10) );
-    
     ok ($dbseq->subseq(1,15), $seq->subseq(1,15) );
-    
     ok ($dbseq->length, $seq->length);
-    
-    ok ($dbseq->length, length($dbseq->seq));
+    ok ($dbseq->seq, $seq->seq);
 
-    my $test_desc = $seq->desc;
-    $test_desc =~ s/\s+$//g;
-    
-    ok ($dbseq->desc, $test_desc);
+    ok ($dbseq->desc, $seq->desc);
 
 #$out = Bio::SeqIO->new('-file' => '>t/ensembl_test.gb' ,
 #		       '-format' => 'GenBank');
@@ -63,7 +58,10 @@ eval {
 print STDERR $@ if $@;
 
 # delete seq
-ok ($biosql->delete_seq($seq), 1);
-ok ($biosql->delete_biodatabase("mytestnamespace"), 1);
+ok ($pseq->remove(), 1);
+my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pseq);
+ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);
+ok $ns->primary_key();
+ok ($ns->remove(), 1);
 
 

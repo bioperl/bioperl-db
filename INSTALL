@@ -1,18 +1,12 @@
 bioperl-db INSTALLATION
 
-INSTALL BIOSQL
-
-The bioperl-db package is designed to work with the BioSQL database.
-Install that first by following the instructions in its INSTALL file.
-You can obtain the BioSQL package at www.open-bio.org.
-
 
 GET THE RIGHT BIOPERL
 
 You need at least the latest bioperl release of the 1.2.x series
 (currently no earlier than 1.2.1) for the whole functionality to
-work. The previous stable branch 1.0.x or the development series 1.1.1
-will _not_ suffice.
+work. The previous stable branch 1.0.x or the development series 
+1.1.1 will not suffice.
 
 If you are using the 1.2.1 release of bioperl you need to apply 
 a small patch that comes with bioperl-db, onto-term.patch. Change 
@@ -20,25 +14,32 @@ directory into the root of your Bioperl source tree, than issue the
 following command, replacing the path with what is appropriate for 
 your download:
 
-     $ patch -p0 < /path/to/bioperl-db/onto-term.patch
+  >patch -p0 < /path/to/bioperl-db/onto-term.patch
+
+
+INSTALL BIOSQL
+
+The bioperl-db package is designed to work with the BioSQL database.
+Install the BioSQL package first by following the instructions in 
+its INSTALL file. You can obtain the BioSQL package at www.open-bio.org.
 
 
 MAKE
 
-Edit the file t/DBHarness.biosql.conf as needed. Then issue the
-following commands:
+Edit the file bioperl-db/t/DBHarness.biosql.conf as needed. Then 
+issue the following commands from within bioperl-db/:
 
->perl Makefile.PL
->make
->make test
->make install
+  >perl Makefile.PL
+  >make
+  >make test
+  >make install
 
 The 'make install' step may require that you have root privileges.
 
 
 LOAD THE NCBI TAXONOMY
 
-It is advisable to pre-load the taxonomy database using the
+It is advisable to pre-load the NCBI taxonomy database using the
 load_taxonomy.pl script in the BioSQL package. Otherwise you'll see 
 errors from mis-parsed organisms. 
 
@@ -46,9 +47,19 @@ errors from mis-parsed organisms.
 LOAD SEQUENCE DATA
 
 Most people will want to load sequence data into their BioSQL
-databases. Use scripts/biosql/load_seqdatabase.pl to load sequences from
-flatfiles. See its POD (--help option) for all the the available options.
+databases. Use scripts/biosql/load_seqdatabase.pl in the bioperl-db
+package to load sequences from sequence files. Do:
+
+  >perldoc scripts/biosql/load_seqdatabase.pl
+
+or
+
+  >scripts/biosql/load_seqdatabase.pl --help
+
+for more information.
 
 
-Write down any problems, praise, or complaints and send them to 
+JOIN BIOPERL!
+
+Write down any problems or praise and send them to 
 bioperl-l@bioperl.org  ;-)

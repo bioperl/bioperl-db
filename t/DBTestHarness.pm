@@ -55,19 +55,32 @@ my $counter=0;
         );
     
     sub new {
-        my( $pkg ) = @_;
+        my( $pkg,$db ) = @_;
 
         $counter++;
         # Get config from file, or use default values
-        my $self = do 'DBHarness.conf' || {
-            'driver'        => 'mysql',
-            'host'          => 'localhost',
-            'user'          => 'root',
-            'port'          => undef,
-            'password'      => undef,
-            'schema_sql'    => ['./sql/basicseqdb-mysql.sql'],
-            'module'        => 'Bio::DB::SQL::DBAdaptor'
-            };
+        my $self;
+	if( ! $db || $db eq 'basicseqdb' ) {
+	    $self = do 'DBHarness.conf' || {
+		'driver'        => 'mysql',
+		'host'          => 'localhost',
+		'user'          => 'root',
+		'port'          => undef,
+		'password'      => undef,
+		'schema_sql'    => ['./sql/basicseqdb-mysql.sql'],
+		'module'        => 'Bio::DB::SQL::DBAdaptor'
+		};
+	} elsif ( $db eq 'markerdb' ) {
+	     $self = do 'DBHarness.markerdb.conf' || {
+		'driver'        => 'mysql',
+		'host'          => 'localhost',
+		'user'          => 'root',
+		'port'          => undef,
+		'password'      => undef,
+		'schema_sql'    => ['./sql/markerdb.sql'],
+		'module'        => 'Bio::DB::Map::SQL::DBAdaptor'
+		};
+	}
         foreach my $f (keys %$self) {
             confess "Unknown config field: '$f'" unless $known_field{$f};
         }

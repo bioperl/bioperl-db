@@ -64,8 +64,6 @@ Report bugs to the Bioperl bug tracking system to help us keep track
 Email birney@ebi.ac.uk
 Email hlapp at gmx.net
 
-Describe contact details here
-
 =head1 APPENDIX
 
 The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
@@ -240,7 +238,13 @@ sub populate_from_row{
 	$obj->common_name($rows->[1]) if $rows->[1];
 	$obj->classification([split(/:/,$rows->[2])], "FORCE") if $rows->[2];
 	$obj->ncbi_taxid($rows->[3]) if $rows->[3];
-	$obj->variant($rows->[4]) if $rows->[5] && ($rows->[5] ne "-");
+	if($rows->[4] && (! $rows->[2])) {
+	    my @clf = split(' ',$rows->[4]);
+	    $obj->classification([$clf[1],$clf[0]], "FORCE");
+	    splice(@clf,0,2);
+	    $obj->variant(join(" ",@clf)) if @clf;
+	}
+	$obj->variant($rows->[5]) if $rows->[5] && ($rows->[5] ne "-");
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($rows->[0]);
 	}
@@ -278,7 +282,7 @@ sub get_unique_key_query{
 	$uk_h->{'ncbi_taxid'} = $obj->ncbi_taxid();
     } elsif($obj->binomial()) {
 	$uk_h->{'binomial'} = $obj->binomial('full');
-	$uk_h->{'variant'} = $obj->variant() ? $obj->variant() : "-";
+	$uk_h->{'binomial'} .= " ".$obj->variant() if $obj->variant();
     } 
     
     return $uk_h;

@@ -102,6 +102,9 @@ my %object_entity_map = (
 		"Bio::DB::BioSQL::SeqFeatureAdaptor"  => "seqfeature",
 		"Bio::Species"                        => "taxon_name",
 		"Bio::DB::BioSQL::SpeciesAdaptor"     => "taxon_name",
+		# TaxonNode is hack: there is no such object, but we need it
+		# to distinguish between the node and the name table
+		"TaxonNode"                           => "taxon",
 		"Bio::LocationI"                      => "seqfeature_location",
 		"Bio::DB::BioSQL::LocationAdaptor"    => "seqfeature_location",
 		"Bio::DB::BioSQL::BioNamespaceAdaptor"=> "biodatabase",
@@ -159,6 +162,14 @@ my %slot_attribute_map = (
 	     "ncbi_taxid"     => "ncbi_taxon_id",
 	     "binomial"       => "name",
 	     "variant"        => undef,
+	     # name_class is a hack: there is no such thing on the object
+	     # model. The sole reason it is here is that you can set the
+	     # physical column name of your taxon_name table. You MUST have
+	     # this column.
+	     "name_class"     => "name_class",
+	 },
+	 "taxon" => {
+	     "ncbi_taxid"     => "ncbi_taxon_id",
 	 },
 	 "bioentry" => {
 	     "display_id"     => "name",
@@ -297,7 +308,11 @@ sub new {
 sub primary_key_name{
     my ($self,$table) = @_;
 
-    $table = $self->table_name("Bio::BioEntry") if $table eq "biosequence";
+    if($table eq "biosequence") {
+	$table = $self->table_name("Bio::BioEntry");
+    } elsif($table eq "taxon_name") {
+	$table = $self->table_name("TaxonNode");
+    }
     return $self->SUPER::primary_key_name($table);
 }
 

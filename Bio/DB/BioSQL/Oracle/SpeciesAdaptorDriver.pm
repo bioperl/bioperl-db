@@ -325,7 +325,7 @@ sub insert_object{
     $clf[0]->[0] = $obj->binomial();
     # sub-species and variant are to be prepended, also as full names
     if($obj->sub_species) {
-	unshift(@clf, [$obj->binomial() ." subsp. ". $obj->sub_species(),
+	unshift(@clf, [$obj->binomial() ." ". $obj->sub_species(),
 		       "subspecies"]);
     }
     if($obj->variant) {

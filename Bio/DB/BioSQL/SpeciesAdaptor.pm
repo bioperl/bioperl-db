@@ -86,6 +86,17 @@ use Bio::Species;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
+# We do not store the variant nor subspecies etc in the species
+# object's classification array, so we need to sort those out. This
+# table maps from NCBI taxon node rank to the Bio::Species method that
+# accepts the respective node name. Ranks that do map into the
+# classification array should not be mapped here.
+my %rank_attr_map = ("no rank"    => "variant",
+		     "subspecies" => "sub_species",
+		     "varietas"   => "variant",
+		     "tribe"      => "variant",
+		     "subtribe"   => "variant");
+
 
 =head2 new
 
@@ -257,15 +268,17 @@ sub populate_from_row{
 		# don't do this stuff beyond genus and species
 		last if $clf->[$i]->[1] eq "genus";
 	    }
-	    # the last element may hold the variant
-	    if($clf->[scalar(@$clf)-1]->[1] eq "no rank") {
-		$obj->variant($clf->[scalar(@$clf)-1]->[0]);
-		# we do not store the variant in the species object's
-		# classification array
+	    # we do not store the variant nor subspecies etc in the species
+	    # object's classification array, so we need to sort those out
+	    my $rank = $clf->[scalar(@$clf)-1]->[1];
+	    while(grep { $rank eq $_; } keys %rank_attr_map) {
+		my $meth = $rank_attr_map{$rank};
+		$obj->$meth($clf->[scalar(@$clf)-1]->[0]);
 		pop(@$clf);
+		$rank = $clf->[scalar(@$clf)-1]->[1];
 	    }
 	    # done massaging, store away
-	    $obj->classification([reverse(map { $_->[0]; } @$clf)]);
+	    $obj->classification([reverse(map { $_->[0]; } @$clf)], "FORCE");
 	}
 	if($rows->[4] && (! $obj->classification)) {
 	    # poor man's binomial

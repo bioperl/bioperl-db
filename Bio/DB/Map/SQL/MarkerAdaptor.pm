@@ -364,7 +364,6 @@ sub _get_markers_by_ids {
     # can't find the syntax
 
     eval { $self->prepare($TEMPTABLESQL)->execute() };
-    
     eval {	
 	my $sth = $self->prepare($TEMPLOAD);
 	foreach my $id ( @ids ) {
@@ -398,8 +397,9 @@ sub _get_markers_by_ids {
 	$sth->finish();			
     };
     if( $@ ) { $self->warn($@);	}
- 
-   return values %markers;
+    eval { $self->prepare('DELETE FROM __markers')->execute() };
+    
+    return values %markers;
 }
 
 sub _get_markers_by_names {
@@ -460,6 +460,7 @@ sub _get_markers_by_names {
     if( $@ ) {
 	$self->warn($@);
     }
+    eval { $self->prepare('DELETE FROM __markers')->execute() };
     return $self->_get_markers_by_ids(@ids);
 }
 

@@ -109,7 +109,8 @@ use Bio::PrimarySeq;
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("display_id", "primary_id", "accession_number", "desc", "version");
+    return ("display_id", "primary_id", "accession_number",
+	    "desc", "version");
 }
 
 =head2 get_persistent_slot_values

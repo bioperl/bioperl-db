@@ -106,7 +106,7 @@ use Bio::PrimarySeq;
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("seq_version", "division", "length", "alphabet", "seq");
+    return ("seq_version", "length", "alphabet", "seq");
 }
 
 =head2 get_persistent_slot_values
@@ -139,9 +139,9 @@ sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
     my @vals;
     if($obj->isa("Bio::Seq::RichSeqI")) {
-	@vals = ($obj->seq_version(), $obj->division());
+	@vals = ($obj->seq_version());
     } else {
-	@vals = (undef, undef);
+	@vals = (undef);
     }
     push(@vals,
 	 $obj->length(),
@@ -245,11 +245,10 @@ sub populate_from_row{
     if($rows && @$rows) {
 	if($obj->isa("Bio::Seq::RichSeqI")) {
 	    $obj->seq_version($rows->[1]) if $rows->[1];
-	    $obj->division($rows->[2]) if $rows->[2];
 	}
-	$obj->length($rows->[3]) if $rows->[3];
-	$obj->alphabet($rows->[4]) if $rows->[4];
-	$obj->seq($rows->[5]) if $rows->[5];
+	$obj->length($rows->[2]) if $rows->[2];
+	$obj->alphabet($rows->[3]) if $rows->[3];
+	$obj->seq($rows->[4]) if $rows->[4];
 	if($obj->isa("Bio::DB::PersistentObjectI") &&
 	   (! $obj->isa("Bio::PrimarySeqI"))) {
 	    $obj->primary_key($rows->[0]);

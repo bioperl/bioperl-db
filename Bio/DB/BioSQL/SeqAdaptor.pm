@@ -56,14 +56,12 @@ Report bugs to the Bioperl bug tracking system to help us keep track
  Bug reports can be submitted via email or the web:
 
   bioperl-bugs@bio.perl.org
-  http://bio.perl.org/bioperl-bugs/
+  http://bugzilla.bioperl.org/
 
 =head1 AUTHOR - Ewan Birney, Hilmar Lapp
 
 Email birney@ebi.ac.uk
 Email hlapp at gmx.net
-
-Describe contact details here
 
 =head1 APPENDIX
 
@@ -87,6 +85,54 @@ use Bio::Seq::SeqFactory;
 @ISA = qw(Bio::DB::BioSQL::PrimarySeqAdaptor);
 
 # new is inherited
+
+=head2 get_persistent_slots
+
+ Title   : get_persistent_slots
+ Usage   :
+ Function: Get the slots of the object that map to attributes in its respective
+           entity in the datastore.
+
+           Slots should be methods callable without an argument.
+
+ Example :
+ Returns : an array of method names constituting the serializable slots
+ Args    : the object about to be inserted or updated
+
+
+=cut
+
+sub get_persistent_slots{
+    my $self = shift;
+
+    return ($self->SUPER::get_persistent_slots(@_), "division");
+}
+
+=head2 get_persistent_slot_values
+
+ Title   : get_persistent_slot_values
+ Usage   :
+ Function: Obtain the values for the slots returned by get_persistent_slots(),
+           in exactly that order.
+
+ Example :
+ Returns : A reference to an array of values for the persistent slots of this
+           object. Individual values may be undef.
+ Args    : The object about to be serialized.
+           A reference to an array of foreign key objects if not retrievable 
+           from the object itself.
+
+
+=cut
+
+sub get_persistent_slot_values {
+    my $self = shift;
+    my $obj = shift;
+
+    my $vals = $self->SUPER::get_persistent_slot_values($obj, @_);
+    push(@$vals, $obj->isa("Bio::Seq::RichSeqI") ? $obj->division() : undef);
+    return $vals;
+}
 
 =head2 get_foreign_key_objects
 
@@ -306,6 +352,32 @@ sub instantiate_from_row{
 	$self->populate_from_row($obj, $row);
     }
 
+    return $obj;
+}
+
+=head2 populate_from_row
+
+ Title   : populate_from_row
+ Usage   :
+ Function: Populates an object with values from columns of the row.
+
+ Example :
+ Returns : The object populated, or undef, if the row contains no values
+ Args    : The object to be populated.
+           A reference to an array of column values. The first column is the
+           primary key, the other columns are expected to be in the order 
+           returned by get_persistent_slots().
+
+
+=cut
+
+sub populate_from_row{
+    my ($self,$obj,$rows) = @_;
+
+    $obj = $self->SUPER::populate_from_row($obj,$rows);
+    if($obj && $rows && @$rows && $obj->isa("Bio::Seq::RichSeqI")) {
+	$obj->division($rows->[6]) if $rows->[6];
+    }
     return $obj;
 }
 

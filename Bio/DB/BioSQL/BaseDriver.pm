@@ -521,7 +521,10 @@ sub insert_object{
     # just go ahead and bind the attributes, no a-priori pk retrieval
     my $slotvals = $adp->get_persistent_slot_values($obj, $fkobjs);
     if(@$slotvals != @slots) {
-	$self->throw("number of slots must equal the number of values");
+	$self->throw("number of slots must equal the number of values ".
+		     "(slots: ".
+		     join(";",@slots).") (values: \"".
+		     join("\";\"",@$slotvals).")");
     }
     my $i = 0; # slots and slot values index
     my $j = 1; # column index

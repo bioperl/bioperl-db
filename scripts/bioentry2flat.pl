@@ -13,8 +13,10 @@ my $acc;
 my $stdout=0;
 my $format='embl';
 my $file;
+my $driver = 'mysql';
 
 &GetOptions( 'host:s' => \$host,
+             'driver:s' => \$driver,
 	     'sqldb:s'  => \$sqlname,
 	     'dbuser:s' => \$dbuser,
 	     'dbpass:s' => \$dbpass,
@@ -25,6 +27,7 @@ my $file;
 	     );
 
 $db = Bio::DB::SQL::DBAdaptor->new( -host => $host,
+                                    -driver => $driver,
 				    -dbname => $sqlname,
 				    -user => $dbuser,
 				    -pass => $dbpass

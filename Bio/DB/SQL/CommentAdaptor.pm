@@ -152,7 +152,7 @@ sub store{
       return;
    } else {
       #$text =~ s/\'/\\\'/g;
-      my $sth = $self->prepare("insert into comment (comment_id,bioentry_id,comment_text,comment_rank) values (NULL,$bioentry_id,'$text',$rank)");
+      my $sth = $self->prepare("insert into comment (bioentry_id,comment_text,comment_rank) values ($bioentry_id,'$text',$rank)");
       $sth->execute();
    }
 }

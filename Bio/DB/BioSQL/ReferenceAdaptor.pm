@@ -66,6 +66,8 @@ use Bio::DB::SQL::BaseAdaptor;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
+sub _table {"reference"}
+
 =head2 fetch_by_dbID
 
  Title   : fetch_by_dbID
@@ -159,9 +161,8 @@ sub store_if_needed{
    my $authors=$reference->authors;
    my $location=$reference->location;
    my $title=$reference->title;
-   $title =~ s/\'/\\\'/g;
-   $authors =~ s/\'/\\\'/g;
-   $location =~ s/\'/\\\'/g;
+#   $title or $self->throw("$reference has no title"); no title is allowed
+
    #Hack, put zero for records that have no medline id
    #This allows us to define the medline field as NOT NULL
    #and therefore can be indexed, which speeds up the check below
@@ -193,19 +194,21 @@ sub store_if_needed{
 	
    } else {
 
-		if ($med) {
-			 my $sth= $self->prepare("select reference_id from reference where reference_medline = $med");
-			 $sth->execute();
-			 my ($id) = $sth->fetchrow_array();
-			 if ($id) {
-			return $id;
-			 }
-		}
-		my $sth = $self->prepare("insert into reference (reference_id,reference_authors,reference_title,reference_location,reference_medline) values (NULL,'$authors','$title','$location',$med)");
-		#print STDERR "insert into reference (reference_id,reference_start,reference_end,reference_authors,reference_title,reference_location,reference_medline) values (NULL,$start,$end,'$authors','$title','$location',$med)\n";
-		$sth->execute();
-		return $self->get_last_id;
-	}
+       if ($med) {
+           my $sth= $self->prepare("select reference_id from reference where reference_medline = $med");
+           $sth->execute();
+           my ($id) = $sth->fetchrow_array();
+           if ($id) {
+               return $id;
+           }
+       }
+       $self->insert("reference",
+                     {reference_authors=>$authors,
+                      reference_title=>$title,
+                      reference_location=>$location,
+                      reference_medline=>$med});
+       return $self->get_last_id;
+   }
 }
 
 

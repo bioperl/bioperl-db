@@ -66,6 +66,8 @@ use Bio::DB::SQL::BaseAdaptor;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
+sub _table {"bioentry_direct_links"}
+
 =head2 fetch_by_dbID
 
  Title   : fetch_by_dbID
@@ -150,7 +152,7 @@ sub store{
         print $fh "NULL\t$bioentry_id\t$db\t$acc\n";
         return;
    } else {
-        my $sth = $self->prepare("insert into bioentry_direct_links (bio_dblink_id,source_bioentry_id,dbname,accession) VALUES (NULL,$bioentry_id,'$db','$acc')");
+        my $sth = $self->prepare("insert into bioentry_direct_links (source_bioentry_id,dbname,accession) VALUES ($bioentry_id,'$db','$acc')");
         $sth->execute;
    }
    return;

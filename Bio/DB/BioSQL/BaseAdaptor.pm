@@ -149,6 +149,39 @@ sub select_colval {
     return $rowhash->{$col};
 }
 
+=head2 select_colvals
+
+ Title   : select_colvals
+ Usage   : @vals = $adaptor->select_colvals($table, {$colname=>$val}, $selectcol)
+ Function: A convenience function for getting a single col via an sql query
+ Example :
+ Returns :
+ Args    :
+
+=cut
+
+sub select_colvals {
+    my ($self, $table, $constr, $col) = @_;
+    my $sql = $self->make_sql($table, $constr, $col);
+    my $sth = $self->execute($sql);
+    my @v = ();
+    while( my $href = $sth->fetchrow_hashref ) {
+        push(@v,  $href->{$col});
+    }
+    return @v;
+}
+
+=head2 selectall
+
+ Title   : selectall
+ Usage   : @rows = $adaptor->selectall($table, {$colname=>$val}, $selectcols)
+ Function: A convenience function for getting all results of a query
+ Example :
+ Returns :
+ Args    :
+
+=cut
+
 sub selectall {
     my ($self, $table, $constr, $col) = @_;
     my $sql = $self->make_sql($table, $constr, $col);
@@ -157,7 +190,7 @@ sub selectall {
     while( my $href = $sth->fetchrow_hashref ) {
         push(@cols, $href);
     }
-    return \@cols;
+    return @cols;
 }
 
 sub make_sql {
@@ -216,7 +249,11 @@ sub insert {
              );
 #    my $sth = $self->execute($sql, map {$valh->{$_}} @cols);
     my $sth = $self->execute($sql);
-    return $self->get_last_id;
+    my $id;
+    eval {
+        $id = $self->get_last_id($table);
+    };
+    return $id;
 }
 
 =head2 db
@@ -254,12 +291,29 @@ sub db{
 =cut
 
 sub get_last_id{
-   my ($self) = @_;
+   my ($self, $table) = @_;
 
-   my $sth = $self->prepare("select last_insert_id()");
-   my $rv  = $sth->execute;
-   my $rowhash = $sth->fetchrow_hashref;
-   return $rowhash->{'last_insert_id()'};
+   if (lc($self->db->driver) eq 'mysql') {
+       my $sth = $self->prepare("select last_insert_id()");
+       my $rv  = $sth->execute;
+       my $rowhash = $sth->fetchrow_hashref;
+       return $rowhash->{'last_insert_id()'};
+   }
+   elsif ($self->db->driver eq 'Pg') {
+       unless ($table) {
+           $self->throw("no table") unless $self->can('_table');
+           $table = $self->_table;
+       }
+       my $seqn  = $table."_pkey_seq";
+       my $sth = $self->prepare("select currval('$seqn') AS curr");
+       my $rv  = $sth->execute;
+       my $rowhash = $sth->fetchrow_hashref;
+       return $rowhash->{'curr'};
+   }
+   else {
+       $self->throw("Can't deal with ".$self->db->driver." yet");
+   }
+
 }
 
 # turns a query string into a bioquery object

@@ -67,6 +67,9 @@ use Bio::DB::BioSeqDatabase;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
+# metadata
+sub _table { "biodatabase" }
+
 =head2 fetch_by_name_store_if_needed
 
  Title   : fetch_by_name_store_if_needed
@@ -289,7 +292,7 @@ sub store{
       print $fh "$id\t$name\n";
       return $id;
    } else {
-		my $sth = $self->prepare("insert into biodatabase (biodatabase_id,name) values (NULL,'$name')");
+		my $sth = $self->prepare("insert into biodatabase (name) values ('$name')");
 		$sth->execute;
                 return $self->get_last_id;
 	}

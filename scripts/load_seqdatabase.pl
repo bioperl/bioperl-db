@@ -57,6 +57,7 @@ use Bio::SeqIO;
 my $host = "localhost";
 my $sqlname = "bioperl_db";
 my $dbuser = "root";
+my $driver = 'mysql';
 my $dbpass = undef;
 my $format = 'embl';
 my $removeflag = '';
@@ -65,6 +66,7 @@ my $safe = 0;
 my $bulkload = 0;
 
 &GetOptions( 'host:s' => \$host,
+             'driver:s' => \$driver,
 	     'sqldb:s'  => \$sqlname,
 	     'dbuser:s' => \$dbuser,
 	     'dbpass:s' => \$dbpass,
@@ -84,6 +86,7 @@ if( !defined $dbname || scalar(@files) == 0 ) {
 
 $dbadaptor = Bio::DB::SQL::DBAdaptor->new( -host => $host,
 					   -dbname => $sqlname,
+                                           -driver=> $driver,
 					   -user => $dbuser,
 					   -pass => $dbpass,
 						-bulk => $bulkload,

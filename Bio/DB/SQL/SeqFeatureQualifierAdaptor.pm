@@ -69,6 +69,8 @@ use Bio::DB::SQL::BaseAdaptor;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
+sub _table {"seqfeature_qualifier"}
+
 =head2 new
 
  Title   : new
@@ -135,7 +137,7 @@ sub store_if_needed{
       }
       
       # nope - insert
-      $sth = $self->prepare("insert into seqfeature_qualifier (seqfeature_qualifier_id,qualifier_name) VALUES (NULL,'$name')");
+      $sth = $self->prepare("insert into seqfeature_qualifier (qualifier_name) VALUES ('$name')");
       $sth->execute;
 
       $dbid = $self->get_last_id;

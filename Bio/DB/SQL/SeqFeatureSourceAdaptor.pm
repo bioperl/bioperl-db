@@ -70,6 +70,8 @@ use Bio::DB::SQL::BaseAdaptor;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
+sub _table {"seqfeature_source"}
+
 =head2 new
 
  Title   : new
@@ -137,7 +139,7 @@ sub store_if_needed{
       }
       
       # nope - insert
-      $sth = $self->prepare("insert into seqfeature_source (seqfeature_source_id,source_name) VALUES (NULL,'$name')");
+      $sth = $self->prepare("insert into seqfeature_source (source_name) VALUES ('$name')");
       $sth->execute;
 
       $dbid = $self->get_last_id;
@@ -184,7 +186,7 @@ sub _clean_orphans {
 		$orph = $orph.",".$a; 		
 	}
 	
-	$sth = $self->prepare("DELETE FROM seqfeature_source WHERE seqfeature_souce_id IN($orph)"); 
+	$sth = $self->prepare("DELETE FROM seqfeature_source WHERE seqfeature_source_id IN($orph)"); 
 	$sth->execute;
 		
 	return $sth->rows;  

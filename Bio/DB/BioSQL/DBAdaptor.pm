@@ -105,15 +105,28 @@ sub new {
   my $dsn;
   if( $driver eq 'mysql' ) { 
       $dsn = "DBI:$driver:database=$db;host=$host;port=$port";
-  } elsif( $driver eq 'Pg' ) {
-      $dsn = "DBI:$driver:dbname=$db;host=$host;port=$port";
   }
-  my $dbh = DBI->connect("$dsn","$user",$password, {RaiseError => 1});
+  elsif( $driver eq 'Pg' ) {
+      $dsn = "DBI:$driver:dbname=$db;host=$host";
+      $dsn .= ";port=$port" if $port;
+  }
+  else {
+      $self->throw("unknown driver:$driver\n");
+  }
+  my $dbh;
+  print STDERR "dsn=$dsn; user=$user\n" if $ENV{SQL_TRACE};
+  eval {
+      $dbh = DBI->connect("$dsn","$user",$password, {RaiseError => 1});
+  };
+  if ($@) {
+      $self->throw("connection err:$@");
+  }
   
   $dbh || $self->throw("Could not connect to database $db user $user using [$dsn] as a locator");
   
   $self->_db_handle($dbh);
   $self->username( $user );
+  $self->driver( $driver );
   $self->host( $host );
   $self->dbname( $db );
   $self->bulk_import($bulk);
@@ -133,6 +146,13 @@ sub dbname {
   ( defined $arg ) &&
     ( $self->{_dbname} = $arg );
   $self->{_dbname};
+}
+
+sub driver {
+  my ($self, $arg ) = @_;
+  ( defined $arg ) &&
+    ( $self->{_driver} = $arg );
+  $self->{_driver};
 }
 
 sub username {

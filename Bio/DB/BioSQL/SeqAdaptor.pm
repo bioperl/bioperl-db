@@ -425,9 +425,7 @@ sub store{
    if ( $seq->isa('Bio::Seq::RichSeqI')  && defined $seq->division) {
        $division  = $seq->division;
    }
-   
-   
-   
+
    if( !defined $version ) {
        $version = 0;
    }
@@ -437,91 +435,114 @@ sub store{
    }
 
    if ($self->db->bulk_import){
-		# this one is complex enough that I put it into its own subroutine
-		my $id = $self->_storeText($dbid, $seq, $did, $accession, $version, $division);
-		return $id;
+       # this one is complex enough that I put it into its own subroutine
+       my $id = $self->_storeText($dbid, $seq, $did, $accession, $version, $division);
+       return $id;
    } else {
+       my $sth;
+       my $uniqueh =
+         {biodatabase_id=>$dbid,
+          accession=>$accession,
+          entry_version=>$version,
+#          division=>$division,
+         };
+       # enforce this constraint:UNIQUE (biodatabase_id,accession,entry_version,division)
+       my $id = $self->select_colval("bioentry",
+                                     $uniqueh,
+                                     "bioentry_id");
 
-		my $sth = $self->prepare("insert into bioentry (biodatabase_id,bioentry_id,display_id,accession,entry_version,division) values ($dbid,NULL,'$did','$accession',$version,'$division')");
-		$sth->execute;
-			
-		my $id = $self->get_last_id;
+       # NOTE:
+       # what are the semantics of the store() method?
+       # if the entry already exists, should we
+       # update or should we delete and add a new one?
+       # the former may be useful, but could be
+       # dangerous with MySQL
+       my $STORE_SEMANTICS = "replace";
+       if ($id && $STORE_SEMANTICS eq "replace") {
+           $self->remove_by_dbID($id);
+           $id = undef;
+       }
+       if (!$id) {
+           $sth = $self->prepare("insert into bioentry (biodatabase_id,display_id,accession,entry_version,division) values ($dbid,'$did','$accession',$version,'$division')");
+           $sth->execute;
+           $id = $self->get_last_id("bioentry");
+       }
 
-		$self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
+       $self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
 
-		my $desc = $seq->desc;
-		$desc =~ s/\'/\\\'/g;
-		if( defined $seq->desc && $seq->desc ne '' ) {
-			 $desc = $self->quote($desc);
-			 $sth = $self->prepare("insert into bioentry_description (bioentry_id,description) VALUES ($id,$desc)");
-			 $sth->execute;
-		}
+       my $desc = $seq->desc;
+       $desc =~ s/\'/\\\'/g;
+       if ( defined $seq->desc && $seq->desc ne '' ) {
+           $desc = $self->quote($desc);
+           $sth = $self->prepare("insert into bioentry_description (bioentry_id,description) VALUES ($id,$desc)");
+           $sth->execute;
+       }
 
-		if( $seq->isa('Bio::Seq::RichSeqI') ) {
-			 foreach my $date ($seq->get_dates) {
-			$sth = $self->prepare("insert into bioentry_date (bioentry_id,date) VALUES ($id,'$date')");
-			$sth->execute;
-			 }
-			 if (my $kw = $seq->keywords) {
-			$kw = $self->quote($kw);
-			$sth= $self->prepare("insert into bioentry_keywords(bioentry_id,keywords) VALUES ($id,$kw)");
-			$sth->execute;
-			 }
-		}
+       if ( $seq->isa('Bio::Seq::RichSeqI') ) {
+           foreach my $date ($seq->get_dates) {
+               $sth = $self->prepare("insert into bioentry_date (bioentry_id,date) VALUES ($id,'$date')");
+               $sth->execute;
+           }
+           if (my $kw = $seq->keywords) {
+               $kw = $self->quote($kw);
+               $sth= $self->prepare("insert into bioentry_keywords(bioentry_id,keywords) VALUES ($id,$kw)");
+               $sth->execute;
+           }
+       }
 
 
-		my $species = $seq->species;
+       my $species = $seq->species;
 
-		if( defined $species ) {
-			 my $species_id = $self->db->get_SpeciesAdaptor->store_if_needed($species);
-			 $sth = $self->prepare("insert into bioentry_taxa (bioentry_id,taxa_id) VALUES ($id,$species_id)");
-			 $sth->execute;
-		}   
+       if ( defined $species ) {
+           my $species_id = $self->db->get_SpeciesAdaptor->store_if_needed($species);
+           $sth = $self->prepare("insert into bioentry_taxa (bioentry_id,taxa_id) VALUES ($id,$species_id)");
+           $sth->execute;
+       }   
 
-		my $rank = 1;
-		my $adp  = $self->db->get_SeqFeatureAdaptor();
+       my $rank = 1;
+       my $adp  = $self->db->get_SeqFeatureAdaptor();
 
-		foreach my $sf ( $seq->top_SeqFeatures ) {
-			 $adp->store($sf,$rank,$id);
-			 $rank++; 
-		}
+       foreach my $sf ( $seq->top_SeqFeatures ) {
+           $adp->store($sf,$rank,$id);
+           $rank++; 
+       }
 
-		$rank = 1;
-		$adp = $self->db->get_CommentAdaptor();
+       $rank = 1;
+       $adp = $self->db->get_CommentAdaptor();
 
-		foreach my $comment ( $seq->annotation->get_Annotations('comment') ) {
-			 $adp->store($comment,$rank,$id);
-			 $rank++;
-		}
+       foreach my $comment ( $seq->annotation->get_Annotations('comment') ) {
+           $adp->store($comment,$rank,$id);
+           $rank++;
+       }
 		
-		$rank = 1;
-		my $rdp = $self->db->get_ReferenceAdaptor();
-		foreach my $ref ( $seq->annotation->get_Annotations('reference') ) {
-			 my $rid = $rdp->store_if_needed($ref);
+       $rank = 1;
+       my $rdp = $self->db->get_ReferenceAdaptor();
+       foreach my $ref ( $seq->annotation->get_Annotations('reference') ) {
+           my $rid = $rdp->store_if_needed($ref);
 
-			 my $start='NULL';  
-			 my $end='NULL';    
-			 if ($ref->start) {
-			$start=$ref->start;
-			 }
-			 if ($ref->end) {
-			$end=$ref->end;
-			 }
-			 $sth = $self->prepare("insert into bioentry_reference(bioentry_id,reference_id,reference_start,reference_end,reference_rank) values($id,$rid,$start,$end,$rank)");
-			 #print STDERR "insert into bioentry_reference(bioentry_id,reference_id,reference_rank) values($id,$rid,$rank)\n";
-			 $sth->execute;
-			 $rank++;
-		}
+           my $start='NULL';  
+           my $end='NULL';    
+           if ($ref->start) {
+               $start=$ref->start;
+           }
+           if ($ref->end) {
+               $end=$ref->end;
+           }
+           $sth = $self->prepare("insert into bioentry_reference(bioentry_id,reference_id,reference_start,reference_end,reference_rank) values($id,$rid,$start,$end,$rank)");
+           #print STDERR "insert into bioentry_reference(bioentry_id,reference_id,reference_rank) values($id,$rid,$rank)\n";
+           $sth->execute;
+           $rank++;
+       }
 
 
-		$adp = $self->db->get_DBLinkAdaptor();
-		foreach my $dblink ( $seq->annotation->get_Annotations('dblink') ) {
-			 $adp->store($dblink,$id);
-		}
+       $adp = $self->db->get_DBLinkAdaptor();
+       foreach my $dblink ( $seq->annotation->get_Annotations('dblink') ) {
+           $adp->store($dblink,$id);
+       }
 
 		
-		return $id;
-	}
+       return $id;
+   }
 }
 
 
@@ -552,9 +573,12 @@ sub _storeText {
 	print $fh "$id\t$dbid\t$did\t$accession\t$version\t$division\n";
 
 	$self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
-
+        
 	my $desc = $seq->desc;
 	$desc =~ s/\'/\\\\'/g;
+
+        #' emacs hack
+
 	if( defined $seq->desc && $seq->desc ne '' ) {
 		my $fh = $self->db->{"__bioentry_description"};
 		print $fh "$id\t$desc\n";
@@ -651,14 +675,15 @@ sub remove_by_dbID {
 
 # Simple Job - removing records from tables that are not linked to anything else	
 	
-	my @simple_tables = qw( bioentry                   
-						 bioentry_date              
-						 bioentry_description       						       
-						 bioentry_keywords          
-						 bioentry_taxa              
-						 biosequence                
-						 comment);
-
+	my @simple_tables = qw( 
+                               bioentry_date              
+                               bioentry_description       						       
+                               bioentry_keywords          
+                               bioentry_taxa              
+                               biosequence                
+                               comment
+                               bioentry                   
+                              );
 	foreach my $tab (@simple_tables)  {
 		my $sth = $self->prepare("DELETE FROM $tab WHERE bioentry_id IN($be)");
 		$sth->execute(); 

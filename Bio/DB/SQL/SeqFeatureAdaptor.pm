@@ -69,6 +69,8 @@ use Bio::SeqFeature::Generic;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
+sub _table {"seqfeature"}
+
 # new is inherieted
 
 
@@ -92,12 +94,12 @@ sub fetch_by_dbIDs {
    my $idjoin = join(",", @ids);
 
    # first pick out the central feature information
-   my $rows =
+   my @rows =
      $self->selectall("seqfeature f,seqfeature_key k,seqfeature_source s",
                       "f.seqfeature_key_id = k.seqfeature_key_id and f.seqfeature_source_id = s.seqfeature_source_id and f.seqfeature_id in ($idjoin)",
                       "f.seqfeature_id,k.key_name,s.source_name",
                      );
-   my $qualrows =
+   my @qualrows =
      $self->selectall("seqfeature_qualifier q,seqfeature_qualifier_value qv",
                       "q.seqfeature_qualifier_id = qv.seqfeature_qualifier_id and qv.seqfeature_id in ($idjoin)",
                       "qv.seqfeature_id, q.qualifier_name,qv.qualifier_value"
@@ -105,7 +107,7 @@ sub fetch_by_dbIDs {
 
    my $loc_by_sfid =
      $self->db->get_SeqLocationAdaptor->fetch_by_dbIDs(\@ids);
-   foreach my $row (@$rows) {
+   foreach my $row (@rows) {
        my $generic = Bio::SeqFeature::Generic->new();
        my $sfid = $row->{seqfeature_id};
        $sfh->{$sfid} = $generic;
@@ -114,8 +116,9 @@ sub fetch_by_dbIDs {
        $generic->primary_tag($key);
        $generic->source_tag($source);
 
-       my @q = grep { $_->{seqfeature_id} == $sfid } @$qualrows;
+       my @q = grep { $_->{seqfeature_id} == $sfid } @qualrows;
        foreach my $qh (@q) {
+#           die "$qh->{qualifier_name}= $qh->{qualifier_value}\n";
            $generic->add_tag_value($qh->{qualifier_name},
                                    $qh->{qualifier_value});
        }
@@ -198,7 +201,7 @@ sub _nextid {
 	unless ($self->{_nextFeatureid}){$self->{_nextFeatureid} = 0}
 	return ++$self->{_nextFeatureid};
 }
-   
+
 sub store{
    my ($self,$feature,$rank,$bioentryid) = @_;
 
@@ -212,11 +215,11 @@ sub store{
    if ($self->db->bulk_import){
       $self->_storeText($feature, $rank, $bioentryid, $keyid, $sourceid);       
    } else {
-      my $sth = $self->prepare("insert into seqfeature (seqfeature_id,bioentry_id,seqfeature_key_id,seqfeature_source_id,seqfeature_rank) VALUES (NULL,$bioentryid,$keyid,$sourceid,$rank)");
+      my $sth = $self->prepare("insert into seqfeature (bioentry_id,seqfeature_key_id,seqfeature_source_id,seqfeature_rank) VALUES ($bioentryid,$keyid,$sourceid,$rank)");
 
       $sth->execute();
       my $last_id = $self->get_last_id;
-   
+
       $self->db->get_SeqLocationAdaptor->store($feature->location,$last_id);
 
       my $adp = $self->db->get_SeqFeatureQualifierAdaptor();
@@ -312,10 +315,7 @@ sub remove_by_dbID{
 	my ($self) = shift; 
 	my ($sf) = join (",", @_); 
 	
-	my $sth = $self->prepare("DELETE FROM seqfeature WHERE seqfeature_id IN($sf)");
-	$sth->execute();
-	$sth->finish;	
-	
+	my $sth;
 	
 	$self->db->get_SeqLocationAdaptor->remove_by_dbID(@_); 
 	
@@ -327,6 +327,9 @@ sub remove_by_dbID{
 	$sth->execute();
 	$self->db->get_SeqFeatureQualifierAdaptor->_clean_orphans; 
 
+	$sth = $self->prepare("DELETE FROM seqfeature WHERE seqfeature_id IN($sf)");
+	$sth->execute();
+	$sth->finish;	
 	
 	return ++$#_; 	
 }

@@ -67,6 +67,7 @@ use strict;
 use Bio::DB::SQL::BaseAdaptor;
 use Bio::Species;
 
+sub _table {"taxa"}
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 # new() can be inherited from Bio::Root::RootI
@@ -152,7 +153,7 @@ sub store_if_needed{
       return $id;
    } else {
 
-      my $sth = $self->prepare("insert into taxa (taxa_id,full_lineage,common_name) values (NULL,'$str','$common_name')");
+      my $sth = $self->prepare("insert into taxa (full_lineage,common_name) values ('$str','$common_name')");
       $sth->execute;
 
       my $id = $self->get_last_id;

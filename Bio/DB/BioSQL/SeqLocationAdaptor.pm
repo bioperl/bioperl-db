@@ -72,6 +72,7 @@ use Bio::Location::Simple;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
+sub _table {"seqfeature_location"}
 
 # new() can be inherited from Bio::Root::RootI
 
@@ -97,21 +98,21 @@ sub fetch_by_dbIDs {
    my $idjoin = join(",", @ids);
    my @array;
 
-   my $rows =
+   my @rows =
      $self->selectall("seqfeature_location",
                       "seqfeature_id in ($idjoin)");
-   my @locids = map {$_->{seqfeature_location_id}} @$rows;
+   my @locids = map {$_->{seqfeature_location_id}} @rows;
    my $locidjoin = join(",", @locids);
-   my $qualrows =
+   my @qualrows =
      $self->selectall("location_qualifier_value lqv, seqfeature_qualifier sfq",
                       ["seqfeature_location_id in ($locidjoin)",
                        "lqv.seqfeature_qualifier_id = sfq.seqfeature_qualifier_id"]);
-   my $remoterows =
+   my @remoterows =
      $self->selectall("remote_seqfeature_name",
                       "seqfeature_location_id in ($locidjoin)");
    my $count = 0;
    my $component;
-   foreach my $hr (@$rows) {
+   foreach my $hr (@rows) {
        my ($sfid,$sflocid,$seq_start,$seq_end,$seq_strand) =
          map {
              $hr->{$_}
@@ -132,7 +133,7 @@ sub fetch_by_dbIDs {
        # REMOTE FEATURES
 
        # could be made faster....
-       my @remote = grep { $_->{seqfeature_location_id} == $sflocid } @$remoterows;
+       my @remote = grep { $_->{seqfeature_location_id} == $sflocid } @remoterows;
        if (@remote) {
            my $r = shift @remote;
            if (@remote) {
@@ -148,7 +149,7 @@ sub fetch_by_dbIDs {
        # FUZZY/QUALIFIED FEATURES
 
        # could be made faster....
-       my @qual = grep { $_->{seqfeature_location_id} == $sflocid } @$qualrows;
+       my @qual = grep { $_->{seqfeature_location_id} == $sflocid } @qualrows;
        if (@qual) {
            $loc_class = "Bio::Location::Fuzzy";
            $component = $loc_class->new();
@@ -164,6 +165,7 @@ sub fetch_by_dbIDs {
                    $self->throw("unapplicable qualifier $n for $sflocid");
                }
            }
+
        }
        push(@{$loc_by_sf->{$sfid}}, $component);
    }
@@ -294,7 +296,7 @@ sub _store_component{
        print $fh "$id\t$seqfeature_id\t$start\t$end\t$strand\t$rank\n";
        return $id;
    } else {
-       my $sth = $self->prepare("insert into seqfeature_location (seqfeature_location_id,seqfeature_id,seq_start,seq_end,seq_strand,location_rank) VALUES (NULL,$seqfeature_id,$start,$end,$strand,$rank)");
+       my $sth = $self->prepare("insert into seqfeature_location (seqfeature_id,seq_start,seq_end,seq_strand,location_rank) VALUES ($seqfeature_id,$start,$end,$strand,$rank)");
        $sth->execute;
        my $id= $self->get_last_id;
 
@@ -356,8 +358,15 @@ sub remove_by_dbID{
 	
 	my ($dbID) = join (",",@_); 
 	
-	# seqfeature_location	
-	my $sth = $self->prepare("DELETE FROM seqfeature_location WHERE seqfeature_id IN($dbID)");
+        my $loc_ids =
+          join(", ",
+               $self->select_colvals("seqfeature_location",
+                                     "seqfeature_id in ($dbID)",
+                                     "seqfeature_location_id")
+              );
+	my $sth = $self->prepare("DELETE FROM location_qualifier_value WHERE seqfeature_location_id IN($loc_ids)");
+	$sth->execute();
+	$sth = $self->prepare("DELETE FROM seqfeature_location WHERE seqfeature_id IN($dbID)");
 	$sth->execute();
 	
 	$self->_clean_orphans(); 

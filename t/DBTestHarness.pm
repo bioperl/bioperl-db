@@ -115,7 +115,7 @@ sub user {
     if ($value) {
         $self->{'user'} = $value;
     }
-    return $self->{'user'} || confess "user not set";
+    return $self->{'user'};
 }
 
 sub port {
@@ -183,6 +183,12 @@ sub create_db {
     
     ### FIXME: not portable between different drivers
     my $locator = 'dbi:'. $self->driver .':host='. $self->host .';';
+    if ($self->driver eq "Pg") {
+        # HACK! with DBD::Pg we *must* connect to a db
+        $locator = 'dbi:Pg:dbname=bioperltest';
+        $locator .= ";host=".$self->host if $self->host;
+    }
+    print STDERR "locatior:$locator\n" if $ENV{SQL_TRACE};
     my $db = DBI->connect(
         $locator, $self->user, $self->password, {RaiseError => 1}
         ) or confess "Can't connect to server";
@@ -197,6 +203,9 @@ sub test_locator {
     my( $self ) = @_;
     
     my $locator = 'dbi:'. $self->driver .':database='. $self->dbname;
+    if ($self->driver eq 'Pg') {
+        $locator = 'dbi:Pg:dbname='. $self->dbname;
+    }
     foreach my $meth (qw{ host port }) {
         if (my $value = $self->$meth()) {
             $locator .= ";$meth=$value";
@@ -223,6 +232,7 @@ sub get_DBAdaptor {
     my $module = $self->module;
 
     return $module->new( 
+                         -"driver" => $self->driver,
 			 -"dbname" => $self->dbname,
 			 -"host"   => $self->host,
 			 -"user"   => $self->user,

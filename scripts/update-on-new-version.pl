@@ -12,23 +12,34 @@
 sub {
     my ($old,$new,$db) = @_;
 
+    # as a special tuning step we make sure here that caching is turned
+    # on for Annotation::Reference objects, since the updated record will
+    # in many cases have almost the same reference as were already there
+    my $refadp = $db->get_object_adaptor("Bio::Annotation::Reference");
+    $refadp->caching_mode(1) if $refadp && (! $refadp->caching_mode);
+
+    # Identifiables always have a version
     if($old->isa("Bio::IdentifiableI") && $new->isa("Bio::IdentifiableI")) {
 	if((defined($old->version) xor defined($new-version)) ||
 	   ($old->version < $new->version)) {
 	    # remove existing features
-	    if($old->can('all_SeqFeatures')) {
-		foreach my $fea ($old->all_SeqFeatures()) {
+	    if($old->isa("Bio::FeatureHolderI")) {
+		foreach my $fea ($old->get_all_SeqFeatures()) {
 		    $fea->remove();
 		}
 	    }
 	    # remove existing annotation
 	    if($old->isa("Bio::AnnotatableI")) {
 		my $anncoll = $old->annotation();
-		$anncoll->remove();
+		if($anncoll->isa("Bio::DB::PersistentObjectI")) {
+		    $anncoll->remove(-fkobjs => [$old]);
+		}
 	    }
 	    print STDERR "about to update ",$new->object_id()," (version ",
-	                 ($old->version() || "<undef>")," -> ",
-	                 ($new->version() || "<undef>"),"\n";
+	                 (defined($old->version) ? $old->version : "<undef>"),
+	                 " -> ",
+	                 (defined($new->version) ? $new->version : "<undef>"),
+	                 ")\n";
 	} else {
 	    # skip the update
 	    $new = undef;

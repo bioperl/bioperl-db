@@ -1,4 +1,4 @@
-
+# $Id$
 #
 # BioPerl module for Bio::DB::SQL::SeqFeatureSourceAdaptor.pm
 #
@@ -63,10 +63,7 @@ package Bio::DB::SQL::SeqFeatureSourceAdaptor;
 use vars qw(@ISA);
 use strict;
 
-# Object preamble - inherits from Bio::Root::RootI
-
 use Bio::DB::SQL::BaseAdaptor;
-
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
@@ -87,8 +84,8 @@ sub _table {"seqfeature_source"}
 sub new{
    my ($class,@args) = @_;
 
-   my $self = Bio::DB::SQL::BaseAdaptor->new(@args);
-   bless $self,$class;
+   my $self = $class->SUPER::new(@args);
+   bless $self,$class; # why this again here? HL
    
    $self->{'_name_dbID'} = {};
 
@@ -184,5 +181,41 @@ sub _clean_orphans {
 }
 
 
+=head2 remove_by_dbID
+
+ Title   : remove_by_dbID
+ Usage   : 
+ Function: 
+ Example :
+ Returns : The number of records deleted from seqfeature_source.
+ Args    : The primary key of the record to be deleted.
+
+
+=cut
+
+sub remove_by_dbID {
+    my ($self, @sfkeyids) = @_;
+    my $sfkids = join(',', @sfkeyids);
+
+    return 0 if ! $sfkids;
+
+    # we need to remove child records first - these are the seqfeatures
+    my $sth = $self->prepare("SELECT seqfeature_id FROM seqfeature ".
+			     "WHERE seqfeature_source_id in ($sfkids)");
+    $sth->execute();
+    my $sfids = $sth->fetchall_arrayref();
+    $sth->finish();
+    my $sfa = $self->db()->get_SeqFeatureAdaptor();
+    foreach my $sfid (@$sfids) {
+	$sfa->remove_by_dbID($sfid->[0]);
+    }
+
+    # now remove the key
+    $sth = $self->prepare("DELETE FROM seqfeature_source ".
+			  "WHERE seqfeature_source_id in ($sfkids)");
+    my $n = $sth->execute();
+    $sth->finish();
+    return $n;
+}
 
 1;

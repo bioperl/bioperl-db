@@ -1,4 +1,5 @@
-
+# -*-Perl-*-
+# $Id$
 
 use lib 't';
 
@@ -11,90 +12,63 @@ BEGIN {
     plan tests => 21;
 }
 
-use DBTestHarness;
+use BioSQLBase;
 use Bio::DB::SQL::DBAdaptor;
 use Bio::SeqIO;
 use Bio::Root::IO;
-$harness = DBTestHarness->new();
 
-ok $harness;
+$biosql = BioSQLBase->new();
+ok $biosql;
 
-
-$db = $harness->get_DBAdaptor();
-
-ok $db;
-
-
-$seqio = Bio::SeqIO->new('-format' => 'GenBank',-file => Bio::Root::IO->catfile('t','data','parkin.gb'));
-
-$seq = $seqio->next_seq();
+$seq = $biosql->store_seq(Bio::SeqIO->new('-format' => 'genbank',
+					  '-file' => Bio::Root::IO->catfile(
+						      't','data','parkin.gb')),
+			  "mytestnamespace");
 
 ok $seq;
+ok $seq->primary_id();
 
-$seqadaptor = $db->get_SeqAdaptor;
-
+$seqadaptor = $biosql->db()->get_SeqAdaptor;
 ok $seqadaptor;
 
-$biodbadaptor = $db->get_BioDatabaseAdaptor;
+# start try/finally
+eval {
+    $dbseq = $seqadaptor->fetch_by_dbID($seq->primary_id());
+    ok $dbseq;
 
-$id = $biodbadaptor->fetch_by_name_store_if_needed('genbank');
+    ok ($dbseq->display_id, $seq->display_id);
+    ok ($dbseq->accession, $seq->accession);
+    ok ($dbseq->seq, $seq->seq);
+    ok ($dbseq->subseq(3,10), $seq->subseq(3,10) );
+    ok ($dbseq->subseq(1,15), $seq->subseq(1,15) );
+    ok ($dbseq->length, $seq->length);
+    ok ($dbseq->length, length($dbseq->seq));
 
-$seqadaptor->store($id,$seq);
+    my $test_desc = $seq->desc;
+    $test_desc =~ s/\s+$//g;
+    ok ($dbseq->desc, $test_desc);
 
-# assumme bioentry_id is 1 - probably safe ;)
-$dbseq = $seqadaptor->fetch_by_dbID(1);
+    $dbseq = $seqadaptor->fetch_by_db_and_accession("mytestnamespace",
+						    $seq->accession);
+    ok $dbseq;
 
-ok $dbseq;
+    $desc = $seqadaptor->get_description_by_accession($seq->accession);
+    ok $desc;
 
-ok ($dbseq->display_id eq $seq->display_id);
+    my ($cds) = grep { $_->primary_tag() eq 'CDS' } $dbseq->top_SeqFeatures();
+    ok $cds;
+    ok ($cds->start, 71 );
+    ok ($cds->end, 1465 );
 
-ok ($dbseq->accession  eq $seq->accession);
+    ($dbxref) = $cds->each_tag_value('db_xref');
+    ok ($dbxref, 'GI:5456930');
+};
 
-ok ($dbseq->seq        eq $seq->seq);
+print STDERR $@ if $@;
 
-ok ($dbseq->subseq(3,10) eq $seq->subseq(3,10) );
-
-ok ($dbseq->subseq(1,15) eq $seq->subseq(1,15) );
-
-ok ($dbseq->length     == $seq->length);
-
-ok ($dbseq->length     == length($dbseq->seq));
-
-my $test_desc = $seq->desc;
-$test_desc =~ s/\s+$//g;
-
-ok ($dbseq->desc       eq $test_desc);
-
-
-$dbseq = $seqadaptor->fetch_by_db_and_accession("genbank",$seq->accession);
-
-ok $dbseq;
-
-$desc = $seqadaptor->get_description_by_accession($seq->accession);
-ok $desc;
-
-my ($source,$cds) = $dbseq->top_SeqFeatures;
-
-ok $source;
-
-ok ($cds->start == 71 );
-
-ok ($cds->end   == 1465 );
-
-#$harness->pause;
-
-($dbxref) = $cds->each_tag_value('db_xref');
-
-ok ($dbxref eq 'GI:5456930');
-
-
-$biodb = $db->get_BioDatabaseAdaptor->fetch_BioSeqDatabase_by_name("genbank");
-
-ok $biodb;
-
-$dbseq = $biodb->get_Seq_by_acc($seq->accession);
-
-ok $dbseq;
+# delete seq
+ok ($biosql->delete_seq($seq), 1);
+ok ($biosql->delete_biodatabase("mytestnamespace"), 1);
 
 
 

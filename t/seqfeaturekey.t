@@ -1,3 +1,5 @@
+# -*-Perl-*-
+# $Id$
 
 use lib 't';
 
@@ -10,34 +12,25 @@ BEGIN {
     plan tests => 5;
 }
 
-
+use BioSQLBase;
 use DBTestHarness;
 use Bio::DB::SQL::DBAdaptor;
 
+$biosql = BioSQLBase->new();
+ok $biosql;
 
-$harness = DBTestHarness->new();
-
-ok $harness;
-
-
-$db = $harness->get_DBAdaptor();
-
-ok $db;
-
-
-
-$sk = $db->get_SeqFeatureSourceAdaptor;
-
-ok $sk; 
+$sk = $biosql->db()->get_SeqFeatureSourceAdaptor();
+ok $sk;
 
 $id = $sk->store_if_needed("key12");
-
 ok $id;
 
-$id2 = $sk->store_if_needed("key12");
+# try/finally
+eval {
+    $id2 = $sk->store_if_needed("key12");
+    ok ( $id, $id2);
+};
 
-ok ( $id == $id2);
+print STDERR $@ if $@;
 
-
-
-
+ok ($sk->remove_by_dbID($id, $id2), 1);

@@ -627,9 +627,9 @@ sub remove_by_db_and_accession {
 }
 
 
-=head2 each_tag_value
+=head2 each_tag_value_pair
 
- Title   : each_tag_value
+ Title   : each_tag_value_pair
  Usage   :
  Function:
  Example :
@@ -641,7 +641,7 @@ sub remove_by_db_and_accession {
 
 =cut
 
-sub each_tag_value {
+sub each_tag_value_pair {
     my ($self, $bioentryid, $term) = @_;
 
     if(ref($bioentryid) && $bioentryid->isa('Bio::PrimarySeqI')) {

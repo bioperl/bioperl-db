@@ -53,7 +53,7 @@ eval {
     ok (scalar(@arr), 1);
 
     # qualifier/value
-    @arr = $seqadaptor->each_tag_value($seq->primary_id());
+    @arr = $seqadaptor->each_tag_value_pair($seq->primary_id());
     ok (scalar(@arr), 2);
 
     # checking whether sequence can be deleted by dbID

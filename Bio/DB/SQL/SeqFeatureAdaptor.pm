@@ -318,9 +318,7 @@ sub remove_by_dbID{
 	
 	$self->db->get_SeqLocationAdaptor->remove_by_dbID(@_); 
 	
- 	$self->db->get_SeqFeatureSourceAdaptor->_clean_orphans; 
-# 	$self->db->get_SeqFeatureKeyAdaptor->_clean_orphans; 
- 
+ 	#$self->db->get_SeqFeatureSourceAdaptor->_clean_orphans; 
 	
 	$sth = $self->prepare("DELETE FROM seqfeature_qualifier_value WHERE seqfeature_id IN($sf)");
 	$sth->execute();

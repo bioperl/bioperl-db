@@ -228,32 +228,28 @@ sub fetch_by_dbID{
  Usage   :
  Function:
  Example :
- Returns : 
- Args    :
+ Returns : An array of primary keys of the actual seqfeature_location table
+           rows created.
+ Args    : Bio::LocationI compliant object to store, and the primary key of
+           corresponding SeqFeature.
 
 
 =cut
 
 sub store{
    my ($self,$location,$seqfeature_id) = @_;
+   my @lids = ();
 
    if( !defined $seqfeature_id ) {
        $self->throw("no seqfeature_id  ...");
    }
-   if( $location->isa('Bio::Location::SplitLocationI')  ) {
-       my $rank = 1;
-       foreach my $sub ( $location->sub_Location ) {
-	   $self->_store_component($sub,$seqfeature_id,$rank);
-	   $rank++;
-       }
-   } elsif( $location->isa('Bio::Location::Simple') ) {
-       $self->_store_component($location,$seqfeature_id,1);
-   } else {
-       $self->throw("Loc is-a ".ref($location).
-		    ", which is not a simple location nor a split. Yikes");
+   my $rank = 1;
+   foreach my $loc ( $location->each_Location ) {
+       push(@lids, $self->_store_component($loc, $seqfeature_id, $rank));
+       $rank++;
    }
 
-       
+   return @lids;
 }
 
 =head2 _store_component
@@ -348,28 +344,47 @@ sub _store_qual {
  Usage   :
  Function:
  Example :
- Returns : 
- Args    :
+ Returns : the number of locations removed
+ Args    : one or more seqfeature primary keys (!) for which to delete the
+           locations (FIXME this is certainly very poor design, we should
+	   expect location primary keys here)
 
 
 =cut
 
 sub remove_by_dbID{
    	my ($self) = shift;
+	my ($dbID) = join (",",@_);
+	my $sth;
 	
-	my ($dbID) = join (",",@_); 
-	
+	return unless $dbID;
+
         my $loc_ids =
-          join(", ",
+          join(",",
                $self->select_colvals("seqfeature_location",
                                      "seqfeature_id in ($dbID)",
                                      "seqfeature_location_id")
-              );
-	my $sth = $self->prepare("DELETE FROM location_qualifier_value WHERE seqfeature_location_id IN($loc_ids)");
-	$sth->execute();
-	$sth = $self->prepare("DELETE FROM seqfeature_location WHERE seqfeature_id IN($dbID)");
-	$sth->execute();
-	
+	       );
+	if($loc_ids) {
+	    $sth = $self->prepare("DELETE FROM location_qualifier_value ".
+				  "WHERE seqfeature_location_id IN ($loc_ids)");
+	    $sth->execute();
+	    $sth = $self->prepare("DELETE FROM seqfeature_location ".
+				  "WHERE seqfeature_id IN ($dbID)");
+	    $sth->execute();
+	} else {
+	    # what's this? no locations for the feature(s)? this is more than
+	    # fishy unless the features don't exist anymore
+	    $sth = $self->prepare("SELECT count(seqfeature_id) ".
+				  "FROM seqfeature ".
+				  "WHERE seqfeature_id in ($dbID)");
+	    $sth->execute();
+	    my ($n) = $sth->fetchrow_array();
+	    if($n > 0) {
+		$self->warn("no location for feature(s) withs IDs in ($dbID)");
+	    }
+	}
+	$sth->finish();
 	$self->_clean_orphans(); 
 	return $sth->rows; 
 }

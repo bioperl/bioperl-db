@@ -24,7 +24,7 @@ ok $biosql;
 $seq = $biosql->store_seq(Bio::SeqIO->new('-format' => 'genbank',
 					  '-file' => Bio::Root::IO->catfile(
 					       't','data','AP000868.gb')),
-					  "mytestnamespace");
+			  "mytestnamespace");
 ok $seq;
 ok $seq->primary_id();
 

@@ -29,7 +29,7 @@ ok $biosql;
 $seq = $biosql->store_seq(Bio::SeqIO->new('-format' => 'embl',
 					  '-file' => Bio::Root::IO->catfile(
 					        't','data','AB030700.embl')),
-					  "mytestnamespace");
+			  "mytestnamespace");
 ok $seq;
 ok $seq->primary_id();
 

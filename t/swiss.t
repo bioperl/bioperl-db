@@ -1,3 +1,5 @@
+# -*-Perl-*-
+
 use lib 't';
 
 BEGIN {
@@ -28,7 +30,6 @@ $seqio = Bio::SeqIO->new('-format' => 'swiss',-file => 't/swiss.dat');
 $seq = $seqio->next_seq();
 
 ok $seq;
-
 $seqadaptor = $db->get_SeqAdaptor;
 
 ok $seqadaptor;
@@ -63,8 +64,8 @@ $test_desc =~ s/\s+$//g;
 
 ok ($dbseq->desc       eq $test_desc);
 
-@dblinks = $dbseq->annotation->each_DBLink;
-@stdlinks = $seq->annotation->each_DBLink;
+@dblinks = $dbseq->annotation->get_Annotations('dblink');
+@stdlinks = $seq->annotation->get_Annotations('dblink');
 
 ok (scalar(@dblinks));
 ok (scalar(@stdlinks));

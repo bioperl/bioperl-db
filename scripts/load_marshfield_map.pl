@@ -186,7 +186,6 @@ foreach my $marker ( values %markers ) {
 	$count++;
     }
     $markeradaptor->write($marker);
-    $total++;
 }
 print "No primers for $count out of $total\n";
 
@@ -237,6 +236,7 @@ sub get_info_data_for_chrom {
 	    warn("cannot open $file");
 	    $fh = undef; };
     }
+    return $fh;
 }
 
 sub get_sts_data {

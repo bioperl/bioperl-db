@@ -254,8 +254,11 @@ sub get_DBAdaptor {
     if(! $dbc) {
 	return $self->get_DBContext()->dbadaptor();
     }
-    return Bio::DB::BioDB->new(-database => $self->database,
-			       -dbcontext => $dbc);
+    return Bio::DB::BioDB->new(-database   => $self->database,
+			       -dbcontext  => $dbc,
+                               -printerror => $ENV{HARNESS_VERBOSE},
+                               -verbose    => $ENV{HARNESS_VERBOSE},
+                               );
 }
 
 sub get_DBContext {

@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::PrimarySeqAdaptor
+# BioPerl module for Bio::DB::BioSQL::ClusterAdaptor
 #
 # Cared for by Ewan Birney  <birney@ebi.ac.uk>
 #
@@ -29,7 +29,7 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::PrimarySeqAdaptor - DESCRIPTION of Object
+Bio::DB::BioSQL::ClusterAdaptor - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -76,13 +76,13 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::PrimarySeqAdaptor;
+package Bio::DB::BioSQL::ClusterAdaptor;
 use vars qw(@ISA);
 use strict;
 
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
 use Bio::DB::Persistent::BioNamespace;
-use Bio::PrimarySeq;
+use Bio::Cluster::UniGene;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
@@ -109,7 +109,7 @@ use Bio::PrimarySeq;
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("display_id", "primary_id", "accession_number", "desc", "version");
+    return ("display_id", "accession_number", "description", "version");
 }
 
 =head2 get_persistent_slot_values
@@ -132,11 +132,9 @@ sub get_persistent_slots{
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
     my @vals = ($obj->display_id(),
-		$obj->primary_id() =~ /=(HASH|ARRAY)\(0x/ ?
-		    undef : $obj->primary_id(),
-		$obj->accession_number(),
+		$obj->display_id(),
 		$obj->description(),
-		$obj->version() || 0);
+		$obj->isa("Bio::IdentifiableI") ? ($obj->version() || 0) : 0);
     return \@vals;
 }
 
@@ -147,7 +145,9 @@ sub get_persistent_slot_values {
  Function: Gets the objects referenced by this object, and which therefore need
            to be referenced as foreign keys in the datastore.
 
-           A Bio::PrimarySeqI references a namespace with authority.
+           A Bio::ClusterI references a namespace with authority, and
+           possibly a species.
+
  Example :
  Returns : an array of Bio::DB::PersistentObjectI implementing objects
  Args    : The object about to be inserted or updated, or undef if the call
@@ -159,17 +159,20 @@ sub get_persistent_slot_values {
 
 sub get_foreign_key_objects{
     my ($self,$obj) = @_;
-    my $ns;
+    my ($ns,$taxon);
 
     if($obj) {
 	# there is no "namespace" or Bio::Identifiable object in bioperl, so
 	# we need to create one here
 	$ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $obj);
 	$ns->adaptor($self->_bionamespace_adaptor());
+	# species is optional
+	$taxon = $obj->species() if $obj->can('species');
     } else {
 	$ns = "Bio::DB::Persistent::BioNamespace";
     }
-    return ($ns);
+    $taxon = "Bio::Species" unless $taxon;
+    return ($ns, $taxon);
 }
 
 =head2 attach_foreign_key_objects
@@ -182,7 +185,9 @@ sub get_foreign_key_objects{
            This method is called after find_by_XXX() queries, not for INSERTs
            or UPDATEs.
 
-           PrimarySeqIs have a BioNamespace as foreign key.
+           ClusterIs have a BioNamespace as foreign key, and possibly
+           a species.
+
  Example :
  Returns : TRUE on success, and FALSE otherwise.
  Args    : The object to which to attach foreign key objects.
@@ -194,6 +199,7 @@ sub get_foreign_key_objects{
 
 sub attach_foreign_key_objects{
     my ($self,$obj,$fks) = @_;
+    my $ok = 0;
     
     # retrieve namespace by primary key
     my $nsadp = $self->_bionamespace_adaptor();
@@ -201,9 +207,16 @@ sub attach_foreign_key_objects{
     if($ns) {
 	$obj->namespace($ns->namespace()) if $ns->namespace();
 	$obj->authority($ns->authority()) if $ns->authority();
-	return 1;
+	$ok = 1;
     }
-    return 0;
+    # there's also possibly a species
+    if($fks && $fks->[1] && $obj->can('species')) {
+	my $adp = $self->db()->get_object_adaptor("Bio::Species");
+	my $species = $adp->find_by_primary_key($fks->[1]);
+	$ok &&= $species;
+	$obj->species($species);
+    }
+    return $ok;
 }
 
 =head2 store_children
@@ -213,7 +226,8 @@ sub attach_foreign_key_objects{
  Function: Inserts or updates the child entities of the given object in the 
            datastore.
 
-           Bio::PrimarySeqI has a sequence as child.
+           Bio::ClusterI has annotations as children.
+
  Example :
  Returns : TRUE on success, and FALSE otherwise
  Args    : The Bio::DB::PersistentObjectI implementing object for which the
@@ -224,9 +238,26 @@ sub attach_foreign_key_objects{
 
 sub store_children{
     my ($self,$obj) = @_;
+    my $ok = 1;
 
-    # delegate to Biosequence adaptor
-    return $self->_bioseq_adaptor()->store($obj);
+    # cluster size becomes a qualifier/value association, which essentially
+    # is a SimpleValue annotation
+    my $sizeann = $self->_simple_value('cluster size',$obj->size());
+    $ok = $sizeann->store() && $ok;
+    $ok = $sizeann->adaptor->add_association(-objs => [$sizeann, $obj]) && $ok;
+    # we need to store the annotations, and associate ourselves with them
+    if($obj->can('annotation')) {
+	my $ac = $obj->annotation();
+	# the annotation object might just have been created on the fly, and
+	# hence may not be a PersistentObjectI (if that's the case we'll
+	# assume it's empty, and there's no point storing anything)
+	if($ac->isa("Bio::DB::PersistentObjectI")) {
+	    $ok = $ac->store(-fkobjs => [$obj]) && $ok;
+	    $ok = $ac->adaptor()->add_association(-objs => [$ac, $obj]) && $ok;
+	}
+    }
+    # done
+    return $ok;
 }
 
 =head2 remove_children
@@ -235,7 +266,8 @@ sub store_children{
  Usage   :
  Function: This method is to cascade deletes in maintained objects.
 
-           We just return TRUE here.
+           We need to undefine the primary keys of all contained
+           annotation objects here.
 
  Example :
  Returns : TRUE on success and FALSE otherwise
@@ -246,6 +278,18 @@ sub store_children{
 =cut
 
 sub remove_children{
+    my $self = shift;
+    my $obj = shift;
+
+    # annotation collection
+    if($obj->can('annotation')) {
+	my $ac = $obj->annotation();
+	if($ac->isa("Bio::DB::PersistentObjectI")) {
+	    $ac->primary_key(undef);
+	    $ac->adaptor()->remove_children($ac);
+	}
+    }
+    # done
     return 1;
 }
 
@@ -263,8 +307,8 @@ sub remove_children{
            This is called by the find_by_XXXX() methods once the base object
            has been built. 
 
-           For Bio::PrimarySeqIs, we need to get the biosequence attributes
-           as well.
+           For Bio::ClusterIs, we need to get the annotation objects.
+
  Example :
  Returns : TRUE on success, and FALSE otherwise.
  Args    : The object for which to find and to which to attach the child
@@ -275,14 +319,34 @@ sub remove_children{
 
 sub attach_children{
     my ($self,$obj) = @_;
+    my $ok = 1;
 
-    my $adp = $self->_bioseq_adaptor();
-    # This will find the biosequence by its foreign key to bioentry, since
-    # that's the UK. Subsequently, it will populate the biosequence-specific
-    # slots of $obj with the found record.
-    my $o = $adp->find_by_unique_key($obj);
-    # on success, $o == $obj, and $o == undef otherwise
-    return $o ? 1 : 0;
+    # find the tag/value pairs corresponding to object slots
+    my $slotval = $self->_simple_value('dummy');
+    # The SimpleValue object in the association list must not be persistent
+    # because otherwise the base adaptor thinks we want to constrain by it.
+    # So we simply pass the wrapped object.
+    my $qres = $slotval->adaptor->find_by_association(-objs =>[$slotval->obj,
+							       $obj]);
+    $ok &&= $qres;
+    while($slotval = $qres->next_object()) {
+	if($slotval->tagname() eq 'cluster size') {
+	    $obj->size($slotval->value());
+	}
+    }
+    # we need to associate annotation
+    if($obj->can('annotation')) {
+	my $annadp = $self->db()->get_object_adaptor(
+					       "Bio::AnnotationCollectionI");
+	$qres = $annadp->find_by_association(-objs => [$annadp,$obj]);
+	$ok &&= $qres;
+	my $ac = $qres->next_object();
+	if($ac) {
+	    $obj->annotation($ac);
+	}
+    }
+    # done
+    return $ok;
 }
 
 =head2 instantiate_from_row
@@ -297,7 +361,7 @@ sub attach_children{
  Args    : A reference to an array of column values. The first column is the
            primary key, the other columns are expected to be in the order 
            returned by get_persistent_slots().
-           Optionally, a Bio::Factory::SequenceFactoryI compliant object to
+           Optionally, a Bio::Factory::ObjectFactoryI compliant object to
            be used for creating the object.
 
 
@@ -308,11 +372,11 @@ sub instantiate_from_row{
     my $obj;
 
     if($row && @$row) {
-	if($fact) {
-	    $obj = $fact->create_object();
-	} else {
-	    $obj = Bio::PrimarySeq->new();
+	if(! $fact) {
+	    # there is no good default implementation currently
+	    $fact = $self->_cluster_factory();
 	}
+	$obj = $fact->create_object(-display_id => $row->[1]);
 	$self->populate_from_row($obj, $row);
     }
     return $obj;
@@ -341,11 +405,11 @@ sub populate_from_row{
 	$self->throw("\"$obj\" is not an object. Probably internal error.");
     }
     if($rows && @$rows) {
+	my $has_lsid = $obj->isa("BioIdentifiableI");
 	$obj->display_id($rows->[1]) if $rows->[1];
-	$obj->primary_id($rows->[2]) if $rows->[2];
-	$obj->accession_number($rows->[3]) if $rows->[3];
-	$obj->desc($rows->[4]) if $rows->[4];
-	$obj->version($rows->[5]) if $rows->[5];
+	$obj->object_id($rows->[2]) if $rows->[2] && $has_lsid;
+	$obj->description($rows->[3]) if $rows->[3];
+	$obj->version($rows->[4]) if $rows->[4] && $has_lsid;
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($rows->[0]);
 	}
@@ -378,54 +442,21 @@ sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
     my $uk_h = {};
 
-    # UKs for PrimarySeqIs are (accession number,namespace,version),
-    # (display_id,namespace,version), (primary_id,namespace).
+    # UK for ClusterI is (display ID,namespace,version),
     #
-    if($obj->primary_id() && ($obj->primary_id() !~ /=(HASH|ARRAY)\(0x/)) {
-	$uk_h->{'primary_id'} = $obj->primary_id();
-    } else {
-	# all of the other UKs include the namespace if provided, so get
-	# this right away.
-	my $ns;
+    if($obj->display_id()) {
+	$uk_h->{'accession_number'} = $obj->display_id();
+	$uk_h->{'version'} =
+	    $obj->isa("Bio::IdentifiableI") ? ($obj->version() || 0) : 0;
+	# add namespace if possible
 	if($obj->namespace()) {
-	    $ns = Bio::BioEntry->new(-namespace => $obj->namespace());
+	    my $ns = Bio::BioEntry->new(-namespace => $obj->namespace());
 	    $ns = $self->_bionamespace_adaptor()->find_by_unique_key($ns);
-	}
-	if($obj->accession_number()) {
-	    $uk_h->{'accession_number'} = $obj->accession_number();
 	    $uk_h->{'bionamespace'} = $ns->primary_key() if $ns;
-	    $uk_h->{'version'} = $obj->version() || 0;
-	} elsif($obj->display_id()) {
-	    $uk_h->{'display_id'} = $obj->display_id();
-	    $uk_h->{'bionamespace'} = $ns->primary_key() if $ns;
-	    $uk_h->{'version'} = $obj->version() || 0;
 	}
     }
 
     return $uk_h;
-}
-
-=head2 get_biosequence
-
- Title   : get_biosequence
- Usage   :
- Function: Returns the actual sequence for a bioentry, or a substring of it.
- Example :
- Returns : A string (the sequence or subsequence)
- Args    : The primary key of the bioentry for which to obtain the sequence.
-           Optionally, start and end position if only a subsequence is to be
-           returned (for long sequences, obtaining the subsequence from the
-           database may be much faster than obtaining it from the complete
-           in-memory string, because the latter has to be retrieved first).
-
-
-=cut
-
-sub get_biosequence{
-    my ($self,@args) = @_;
-
-    # delegate to Biosequence adaptor
-    return $self->_bioseq_adaptor()->get_biosequence(@args);
 }
 
 =head1 Internal methods
@@ -439,34 +470,6 @@ sub get_biosequence{
  path and object creation overhead. There's no magic here.
 
 =cut
-
-=head2 _bioseq_adaptor
-
- Title   : _bioseq_adaptor
- Usage   : $obj->_bioseq_adaptor($newval)
- Function: Get/set cached persistence adaptor for the biosequence.
-
-           In OO speak, consider the access class of this method protected.
-           I.e., call from descendants, but not from outside.
- Example : 
- Returns : value of _bioseq_adaptor (a Bio::DB::PersistenceAdaptorI
-	   instance)
- Args    : new value (a Bio::DB::PersistenceAdaptorI instance, optional)
-
-
-=cut
-
-sub _bioseq_adaptor{
-    my ($self,$adp) = @_;
-    if( defined $adp) {
-	$self->{'_bioseq_adaptor'} = $adp;
-    }
-    if(! exists($self->{'_bioseq_adaptor'})) {
-	$self->{'_bioseq_adaptor'} =
-	    $self->db()->get_object_adaptor("Biosequence");
-    }
-    return $self->{'_bioseq_adaptor'};
-}
 
 =head2 _bionamespace_adaptor
 
@@ -494,6 +497,69 @@ sub _bionamespace_adaptor{
 	    $self->db->get_object_adaptor("BioNamespace");
     }
     return $self->{'_bions_adaptor'};
+}
+
+=head2 _cluster_factory
+
+ Title   : _cluster_factory
+ Usage   : $obj->_cluster_factory($newval)
+ Function: Get/set the Bio::Factory::ObjectFactoryI to use
+ Example : 
+ Returns : value of _cluster_factory (a scalar)
+ Args    : on set, new value (a scalar or undef, optional)
+
+
+=cut
+
+sub _cluster_factory{
+    my $self = shift;
+
+    return $self->{'_cluster_factory'} = shift if @_;
+    if(! exists($self->{'_cluster_factory'})) {
+	$self->{'_cluster_factory'} = Bio::Cluster::ClusterFactory->new();
+    }
+    return $self->{'_cluster_factory'};
+}
+
+=head2 _simple_value
+
+ Title   : _simple_value
+ Usage   : $term = $obj->_simple_value($slot, $value);
+ Function: Obtain the persistent L<Bio::Annotation::SimpleValue>
+           representation of certain slots that map to ontology term
+           associations (e.g. size).
+
+           This is an internal method.
+
+ Example : 
+ Returns : A persistent L<Bio::Annotation::SimpleValue> object
+ Args    : The slot for which to obtain the SimpleValue object.
+           The value of the slot.
+
+
+=cut
+
+sub _simple_value{
+    my ($self,$slot,$val) = @_;
+    my $svann;
+
+    if(! exists($self->{'_simple_values'})) {
+	$self->{'_simple_values'} = {};
+    }
+
+    if(! exists($self->{'_simple_values'}->{$slot})) {
+	my $term = Bio::Ontology::Term->new(-name     => $slot,
+					    -category => 'Object Slots');
+	$svann = Bio::Annotation::SimpleValue->new(-tag_term => $term);
+	$self->{'_simple_values'}->{$slot} = $svann;
+    } else {
+	$svann = $self->{'_simple_values'}->{$slot};
+    }
+    # always create a new persistence wrapper for it - otherwise we run the
+    # risk of messing with cached objects
+    $svann->value($val);
+    $svann = $self->db()->create_persistent($svann);
+    return $svann;
 }
 
 1;

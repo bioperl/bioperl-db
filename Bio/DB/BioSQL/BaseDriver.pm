@@ -681,16 +681,18 @@ sub _build_select_list{
 
  Title   : table_name
  Usage   :
- Function: Obtain the name of the table in the relational schema corresponding
-           to the given class name, object, or persistence adaptor.
+ Function: Obtain the name of the table in the relational schema
+           corresponding to the given class name, object, or
+           persistence adaptor.
 
-           This implementation uses a object-relational hash map keyed by
-           class to obtain the table name. 
+           This implementation uses a object-relational hash map keyed
+           by class to obtain the table name.
+
  Example :
  Returns : the name of the table (a string), or undef if the table cannot be
            determined
- Args    : The referenced object, class name, or the persistence adaptor for
-           it. 
+ Args    : The referenced object, class name, or the persistence
+           adaptor for it.
 
 
 =cut
@@ -788,9 +790,11 @@ sub association_table_name{
  Function: Obtain the name of the primary key attribute for the given table in
            the relational schema.
 
-           This implementation just appends _id to the table name, which yields
-           correct results for BioSQL. Override it for your own schema if
+           This implementation just appends _id to the table name,
+           which yields correct results for at least the MySQL version
+           of the BioSQL schema. Override it for your own schema if
            necessary.
+
  Example :
  Returns : The name of the primary key (a string)
  Args    : The name of the table (a string)
@@ -972,16 +976,18 @@ sub not_select_attrs{
 
  Title   : association_entity_map
  Usage   : $obj->association_entity_map($newval)
- Function: Get/set the association entity map. The map is an anonymous hash
-           with entities that participate in associations being keys. The
-           values are hash refs themselves, with the other participating
-           entity being the key, and the value being either the name of the
-           respective association entity, or another hash ref with the same
-           structure if more entities participate in the association.
+ Function: Get/set the association entity map. The map is an anonymous
+           hash with entities that participate in associations being
+           keys. The values are hash refs themselves, with the other
+           participating entity being the key, and the value being
+           either the name of the respective association entity, or
+           another hash ref with the same structure if more entities
+           participate in the association.
 
-           The hash map must be commutative. I.e., the association entity
-           must be locatable irregardless of with which of the participating
-           entities one starts.
+           The hash map must be commutative. I.e., the association
+           entity must be locatable irregardless with which of the
+           participating entities one starts.
+
  Example : 
  Returns : value of association_entity_map (a hash ref of hash refs)
  Args    : new value (a hash ref of hash refs, optional)

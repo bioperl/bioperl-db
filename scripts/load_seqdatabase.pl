@@ -59,6 +59,8 @@ use Getopt::Long;
 use Bio::DB::BioDB;
 use Bio::Annotation::SimpleValue;
 use Bio::SeqIO;
+use Bio::ClusterIO;
+use Symbol;
 
 ####################################################################
 # Defaults for options changeable through command line
@@ -78,9 +80,21 @@ my $debug = 0;
 #If safe is turned on, the script doesn't die because of one bad entry..
 my $safe_flag = 0;
 ####################################################################
+# Global defaults or definitions not changeable through commandline
+####################################################################
+
+my %nextobj_map = (
+		   'Bio::SeqIO'     => 'next_seq',
+		   'Bio::ClusterIO' => 'next_cluster',
+		   );
+
+####################################################################
 # End of defaults
 ####################################################################
 
+#
+# get options from commandline 
+#
 my $ok = GetOptions( 'host:s'   => \$host,
 		     'driver:s' => \$driver,
 		     'dbname:s' => \$dbname,
@@ -104,6 +118,9 @@ if((! $ok) || $help) {
     exit($ok ? 0 : 2);
 }
 
+#
+# load and/or parse condition if supplied
+#
 my $condition;
 if($seqfilter) {
     # file or subroutine?
@@ -121,12 +138,26 @@ if($seqfilter) {
     }
 }
 
-my @files = @ARGV;
-# if no files, assume stdin
-if(! @files) {
-    push(@files, \*STDIN);
-}
+#
+# determine input source(s)
+#
+my @files = @ARGV || \*STDIN;
 
+#
+# determine input format and type
+#
+my ($objio,$format) = split(/:/, $format);
+if(! $format) {
+    $format = $objio;
+    # default is SeqIO
+    $objio = "SeqIO";
+}
+$objio = "Bio::".$objio if $objio !~ /^Bio::/;
+my $nextobj = $nextobj_map{$objio} || "next_seq"; # next_seq is the default
+
+#
+# create the DBAdaptorI for our database
+#
 my $db = Bio::DB::BioDB->new(-database => "biosql",
 			     -host     => $host,
 			     -dbname   => $dbname,
@@ -134,37 +165,52 @@ my $db = Bio::DB::BioDB->new(-database => "biosql",
 			     -user     => $dbuser,
 			     -pass     => $dbpass,
 			     );
-
 $db->verbose($debug) if $debug > 0;
 
+#
+# loop over every input file and load its content
+#
 foreach $file ( @files ) {
-
+    
+    my $fh = $file;
     my $seqin;
-    if(ref($file)) {
-	$seqin = Bio::SeqIO->new(-fh => $file, -format => $format);
-    } else {
-	print STDERR "Loading $file\n";
-	$seqin = Bio::SeqIO->new(-file => $file,
-				 $format ? (-format => $format) : ());
+
+    # create a handle if it's not one already
+    if(! ref($fh)) {
+	$fh = gensym;
+	if(! open($fh, "<$file")) {
+	    warn "unable to open $file for reading, skipping: $!\n";
+	    next;
+	}
+	print STDERR "Loading $file ...\n";
     }
+    # create stream
+    $seqin = $objio->new(-fh => $fh, $format ? (-format => $format) : ());
+
     # establish filter if provided
     if($condition) {
+	if(! $seqin->can('sequence_builder')) {
+	    $self->throw("object IO parser ".ref($seqin).
+			 " does not support control by ObjectBuilderIs");
+	}
 	$seqin->sequence_builder->add_object_condition($condition);
     }
 
-    while( my $seq = $seqin->next_seq ) {
-	# we can't store the structure for structured values yet, so flatten
-	# them
-	foreach my $ann ($seq->annotation->remove_Annotations()) {
-	    if($ann->isa("Bio::Annotation::StructuredValue")) {
-		foreach my $val ($ann->get_all_values()) {
-		    $seq->annotation->add_Annotation(
+    while( my $seq = $seqin->$nextobj ) {
+	# we can't store the structure for structured values yet, so
+	# flatten them
+	if($seq->can('annotation')) {
+	    foreach my $ann ($seq->annotation->remove_Annotations()) {
+		if($ann->isa("Bio::Annotation::StructuredValue")) {
+		    foreach my $val ($ann->get_all_values()) {
+			$seq->annotation->add_Annotation(
 				 Bio::Annotation::SimpleValue->new(
 					         -value => $val,
 						 -tagname => $ann->tagname()));
+		    }
+		} else {
+		    $seq->annotation->add_Annotation($ann);
 		}
-	    } else {
-		$seq->annotation->add_Annotation($ann);
 	    }
 	}
 	# don't forget to add namespace if the parser doesn't supply one
@@ -184,7 +230,7 @@ foreach $file ( @files ) {
 	    $pseq->commit();
 	};
 	if ($@) {
-	    my $msg = "Could not store ".$seq->accession.": $@\n";
+	    my $msg = "Could not store ".$seq->object_id().": $@\n";
 	    $pseq->rollback();
 	    if($safe_flag) {
 		$pseq->warn($msg);

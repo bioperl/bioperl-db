@@ -150,16 +150,6 @@ sub get_persistent_slot_values {
            Note that the objects are expected to implement
            Bio::DB::PersistentObjectI.
 
-           An implementation may obtain the values either through the object
-           to be serialized, or through the additional arguments. An
-           implementation should also make sure that the order of foreign key
-           objects returned is always the same.
-
-           Note also that in order to indicate a NULL value for a nullable
-           foreign key, either put an object returning undef from 
-           primary_key(), or put the name of the class instead. DO NOT SIMPLY
-           LEAVE IT OUT.
-
  Example :
  Returns : an array of Bio::DB::PersistentObjectI implementing objects
  Args    : The object about to be inserted or updated, or undef if the call
@@ -176,7 +166,7 @@ sub get_foreign_key_objects{
     my $term;
 
     if(ref($obj)) {
-	$term = $self->_category_fk();
+	$term = $self->_category_fk($obj);
 	$term->foreign_key_slot("Bio::Ontology::TermI::category");
     } else {
 	$term = "Bio::Ontology::TermI::category";
@@ -327,46 +317,13 @@ sub get_unique_key_query{
     # UK for the tag of tag/value is the tag
     if($obj->tagname()) {
 	$uk_h->{'tagname'} = $obj->tagname();
-	my $cat = $self->_category_fk();
-	if($cat) {
+	my $cat = $self->_category_fk($obj);
+	if($cat && $cat->primary_key) {
 	    $uk_h->{'category'} = $cat->primary_key();
 	}
     }
     
     return $uk_h;
-}
-
-=head2 _category_fk
-
- Title   : _category_fk
- Usage   : $obj->_category_fk($newval)
- Function: Get/set the category foreign key constant.
-
-           This is a private method.
- Example : 
- Returns : value of _category_fk (a Bio::Ontology::TermI compliant object)
- Args    : new value (a Bio::Ontology::TermI compliant object, optional)
-
-
-=cut
-
-sub _category_fk{
-    my ($self,$term) = @_;
-
-    if( defined $term) {
-	$self->{'_category_fk'} = $term;
-    } else {
-	if(! exists($self->{'_category_fk'})) {
-	    $term = Bio::Ontology::Term->new(-name => "Annotation Tags");
-	} else {
-	    $term = $self->{'_category_fk'};
-	}
-	if(! $term->isa("Bio::DB::PersistentObjectI")) {
-	    $term = $self->db()->create_persistent($term);
-	    $self->{'_category_fk'} = $term;
-	}
-    }
-    return $term;
 }
 
 =head1 Methods overriden from BasePersistenceAdaptor
@@ -410,15 +367,6 @@ sub remove{
                        These columns are generally those other than
                        the ones for foreign keys to the entities to be
                        associated
-               -obj_contexts optional, if given it denotes a reference to an
-                       array of context keys (strings), which allow the
-                       foreign key name to be determined through the
-                       association map rather than through foreign_key_name().
-                       This is necessary if more than one object of the same
-                       type takes part in the association. The array must be
-                       in the same order as -objs, and have the same number
-                       of elements. Put "default" for objects for which there
-                       are no multiple contexts.
   Caveats: Make sure you *always* give the objects to be associated in the
            same order.
 
@@ -433,7 +381,7 @@ sub add_association{
     my ($objs, $values) = $self->_rearrange([qw(OBJS VALUES)], @args);
     # have we been called in error? If so, be graceful and return an error.
     return undef unless $objs && @$objs;
-    # figure out which one of the objects is the reference
+    # figure out which one of the objects is the simple value annotation
     my $obj;
     my $svidx = 0;
     while($svidx < @$objs) {
@@ -445,6 +393,11 @@ sub add_association{
     }
     # make sure we include the value for the association
     if($obj) {
+	# if there wasn't -values already we push it onto the arguments
+	if(! defined($values)) {
+	    $values = {};
+	    push(@args, '-values', $values);
+	}
 	$values->{'value'} = $obj->value();
 	if(! $obj->primary_key()) {
 	    # this may happen as SimpleValue objects are sometimes created
@@ -456,8 +409,74 @@ sub add_association{
 	$self->warn("unable to figure out the Bio::Annotation::SimpleValue ".
 		    "object to associate with something, expect problems");
     }
-    # pass on to the inherited impl.
+    # pass on to the inherited implementation
     return $self->SUPER::add_association(@args);
+}
+
+=head2 find_by_association
+
+ Title   : find_by_association
+ Usage   :
+ Function: Locates those records associated between a SimpleValue
+           annotation and another object.
+
+           We override this here in order to be able to constrain by
+           the category of an ontology term (which is the category of
+           the tag).
+
+ Example :
+ Returns : A Bio::DB::Query::QueryResultI implementing object 
+ Args    : Named parameters. At least the following must be recognized:
+
+               -objs   a reference to an array of objects to be associated with
+                       each other
+               -obj_factory the factory to use for instantiating object from
+                       the found rows
+               -constraints  a reference to an array of additional
+                       L<Bio::DB::Query::QueryConstraint> objects
+               -values  the values to bind to the constraint clauses,
+                       as a hash reference keyed by the constraints
+
+  Caveats: Make sure you *always* give the objects to be associated in the
+           same order.
+
+
+=cut
+
+sub find_by_association{
+    my ($self,@args) = @_;
+    my $i;
+
+    # get arguments
+    my ($objs,$constraints,$values) =
+	$self->_rearrange([qw(OBJS CONSTRAINTS VALUES)], @args);
+    # have we been called in error? If so, be graceful and return an error.
+    return undef unless $objs && @$objs;
+    # figure out which one of the objects is the simple value annotation
+    my ($obj) = grep {
+	ref($_) && $_->isa("Bio::Annotation::SimpleValue");
+    } @$objs;
+    # constrain by the category (there is a default if there is no live
+    # annotation object
+    my $cat = $self->_category_fk($obj);
+    if($cat) {
+	if(! $cat->primary_key()) {
+	    $cat = $cat->adaptor->find_by_unique_key($cat);
+	}
+	# if there wasn't -constraints already we push it onto the arguments
+	if(! defined($constraints)) {
+	    $constraints = [];
+	    $values = {};
+	    push(@args, '-constraints', $constraints, '-values', $values);
+	}
+	# add a constraint for the category
+	my $constraint = Bio::DB::Query::QueryConstraint->new(
+				 "Bio::Annotation::SimpleValue::category = ?");
+	push(@$constraints, $constraint);
+	$values->{$constraint} = $cat ? $cat->primary_key() : undef;
+    }
+    # pass on to the inherited implementation
+    return $self->SUPER::find_by_association(@args);
 }
 
 =head2 find_by_primary_key
@@ -487,6 +506,62 @@ sub find_by_primary_key{
     my ($self,$dbid,$fact) = @_;
 
     $self->throw("SimpleValue annotations don't have a primary key.");
+}
+
+=head1 Internal methods
+
+ These are mostly private or 'protected.' Methods which are in the
+ latter class have this explicitly stated in their
+ documentation. 'Protected' means you may call these from derived
+ classes, but not from outside.
+
+ Most of these methods cache certain adaptors or otherwise reduce call
+ path and object creation overhead. There's no magic here.
+
+=cut
+
+=head2 _category_fk
+
+ Title   : _category_fk
+ Usage   : $obj->_category_fk($svann)
+ Function: Get/set the category foreign key constant.
+
+           This is a private method.
+ Example : 
+ Returns : value of _category_fk (a Bio::Ontology::TermI compliant object)
+ Args    : the L<Bio::Annotation::SimpleValue> object for which
+           to return the category
+           new value (a Bio::Ontology::TermI compliant object, optional)
+
+
+=cut
+
+sub _category_fk{
+    my ($self,$svann,$term) = @_;
+
+    # if the tag is in fact an ontology term, we simply return its category
+    if($svann && $svann->tag_term()) {
+	$term = $svann->tag_term->category;
+	if(! $term->isa("Bio::DB::PersistentObjectI")) {
+	    $term = $self->db()->create_persistent($term);
+	}
+    } else {
+	# otherwise we create and cache a default
+	if( defined $term) {
+	    $self->{'_category_fk'} = $term;
+	} else {
+	    if(! exists($self->{'_category_fk'})) {
+		$term = Bio::Ontology::Term->new(-name => "Annotation Tags");
+	    } else {
+		$term = $self->{'_category_fk'};
+	    }
+	    if(! $term->isa("Bio::DB::PersistentObjectI")) {
+		$term = $self->db()->create_persistent($term);
+		$self->{'_category_fk'} = $term;
+	    }
+	}
+    }
+    return $term;
 }
 
 

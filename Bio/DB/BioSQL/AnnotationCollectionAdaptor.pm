@@ -308,15 +308,6 @@ sub find_by_unique_key{
                        These columns are generally those other than
                        the ones for foreign keys to the entities to be
                        associated
-               -obj_contexts optional, if given it denotes a reference to an
-                       array of context keys (strings), which allow the
-                       foreign key name to be determined through the
-                       association map rather than through foreign_key_name().
-                       This is necessary if more than one object of the same
-                       type takes part in the association. The array must be
-                       in the same order as -objs, and have the same number
-                       of elements. Put "default" for objects for which there
-                       are no multiple contexts.
   Caveats: Make sure you *always* give the objects to be associated in the
            same order.
 
@@ -374,20 +365,23 @@ sub add_association{
 
  Title   : find_by_association
  Usage   :
- Function: Locates those records associated between a number of objects. The
-           focus object (the type to be instantiated) depends on the adaptor
-           class that inherited from this class.
+ Function: Locates those records associated between a number of
+           objects. The focus object (the type to be instantiated)
+           depends on the adaptor class that inherited from this
+           class.
 
-           We override this here to propagate this to all possible annotations.
+           We override this here to propagate this to all possible
+           annotations.
+
  Example :
  Returns : A Bio::DB::Query::QueryResultI implementing object 
  Args    : Named parameters. At least the following must be recognized:
-               -objs   a reference to an array of objects to be associated with
-                       each other
+               -objs   a reference to an array of objects to be
+                       associated with each other
                -obj_factory the factory to use for instantiating the
                        AnnotationCollectionI implementation.
-  Caveats: Make sure you *always* give the objects to be associated in the
-           same order.
+  Caveats: Make sure you *always* give the objects to be associated in
+           the same order.
 
 
 =cut

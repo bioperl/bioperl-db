@@ -356,6 +356,36 @@ sub attach_children{
     return $ok;
 }
 
+=head2 remove_children
+
+ Title   : remove_children
+ Usage   :
+ Function: This method is to cascade deletes in maintained objects.
+
+           We need to undefine the primary keys of location objects
+           here.
+
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : The persistent object that was just removed from the database.
+           Additional (named) parameter, as passed to remove().
+
+
+=cut
+
+sub remove_children{
+    my $self = shift;
+    my $obj = shift;
+    my $loc = $obj->location();
+    my @locs = 
+	$loc->isa("Bio::Location::SplitLocationI") ?
+	$loc->sub_Location() : ($loc);
+    foreach (@locs) {
+	$_->primary_key(undef) if $_->isa("Bio::DB::PersistentObjectI");
+    }
+    return 1;
+}
+
 =head2 instantiate_from_row
 
  Title   : instantiate_from_row
@@ -480,6 +510,18 @@ sub get_unique_key_query{
 
     return $uk_h;
 }
+
+=head1 Internal methods
+
+ These are mostly private or 'protected.' Methods which are in the
+ latter class have this explicitly stated in their
+ documentation. 'Protected' means you may call these from derived
+ classes, but not from outside.
+
+ Most of these methods cache certain adaptors or otherwise reduce call
+ path and object creation overhead. There's no magic here.
+
+=cut
 
 =head2 _seq_adaptor
 
@@ -665,36 +707,6 @@ sub _featann_adaptor{
 	$self->{'_featann_adaptor'} = $ac;
     }
     return $self->{'_featann_adaptor'};
-}
-
-=head2 remove_children
-
- Title   : remove_children
- Usage   :
- Function: This method is to cascade deletes in maintained objects.
-
-           We need to undefine the primary keys of location objects
-           here.
-
- Example :
- Returns : TRUE on success and FALSE otherwise
- Args    : The persistent object that was just removed from the database.
-           Additional (named) parameter, as passed to remove().
-
-
-=cut
-
-sub remove_children{
-    my $self = shift;
-    my $obj = shift;
-    my $loc = $obj->location();
-    my @locs = 
-	$loc->isa("Bio::Location::SplitLocationI") ?
-	$loc->sub_Location() : ($loc);
-    foreach (@locs) {
-	$_->primary_key(undef) if $_->isa("Bio::DB::PersistentObjectI");
-    }
-    return 1;
 }
 
 1;

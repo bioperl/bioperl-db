@@ -322,15 +322,6 @@ sub remove{
                        These columns are generally those other than
                        the ones for foreign keys to the entities to be
                        associated
-               -obj_contexts optional, if given it denotes a reference to an
-                       array of context keys (strings), which allow the
-                       foreign key name to be determined through the
-                       association map rather than through foreign_key_name().
-                       This is necessary if more than one object of the same
-                       type takes part in the association. The array must be
-                       in the same order as -objs, and have the same number
-                       of elements. Put "default" for objects for which there
-                       are no multiple contexts.
   Caveats: Make sure you *always* give the objects to be associated in the
            same order.
 
@@ -347,7 +338,10 @@ sub add_association{
     # have we been called in error? If so, be graceful and return an error.
     return undef unless $objs && @$objs;
     # construct key for cached statement
-    my $cache_key = "INSERT ASSOC " . join(";", map { ref($_); } @$objs);
+    my $cache_key = "INSERT ASSOC " .
+	join(";", map {
+	    $_->isa("Bio::DB::PersistentObjectI") ? ref($_->obj) : ref($_);
+	} @$objs);
     # statement cached?
     my $sth = $self->sth($cache_key);
     if(! $sth) {
@@ -701,6 +695,10 @@ sub find_by_unique_key{
                        each other
                -obj_factory the factory to use for instantiating object from
                        the found rows
+               -constraints  a reference to an array of additional
+                       L<Bio::DB::Query::QueryConstraint> objects
+               -values  the values to bind to the constraint clauses,
+                       as a hash reference keyed by the constraints
   Caveats: Make sure you *always* give the objects to be associated in the
            same order.
 
@@ -712,7 +710,8 @@ sub find_by_association{
     my $i;
 
     # get arguments
-    my ($objs,$fact) = $self->_rearrange([qw(OBJS OBJ_FACTORY)], @args);
+    my ($objs,$fact,$constr,$values) =
+	$self->_rearrange([qw(OBJS OBJ_FACTORY CONSTRAINTS VALUES)], @args);
     # have we been called in error? If so, be graceful and return an error.
     return undef unless $objs && @$objs;
     # the schema may not necessarily support this association, check this
@@ -722,8 +721,13 @@ sub find_by_association{
     # get foreign key objects - we'll need at least their number in any case
     my @fkobjs = $self->get_foreign_key_objects();
     # construct key for cached statement
-    my $cache_key = "FIND BY ASSOC " .
-	join(";", map { ref($_) ? ref($_) : $_; } @$objs);
+    my $cache_key = 'FIND BY ASSOC [' .
+	($constr ? scalar(@$constr) : 0) .'] '.
+	join(";", map {
+	    ref($_) ?
+		$_->isa("Bio::DB::PersistentObjectI")? ref($_->obj) : ref($_) :
+		$_;
+	} @$objs);
     # statement cached?
     my $sth = $self->sth($cache_key);
     if(! $sth) {
@@ -752,6 +756,7 @@ sub find_by_association{
 		push(@constraints, "t".($i+1).".primary_key = ?");
 	    }
 	}
+	push(@constraints, @$constr) if $constr;
 	$query->where(\@constraints);
 	# now have the driver translate this to a ready-to-execute query
 	my $tquery = $self->dbd()->translate_query($self, $query, \@fkobjs);
@@ -774,6 +779,14 @@ sub find_by_association{
 	    $sth->bind_param($i, $obj->primary_key());
 	    $i++;
 	}
+    }
+    # bind values for additional constraints if any
+    foreach my $constraint ($constr ? @$constr : ()) {
+	$self->debug("binding column $i to \"".
+		     $values->{$constraint}.
+		     "\" (constraint ".$constraint->name.")\n");
+	    $sth->bind_param($i, $values->{$constraint});
+	    $i++;
     }
     # execute
     if(! $sth->execute()) {
@@ -798,33 +811,39 @@ sub find_by_association{
 
  Title   : find_by_query
  Usage   :
- Function: Locates entries that match a particular query and returns the
-           result as an array of peristent objects.
+ Function: Locates entries that match a particular query and returns
+           the result as an array of peristent objects.
 
-           The query is represented by an instance of 
-           Bio::DB::Query::AbstractQuery or a derived class. Note that SELECT
-           fields will be ignored and auto-determined. Give tables in the query
-           as objects, class names, or adaptor names, and columns as slot
-           names or foreign key class names in order to be maximally
-           independent of the exact underlying schema. The driver of this
-           adaptor will translate the query into tables and column names.
+           The query is represented by an instance of
+           Bio::DB::Query::AbstractQuery or a derived class. Note that
+           SELECT fields will be ignored and auto-determined. Give
+           tables in the query as objects, class names, or adaptor
+           names, and columns as slot names or foreign key class names
+           in order to be maximally independent of the exact
+           underlying schema. The driver of this adaptor will
+           translate the query into tables and column names.
+
  Example :
  Returns : A Bio::DB::Query::QueryResultI implementing object
- Args    : The query as a Bio::DB::Query::AbstractQuery or derived instance.
-           Note that the SELECT fields of that query object will inadvertantly
-           be overwritten.
-           Optionally additional (named) parameters. Recognized parameters
-           at this time are
-              -fkobjs    a reference to an array of foreign key objects that
-                         are not retrievable from the persistent object itself
-              -obj_factory  the object factory to use for creating objects for
-                         resulting rows
-              -name      a unique name for the query, which will make the
-                         the statement be a cached prepared statement, which
-                         in subsequent invocations will only be re-bound with
-                         parameters values, but not recreated
-              -values    a reference to an array holding the values to be
-                         bound, if the query is a named query
+ Args    : The query as a Bio::DB::Query::AbstractQuery or derived
+           instance.  Note that the SELECT fields of that query object
+           will inadvertantly be overwritten.
+
+           Optionally additional (named) parameters. Recognized
+           parameters at this time are
+
+              -fkobjs    a reference to an array of foreign key
+                         objects that are not retrievable from the
+                         persistent object itself
+              -obj_factory  the object factory to use for creating
+                         objects for resulting rows
+              -name      a unique name for the query, which will make
+                         the the statement be a cached prepared
+                         statement, which in subsequent invocations
+                         will only be re-bound with parameters values,
+                         but not recreated
+              -values    a reference to an array holding the values
+                         to be bound, if the query is a named query
 
 
 =cut

@@ -322,6 +322,18 @@ sub remove_children{
     return 1;
 }
 
+=head1 Internal methods
+
+ These are mostly private or 'protected.' Methods which are in the
+ latter class have this explicitly stated in their
+ documentation. 'Protected' means you may call these from derived
+ classes, but not from outside.
+
+ Most of these methods cache certain adaptors or otherwise reduce call
+ path and object creation overhead. There's no magic here.
+
+=cut
+
 =head2 _feat_adaptor
 
  Title   : _feat_adaptor

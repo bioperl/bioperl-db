@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 12;
+    plan tests => 15;
 }
 
 use Bio::DB::Query::SqlQuery;
@@ -97,7 +97,7 @@ $query->where(["sp.binomial like 'Mus *'",
 	       "e.desc like '*receptor*'",
 	       "db.namespace = 'ensembl'",
 	       "xref.database = 'SWISS'"]);
-$query->flag();
+#$query->flag();
 $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
 ok ($sql,
@@ -108,3 +108,46 @@ ok ($sql,
     "AND xref.dbxref_id = bioentry_dblink.dbxref_id ".
     "AND (sp.binomial LIKE 'Mus \%' AND e.description LIKE '\%receptor\%' ".
     "AND db.name = 'ensembl' AND xref.dbname = 'SWISS')");
+
+$query = Bio::DB::Query::BioQuery->new();
+$query->datacollections(["Bio::PrimarySeqI<=>Bio::Annotation::SimpleValue"]);
+$query->where(["Bio::PrimarySeqI::primary_key = 10",
+	       "Bio::Annotation::SimpleValue::category = 3"]);
+$tquery = $query->translate_query($mapper);
+$sql = $sqlgen->generate_sql($tquery);
+ok ($sql,
+    "SELECT * ".
+    "FROM bioentry, ontology_term, bioentry_qualifier_value ".
+    "WHERE bioentry.bioentry_id = bioentry_qualifier_value.bioentry_id ".
+    "AND ontology_term.ontology_term_id = bioentry_qualifier_value.ontology_term_id ".
+    "AND (bioentry.bioentry_id = 10 AND ontology_term.category_id = 3)");
+
+$query->datacollections(
+		  ["Bio::PrimarySeqI e",
+		   "Bio::Annotation::SimpleValue sv",
+		   "Bio::PrimarySeqI<=>Bio::Annotation::SimpleValue esva"]);
+$query->where(["Bio::PrimarySeqI::primary_key = 10",
+	       "Bio::Annotation::SimpleValue::category = 3"]);
+$tquery = $query->translate_query($mapper);
+$sql = $sqlgen->generate_sql($tquery);
+ok ($sql,
+    "SELECT * ".
+    "FROM bioentry e, ontology_term sv, bioentry_qualifier_value esva ".
+    "WHERE e.bioentry_id = esva.bioentry_id ".
+    "AND sv.ontology_term_id = esva.ontology_term_id ".
+    "AND (e.bioentry_id = 10 AND sv.category_id = 3)");
+
+$query->datacollections(
+		  ["Bio::DB::BioSQL::PrimarySeqAdaptor",
+		   "Bio::DB::BioSQL::SimpleValueAdaptor sv",
+		   "Bio::DB::BioSQL::PrimarySeqAdaptor<=>Bio::DB::BioSQL::SimpleValueAdaptor"]);
+$query->where(["Bio::PrimarySeqI::primary_key = 10",
+	       "Bio::Annotation::SimpleValue::category = 3"]);
+$tquery = $query->translate_query($mapper);
+$sql = $sqlgen->generate_sql($tquery);
+ok ($sql,
+    "SELECT * ".
+    "FROM bioentry, ontology_term sv, bioentry_qualifier_value ".
+    "WHERE bioentry.bioentry_id = bioentry_qualifier_value.bioentry_id ".
+    "AND sv.ontology_term_id = bioentry_qualifier_value.ontology_term_id ".
+    "AND (bioentry.bioentry_id = 10 AND sv.category_id = 3)");

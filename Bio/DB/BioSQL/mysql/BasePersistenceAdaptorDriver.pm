@@ -98,6 +98,10 @@ my %object_entity_map = (
 		   "Bio::SeqI"                => "bioentry",
 		   "Bio::DB::BioSQL::SeqAdaptor"
 		                              => "bioentry",
+		   "Bio::IdentifiableI"       => "bioentry",
+		   "Bio::ClusterI"            => "bioentry",
+		   "Bio::DB::BioSQL::ClusterAdaptor"
+			                      => "bioentry",
 		   "Bio::DB::BioSQL::BiosequenceAdaptor"
 		                              => "biosequence",
 		   "Bio::SeqFeatureI"         => "seqfeature",
@@ -109,7 +113,6 @@ my %object_entity_map = (
 		   "Bio::LocationI"           => "seqfeature_location",
 		   "Bio::DB::BioSQL::LocationAdaptor" 
 		                              => "seqfeature_location",
-		   "Bio::IdentifiableI"       => "biodatabase",
 		   "Bio::DB::BioSQL::BioNamespaceAdaptor"
 		                              => "biodatabase",
 		   "Bio::DB::Persistent::BioNamespace"

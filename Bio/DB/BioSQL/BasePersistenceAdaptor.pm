@@ -887,9 +887,16 @@ sub find_by_query{
 	my $sql = $sqlgen->generate_sql($query);
 	# prepare
 	$self->debug("preparing query: $sql\n");
-	$sth = $self->dbh()->prepare($sql);
-	# cache if named query
-	$self->sth($qname, $sth) if $qname;
+	if($sth = $self->dbh()->prepare($sql)) {
+	    # cache if named query
+	    $self->sth($qname, $sth) if $qname;
+	} else {
+	    # This is most likely due to an unsupported query. Some
+	    # drivers, e.g., Oracle, do check whether column names and
+	    # table names exist. So we'll disable this query.
+	    $self->sth($qname, "DISABLED") if $qname;
+	    return Bio::DB::Query::PrebuiltResult->new(-objs => []);
+	}
     }
     # bind parameter values if any and if a named query
     if($qname && $qvalues && @$qvalues) {

@@ -116,19 +116,24 @@ sub fetch_by_dbID {
 sub fetch_by_bioentry_id{
    my ($self,$bioentry_id) = @_;
 
-   # yes - not optimised. We could removed quite a few nested gets here
-   my $sth = $self->prepare("select reference_id,reference_start,reference_end from bioentry_reference where bioentry_id = $bioentry_id order by reference_rank");
+   my $sth = $self->prepare("select reference_id,reference_start,reference_end,reference_rank from bioentry_reference where bioentry_id = $bioentry_id");
    $sth->execute;
 
-   my @out;
+   # do the sorting here; mysql uses a filesort for some reason
+   my @rows = ();
    while( my $arrayref = $sth->fetchrow_arrayref )  {
+       push(@rows, $arrayref);
+   }
+   my @by_rank =
+     sort { $a->[-1] <=> $b->[-1] } @rows;
+   my @out = ();
+   foreach my $arrayref (@by_rank) {
        my ($biodblink_id,$start,$end) = @{$arrayref};
        my $ref=$self->fetch_by_dbID($biodblink_id);
        $ref->start($start);
        $ref->end($end);
        push(@out,$ref);
    }
-
    
    return @out;
 }

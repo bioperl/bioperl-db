@@ -74,7 +74,7 @@ $marker->add_alias('RH15245', 'genemap99gb4' );
 
 $markeradaptor->write($marker);
 ok($marker->id,1);
-my ($markercopy) = $markeradaptor->get_markers('RH15245');
+my ($markercopy) = $markeradaptor->get_Markers('RH15245');
 ok($markercopy->id, $marker->id);
 ok($markercopy->get_position('marshfield') ==
    $marker->get_position('marshfield'));

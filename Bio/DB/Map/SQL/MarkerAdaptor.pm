@@ -152,20 +152,21 @@ sub write {
 	my $UPDATESQL = 'UPDATE marker %s WHERE markerid = ?';  
 	# let's get the original and compare for
 	# the sake of comparing aliases and map positions
-	my ($markercopy) = $self->get_markers(-id => $marker->id );
+	my ($markercopy) = $self->get_Markers('-id' => $marker->id );
 	if( ! $markercopy ) {
 	    $self->warn("Marker ". join(' ', ($marker->id, $marker->locus,
 					      $marker->probe)). "DNE \n");
 	    return;
 	}
-	my ( @updatefields, @updatevalues);
-	foreach my $field ( qw(locus probe chrom type length) ) {
-	    if( $markercopy->$field ne $marker->$field ) {
-		push (@updatefields,"$field=?");
-		push (@updatevalues, $marker->$field);
-	    }
-	} 
+	my ( @updatefields, @updatevalues );
 
+	foreach my $field ( qw(locus probe chrom type length) ) {
+	    if( $markercopy->{$field} ne $marker->{$field} ) {
+		push (@updatefields,"$field=?");
+		push (@updatevalues, $marker->{$field});
+	    }
+	}
+    
 	if( $markercopy->pcrfwd ne $marker->pcrfwd ){
 	    push (@updatefields,"fwdprimer=?");
 	    push (@updatevalues, $marker->pcrfwd);

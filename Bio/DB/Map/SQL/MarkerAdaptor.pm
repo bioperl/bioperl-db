@@ -169,7 +169,7 @@ sub write {
     if( $marker->id ) {
 	# this is an update since marker already has an id
 	my $rc = 0;
-	my $UPDATESQL = 'UPDATE marker %s WHERE markerid = ? ';  
+	my $UPDATESQL = 'UPDATE marker SET %s WHERE markerid = ? ';  
 	# let's get the original and compare for
 	# the sake of comparing aliases and map positions
 	my ($markercopy) = $self->get('-id' => $marker->id );
@@ -184,17 +184,17 @@ sub write {
 	    next if( !defined $marker->{$field} );
 	    if( !defined $markercopy->{$field} ||
 		($markercopy->{$field} ne $marker->{$field}) ) {
-		push (@updatefields,"SET $field=?");
+		push (@updatefields,"$field=?");
 		push (@updatevalues, $marker->{$field});
 	    }
 	}
 
 	if( $markercopy->pcrfwd ne $marker->pcrfwd ){
-	    push (@updatefields,"SET fwdprimer=?");
+	    push (@updatefields,"fwdprimer=?");
 	    push (@updatevalues, $marker->pcrfwd);
 	}
 	if( $markercopy->pcrrev ne $marker->pcrrev ){
-	    push (@updatefields,"SET revprimer=?");
+	    push (@updatefields,"revprimer=?");
 	    push (@updatevalues, $marker->pcrrev);
 	}
 	eval { 
@@ -301,6 +301,7 @@ sub write {
 	    $self->warn($@);	
 	    $self->warn("Working on marker \n" . $marker->to_string());
 	    $marker = undef;
+	    return $marker;
 	}
 	# let's insert aliases
 	$sth = $self->prepare(q(INSERT INTO marker_alias 

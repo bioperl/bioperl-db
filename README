@@ -1,10 +1,7 @@
-Bio::EnsemblLite - an ensembl lite implementation of an updateable
-		   sequence database
 
-Bio::DB::BasicUpdateableDB - a very basic structure for storing
-		             sequences and their annotations.  This
-			     currently only supports the MySQL language 
-			     scheme.
+Bio::EnsemblLite - Deprecated
+		   
+
 
 See TODO list for status of modules & project.
 
@@ -31,24 +28,11 @@ You will need
 5) do the following (substituting your db name where appropriate)
 
    % mysql seqdb < sql/basicseqdb-mysql.sql
-   % mysql ensdev < sql/ensembl-lite-mysql.sql
-   % mysql ensdev < sql/ensembl-lite-mysql-addon.sql
 
-6) make any changes to the t/add_basic, t/remove_basic files
-   if you did not call your db seqdb.
-
-7) try it out
-   perl Makefile.PL
-   make
-   make test
-  
-   or individually test
-   perl t/add_basic.t
-   perl t/remove_basic.t
-   perl t/add_ensembl.t
-   perl t/remove_ensembl.t
-
-8) write down any problems, complaints and send them to bioperl or me.
+8) write down any problems, complaints and send them to bioperl ;)
 
 
-Jason Stajich <jason@chg.mc.duke.edu>
+
+
+
+

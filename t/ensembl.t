@@ -13,6 +13,7 @@ END { unlink( 't/ensembl_test.gb') }
 use DBTestHarness;
 use Bio::DB::SQL::DBAdaptor;
 use Bio::SeqIO;
+use Bio::Root::IO;
 
 $harness = DBTestHarness->new();
 
@@ -24,7 +25,7 @@ $db = $harness->get_DBAdaptor();
 ok $db;
 
 
-$seqio = Bio::SeqIO->new('-format' => 'GenBank',-file => 't/AP000868.gb');
+$seqio = Bio::SeqIO->new('-format' => 'GenBank',-file => Bio::Root::IO->catfile('t','data','AP000868.gb'));
 
 $seq = $seqio->next_seq();
 

@@ -14,7 +14,7 @@ BEGIN {
 use DBTestHarness;
 use Bio::DB::SQL::DBAdaptor;
 use Bio::SeqIO;
-
+use Bio::Root::IO;
 $harness = DBTestHarness->new();
 
 ok $harness;
@@ -25,7 +25,7 @@ $db = $harness->get_DBAdaptor();
 ok $db;
 
 
-$seqio = Bio::SeqIO->new('-format' => 'GenBank',-file => 't/parkin.gb');
+$seqio = Bio::SeqIO->new('-format' => 'GenBank',-file => Bio::Root::IO->catfile('t','data','parkin.gb'));
 
 $seq = $seqio->next_seq();
 

@@ -66,6 +66,7 @@ use strict;
 
 use Bio::DB::Seq;
 use Bio::DB::SQL::BaseAdaptor;
+use Bio::DB::SQL::SqlQuery;
 
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
@@ -145,6 +146,244 @@ sub fetch_by_db_and_accession{
    }
    
 }
+
+=head2 fetch_by_query
+
+ Title   : fetch_by_query
+ Usage   : @seqs = $seqadp->fetch_by_query($bioquery);
+ Function:
+ Example : @seqs = 
+            $seqadp->fetch_by_query(-constraints=>
+              ["or",
+                   ["and",
+                         "species=Human",
+                         "keywords=transcription*"],
+                   ["and",
+                         "species like Drosophila*",
+                         "description like *integrase*"],
+	       ]);
+ Returns : list of Bio::Seq objects
+ Args    : BioQuery object OR hash reference
+
+Takes a Bio::DB::SQL::BioQuery object, or arguments that can be used
+to construct one. Right now only the constraints/where part is
+respected.
+
+Executes the BioQuery by turning the query into individual SqlQuerys
+(although we could have non-sql adaptors conforming to the same
+interface as this one, and have the BioQuery translated in some other
+way)
+
+the BioQuery is a schema independent repesentation of a query; it may
+or may not be tied to the bioperl object model.
+
+These are the constraint elements that are currently accepted:
+
+(THESE ARE SUBJECT TO CHANGE)
+
+=over
+
+=item species
+
+This can either by a Bio::Species object, or an NCBI taxonomy ID, or a
+common_name for the species
+
+=item references
+
+A string
+
+=item keywords
+
+A string
+
+=item description
+
+A string
+
+=back
+
+For all the above constraints, specifying the wildcard character * in
+the string will automatically make the query use pattern matching
+(replacing * for % in the sql query, and use the like operand) rather
+than exact matches.
+
+eg to query by species
+
+    $bioquery = Bio::DB::SQL::BioQuery->new();
+    $qc = Bio::DB::SQL::QueryConstraint->new(-name=>"species",
+					     -value=>$species);
+    $bioquery->where($qc);
+    @seqs=$seqadp->fetch_by_query($bioquery);
+
+or simply
+
+    @seqs=$seqadp->fetch_by_query(-constraints=>"species = $species");
+
+at some point we may want to make the BioQuerys more sql-like, by
+allowing constraints by Class+attribute like this:
+
+  @seqs=$seqadp->fetch_by_query(-constraints=>"Species.common_name = Human");
+  @seqs=$seqadp->fetch_by_query(-constraints=>"Reference.authors = *Shuggy*");
+
+perhaps eventually this method will become private/hidden, and
+bioperl-db API users will simply do this:
+
+  ($id, $residues) = 
+     $bioquery_resolver->do(q[FETCH Seq.primary_seq.display_id, 
+                                    Seq.primary_seq.seq 
+                              FROM Seq 
+                              WHERE Seq.species.ncbi_taxa_id=7227]);
+
+
+
+=cut
+
+sub fetch_by_query {
+    my ($self,$query) = @_;
+    $query = $self->_get_bioquery($query);
+    
+    my $select_list = $query->{"select_list"};
+    my $sqlq = 
+      Bio::DB::SQL::SqlQuery->new;
+    
+    $sqlq->flag("distinct", 1);
+    $sqlq->datacollections(qw(bioentry biodatabase));
+    $sqlq->selectelts("bioentry.bioentry_id");
+    
+    $self->resolve_query($query, $sqlq, "biodatabase.biodatabase_id = bioentry.biodatabase_id");
+    my $sth = $self->do_query($sqlq);
+    
+    my $rows = $sth->fetchall_arrayref;
+    my @ids = map {$_->[0]} @$rows;
+    my @seqs = 
+	map {
+	    print "ID=$_\n";
+	    $self->fetch_by_dbID($_);
+	} @ids;	
+    return @seqs;
+}
+
+# this provides a hash of constraint name to resolution method;
+# is this too perl "guts"y? don't want to put people off
+# adding their own constraints.
+
+# Mapping to subroutines does allow us
+# some runtime introspection which is nice
+
+# this does contain lots of repetitive code;
+# it would be easy to make the adaptor even cleverer
+# but that may be sacrificing too much clarity?
+
+# the constraints are all very liberal in the values they
+# accept; eg you can give a species name, an ncbi taxa id, a
+# species object to the species constraint.
+# this adds more code/complexity here but its nice for
+# the API user
+sub constraint_resolver {
+    my $self = shift;
+    return
+    {"species"   => 
+	 sub {
+	     my ($self, $sqlq, $cvalue) = @_;		
+	     my @wh = ();
+	     my $dbh = $self->db->_db_handle;
+
+	     my $speciesid;
+	     my $species;
+	     my $common_name;
+	     if (!ref($cvalue)) {
+		 if (int($cvalue)) {   # allow speciesid
+		     $speciesid = int($cvalue);
+		 }
+		 else {
+		     $common_name = $cvalue;
+		     # assume that the common name was passed
+		 }
+	     }
+	     else {
+		 # we most likely have a species object here...
+		 $species = $cvalue;
+		 $common_name = $species->common_name;
+		 $speciesid = $species->id;
+	     }
+	     if ($speciesid) {
+		 push(@wh, "bioentry_taxa.taxa_id = $speciesid");
+	     }
+	     else {
+		 push(@wh, 
+		      "bioentry_taxa.taxa_id = taxa.taxa_id");
+		 $sqlq->add_datacollection("taxa");
+		 if ($common_name  =~ /\*/) {
+		     $common_name  =~ s/\*/\%/g;
+		     $common_name = $dbh->quote($common_name);
+		     push(@wh, "taxa.common_name like $common_name");
+		 }
+		 else {
+		     push(@wh, "taxa.common_name = ".$dbh->quote($common_name));
+		 }
+	     }
+	     $sqlq->add_datacollection("bioentry_taxa");
+
+	     push(@wh, "bioentry_taxa.bioentry_id = bioentry.bioentry_id");
+	     return @wh;
+	 },
+
+    "references"    =>
+    sub {
+	my ($self, $sqlq, $cvalue) = @_;		
+	my @wh = ();
+	my $dbh = $self->db->_db_handle;
+	$sqlq->add_datacollection("bioentry_reference");
+	$sqlq->add_datacollection("reference");
+	push(@wh, "bioentry_reference.bioentry_id = bioentry.bioentry_id");
+	push(@wh, "bioentry_reference.reference_id = reference.reference_id");
+	if ($cvalue  =~ /\*/) {
+	    $cvalue  =~ s/\*/\%/g;
+	    push(@wh, "reference.reference_title like ".$dbh->quote($cvalue));
+	}
+	else {
+	    push(@wh, "reference.reference_title = ".$dbh->quote($cvalue));
+	}
+	return @wh;
+    },
+
+    "description"    =>
+    sub {
+	my ($self, $sqlq, $cvalue) = @_;		
+	my @wh = ();
+	my $dbh = $self->db->_db_handle;
+	$sqlq->add_datacollection("bioentry_description");
+	push(@wh, "bioentry_description.bioentry_id = bioentry.bioentry_id");
+	if ($cvalue  =~ /\*/) {
+	    $cvalue  =~ s/\*/\%/g;
+	    push(@wh, "bioentry_description.description like ".$dbh->quote($cvalue));
+	}
+	else {
+	    push(@wh, "bioentry_description.description = ".$dbh->quote($cvalue));
+	}
+	return @wh;
+    },
+
+    "keywords"    =>
+    sub {
+	my ($self, $sqlq, $cvalue) = @_;		
+	my @wh = ();
+	my $dbh = $self->db->_db_handle;
+	$sqlq->add_datacollection("bioentry_keywords");
+	push(@wh, "bioentry_keywords.bioentry_id = bioentry.bioentry_id");
+	if ($cvalue  =~ /\*/) {
+	    $cvalue  =~ s/\*/\%/g;
+	    push(@wh, "bioentry_keywords.keywords like ".$dbh->quote($cvalue));
+	}
+	else {
+	    push(@wh, "bioentry_keywords.keywords = ".$dbh->quote($cvalue));
+	}
+	return @wh;
+    },
+
+};
+}
+
 
 =head2 store
 

@@ -196,8 +196,15 @@ This option will be ignored if no value is supplied.
 
 This is also a string or a file defining a closure. If provided, the
 closure is called if a look-up for the unique key of the new object
-was successful (hence, it will never be called without supplying
---lookup, but not --noupdate, at the same time).
+was successful. Hence, it will never be called without supplying
+--lookup at the same time. 
+
+Note that --noupdate will B<not> prevent the closure from being
+called. I.e., if you make changes to the database in your merge script
+as opposed to only modifying the object, --noupdate will B<not>
+prevent those changes. This is a feature, not a bug. Obviously,
+modifications to the in-memory object will have no effect with
+--noupdate since the database won't be updated with it.
 
 The closure will be passed three arguments: the object found by
 lookup, the new object to be submitted, and the Bio::DB::DBAdaptorI

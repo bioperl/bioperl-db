@@ -421,6 +421,11 @@ sub add_association{
 	my $msg = substr(ref($self),rindex(ref($self),"::")+2).
 	    "::add_assoc: unexpected failure of statement execution: ".
 	    $sth->errstr."\n\tname: $cache_key";
+	# remove sth from cache in order not to trip up obscure 
+	# driver-specific bugs, for instance DBD::Oracle after certain
+	# errors can't execute the statement again
+	$sth->finish();
+	$self->sth($cache_key, undef);
 	# if verbose is on the values have already been reported
 	if($self->verbose <= 0){
 	    my @bindprms = map {

@@ -43,7 +43,7 @@ bioenv_server.pl        - setup a CORBA sequence server
 
 Hard and Fast install instructions.
 
-1) a mysql db server 
+1) a mysql db server (http://www.mysql.com)
 
 2) an account on the server
 
@@ -56,7 +56,7 @@ DBTestHarness.conf
 
 4) do the following (substituting your db name where appropriate)
 
-   % mysql -u someone sqldbname < sql/basicseqdb-mysql.sql
+   % mysql -u someone -D sqldbname < sql/basicseqdb-mysql.sql
 
 5) scripts/load_seqdatabase.pl should now work.
 

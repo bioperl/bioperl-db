@@ -12,6 +12,9 @@
 #
 # POD Doc - main docs before code
 # $Log$
+# Revision 1.2  2000/07/27 17:00:30  jason
+# ensembl-lite now really works with an ensembl db with extra feature tables
+#
 
 =head1 NAME
 
@@ -314,9 +317,9 @@ sub _remove_seq {
     my ( $contigid, $ver) = split(/:/,$seq->primary_id);
     my $SQL;
     eval { 
-	$SQL = qq( SELECT clone, dna, internal_id, version 
+	$SQL = qq( SELECT clone, dna, c.internal_id, version 
 		   FROM contig c, clone cl 
-		   WHERE internal_id = ? AND cl.id = c.clone );
+		   WHERE c.internal_id = ? AND cl.id = c.clone );
 	my $sth = $self->prepare( $SQL );
 	$sth->execute($contigid);
 	my ( $clone, $seqid, $contigid_r, $ver_r, $data);
@@ -331,7 +334,6 @@ sub _remove_seq {
 	if( $ver_r > $ver ) {
 	    $self->throw("seq out of sync");
 	}
-	print STDERR "seqid is $seqid\n";
 	$SQL = qq(DELETE FROM dna_description WHERE seqid = ?);
 	$sth = $self->prepare($SQL);
 	$sth->execute($seqid);

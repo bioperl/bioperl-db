@@ -24,4 +24,9 @@ Bio::DB::BasicUpdateableDB
 
 
 Wrap these into CORBA objects after additions to biocorba.idl
+
+sql/ensembl-lite-sybase.sql is not really ready as the schema has changed
+slightly.  Need to wait on the EnsemblSqlPort to get the schema translator
+finalized.
+
 -----------------------------------------------------------------

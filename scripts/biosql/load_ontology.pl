@@ -538,7 +538,7 @@ while( my $ont = $ontin->$nextobj ) {
     foreach my $rel ($ont->get_relationships()) {
 	# don't bother with relationships that reference an obsolete term
 	# if we don't load obsolete terms
-	if($del_obsolete || $no_obsolete || $upd_obsolete) {
+	if($del_obsolete || $no_obsolete) {
 	    next if ($rel->subject_term->is_obsolete() ||
 		     $rel->object_term->is_obsolete() ||
 		     $rel->predicate_term->is_obsolete());

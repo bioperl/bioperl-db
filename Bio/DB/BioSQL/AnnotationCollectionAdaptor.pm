@@ -509,11 +509,14 @@ sub find_by_association{
 	}
 	$i++;
     }
-    # make sure we have an instantiated AnnotationCollectionI
+    # make sure we have an instantiated and persistent AnnotationCollectionI
     if(! (ref($ac) && $ac->isa("Bio::AnnotationCollectionI"))) {
 	my $fact = $params{-obj_factory} || $params{-OBJ_FACTORY};
 	$ac = $fact ?
 	    $fact->create_object() : Bio::Annotation::Collection->new();
+    }
+    if(! $ac->isa("Bio::DB::PersistentObjectI")) {
+	$ac = $self->create_persistent($ac);
     }
     delete $params{-OBJ_FACTORY};
     # prepare the factory for the individual annotation objects

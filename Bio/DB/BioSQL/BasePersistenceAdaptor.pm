@@ -1152,12 +1152,12 @@ sub _build_object{
 	    $self->warn("failed to attach all foreign key objects (pk=".
 			$obj->primary_key().")");
 	}
-	# attach child objects (those that reference this entity as foreign
-	# key)
-	if(! $self->attach_children($obj)) {
-	    $self->warn("failed to attach all child objects (pk=".
-			$obj->primary_key().")");
-	}
+    }
+    # attach child objects (those that reference this entity as foreign
+    # key)
+    if(! $self->attach_children($obj)) {
+	$self->warn("failed to attach all child objects (pk=".
+		    $obj->primary_key().")");
     }
     return $obj;
 }

@@ -33,7 +33,11 @@ sub {
 		my $anncoll = $old->annotation();
 		if($anncoll->isa("Bio::DB::PersistentObjectI")) {
 		    $anncoll->remove(-fkobjs => [$old]);
+		} else {
+		    $db->throw(ref($anncoll)." is not persistent");
 		}
+	    } else {
+		$db->throw(ref($old)." is not annotatable");
 	    }
 	    print STDERR "about to update ",$new->object_id()," (version ",
 	                 (defined($old->version) ? $old->version : "<undef>"),

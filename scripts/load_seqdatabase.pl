@@ -77,6 +77,8 @@ my $seqfilter;
 my $pipeline;
 # flags
 my $remove_flag = 0;
+my $lookup_flag = 0;
+my $no_update_flag = 0;
 my $help = 0;
 my $debug = 0;
 #If safe is turned on, the script doesn't die because of one bad entry..
@@ -108,6 +110,8 @@ my $ok = GetOptions( 'host:s'   => \$host,
 		     'pipeline:s'  => \$pipeline,
 		     'safe'     => \$safe_flag,
 		     'remove'   => \$remove_flag,
+		     'lookup'   => \$lookup_flag,
+		     'noupdate' => \$no_update_flag,
 		     'debug'    => \$debug,
 		     'h' => \$help,
 		     'help' => \$help
@@ -144,7 +148,7 @@ if($seqfilter) {
 #
 # determine input source(s)
 #
-my @files = @ARGV || \*STDIN;
+my @files = @ARGV ? @ARGV : (\*STDIN);
 
 #
 # determine input format and type
@@ -199,6 +203,9 @@ my $db = Bio::DB::BioDB->new(-database => "biosql",
 			     );
 $db->verbose($debug) if $debug > 0;
 
+# adaptor
+my $adp;
+
 #
 # loop over every input file and load its content
 #
@@ -234,6 +241,10 @@ foreach $file ( @files ) {
 	$seqin = $pipemods[$#pipemods];
     }
 
+    # adaptor - we'll set this on demand
+    my $adp;
+
+    # loop over the stream
     while( my $seq = $seqin->$nextobj ) {
 	# we can't store the structure for structured values yet, so
 	# flatten them
@@ -254,17 +265,35 @@ foreach $file ( @files ) {
 	# don't forget to add namespace if the parser doesn't supply one
 	$seq->namespace($namespace) unless $seq->namespace();
 	# create a persistent object out of the seq
-	my $pseq;
-	# delete first?
-        if ($remove_flag) {
-	    $pseq = $db->get_object_adaptor($seq)->find_by_unique_key($seq);
-	    $pseq->remove() if($pseq);
-        } else {
-	    $pseq = $db->create_persistent($seq);
+	my ($pseq,$lseq);
+	# look up or delete first?
+	if($lookup_flag || $remove_flag) {
+	    # look up
+	    $lseq = $seq->isa("Bio::Seq") ? $seq->primary_seq : $seq;
+	    $adp = $db->get_object_adaptor($lseq) unless $adp;
+	    $lseq = $adp->find_by_unique_key($lseq);
+	    # found?
+	    if($lseq) {
+		# delete if requested
+		$lseq->remove() if $remove_flag;
+		# skip the rest if we are not supposed to update
+		next if $no_update_flag;
+	    }
+	}
+	# make persistent
+	$pseq = $db->create_persistent($seq);
+	# store the primary key of we found it by lookup (this is going to
+	# be an udate then)
+	if($lseq && $lseq->primary_key) {
+	    $pseq->primary_key($lseq->primary_key);
 	}
 	# try to serialize
 	eval {
-	    $pseq->create();
+	    if($pseq->primary_key()) {
+		$pseq->store();
+	    } else {
+		$pseq->create();
+	    }
 	    $pseq->commit();
 	};
 	if ($@) {

@@ -479,7 +479,7 @@ sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
     my $uk_h = {};
 
-    # UKs for SeqFeatureIs are (sequence,feature key,rank),
+    # UKs for SeqFeatureIs are (sequence,feature key,feature source,rank),
     my ($seq,$sfkey);
     if($obj->entire_seq()) {
 	$seq = $obj->entire_seq();
@@ -493,16 +493,21 @@ sub get_unique_key_query{
     # we only need to continue with the sequence FK in hand
     if($seq) {
 	$uk_h->{'entire_seq'} = $seq->primary_key();
-	# now look up the term for the seqfeature key
-	if($obj->primary_tag()) {
-	    my ($sfkey) = grep {
-		$_->isa("Bio::Ontology::TermI") &&
-		    $_->foreign_key_slot() =~ /primary_tag$/;
-	    } @$fkobjs;
-	    $sfkey = $self->_term_adaptor()->find_by_unique_key($sfkey)
-		unless $sfkey->primary_key();
+	# now look up the term for the seqfeature key and seqfeature source
+	my $fkterm;
+	my @ukslots = qw(primary_tag source_tag);
+	foreach my $ukslot (@ukslots) {
+	    if($obj->$ukslot()) {
+		($fkterm) = grep {
+		    $_->isa("Bio::Ontology::TermI") &&
+			$_->foreign_key_slot() =~ /$ukslot$/;
+		} @$fkobjs;
+		$fkterm = $self->_term_adaptor()->find_by_unique_key($fkterm)
+		    unless $fkterm->primary_key();
+	    }
+	    $uk_h->{$ukslot} = $fkterm ? $fkterm->primary_key() : undef;
 	}
-	$uk_h->{'primary_tag'} = $sfkey ? $sfkey->primary_key() : undef;
+	# rank if possible
 	if($obj->can('rank') && defined($obj->rank())) {
 	    $uk_h->{'rank'} = $obj->rank();
 	}

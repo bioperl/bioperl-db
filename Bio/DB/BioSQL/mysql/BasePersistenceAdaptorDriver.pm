@@ -221,7 +221,7 @@ my %slot_attribute_map = (
 	 },
          "bioentry_qualifier_value" => {
 	     "value"          => "qualifier_value",
-	     "rank"           => undef,
+	     "rank"           => "qualifier_rank",
 	 },
 	 "seqfeature"         => {
 	     "display_name"   => undef,

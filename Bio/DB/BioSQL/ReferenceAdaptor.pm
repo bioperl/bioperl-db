@@ -179,4 +179,95 @@ sub store_if_needed{
 }
 
 
+=head2 remove_by_bioentry_id
 
+ Title   : remove_by_bioentry_id
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub remove_by_bioentry_id {
+	my ($self) = shift; 
+	my $be = join ",",@_; 
+	
+	my $sth = $self->prepare("SELECT reference_id FROM bioentry_reference WHERE bioentry_id IN($be)");
+	$sth->execute(); 
+	my @rf = $sth->fetchrow_array;
+	
+	return 0 unless @rf; 
+		
+	while (my $a = $sth->fetchrow_array) {
+		unshift  @rf, $a; 
+	}
+	
+	$sth = $self->prepare("DELETE FROM bioentry_reference WHERE bioentry_id IN($be)");
+	$sth->execute();
+	
+	$self->_clean_orphans();  
+	
+	return $sth->rows; 
+}
+
+
+
+=head2 remove_by_dbID
+
+ Title   : remove_by_dbID
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub remove_by_dbID {
+	my($self) = shift; 
+	my($rf) = join ",",@_; 
+	
+
+	my $sth = $self->prepare("DELETE FROM reference WHERE reference_id IN($rf)");
+	$sth->execute; 
+	
+	return $sth->rows; 
+}
+
+=head2 _clean_orphans
+
+ Title   : _clean_orphans
+ Usage   : 
+ Function: Checks the reference table for entries that are not linked to any reference in bioentry_reference and deletes such entries. 
+ Example :
+ Returns : number of references deleted
+ Args    : none
+
+
+=cut
+
+sub _clean_orphans {
+
+	my($self) = shift; 
+
+	my $sth = $self->prepare("select reference.reference_id from reference left join bioentry_reference on ".
+							"reference.reference_id = bioentry_reference.reference_id where ".
+							"bioentry_reference.reference_id is NULL" )	;
+	$sth->execute(); 
+	
+	my $orph = $sth->fetchrow_array(); 	
+	return 0 if not $orph; 
+
+	while (my $a = $sth->fetchrow_array()) {
+		$orph = $orph.",".$a; 		
+	}
+	
+	$sth = $self->prepare("DELETE FROM reference WHERE reference_id IN($orph)"); 
+	$sth->execute;
+		
+	return $sth->rows;  
+}

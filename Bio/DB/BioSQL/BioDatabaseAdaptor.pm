@@ -289,3 +289,47 @@ sub store{
 
    return $id;
 }
+
+
+=head2 remove
+
+ Title   : remove
+ Usage   : remove(database_name)
+ Function: Deletes biodatabase from SQL database. 
+ Example : 
+ Returns : 
+ Args    : name of the database to be deleted
+
+=cut
+
+
+
+sub remove_by_name{
+   my ($self,$name) = @_;
+   $self->throw("No database name specified") unless ($name);  	
+   
+   my $dbid = $self->fetch_by_name($name); 
+   
+   if( !defined $dbid ) {
+       $self->throw("Unable to find database $name");
+   }
+   
+   	my $sth = $self->prepare("DELETE FROM biodatabase WHERE biodatabase_id=$dbid"); 
+	$sth->execute; 
+
+# Finding bioentries that belong to the database 
+
+	$sth = $self->prepare("SELECT bioentry_id FROM bioentry WHERE biodatabase_id=$dbid");
+	$sth->execute();
+	my $be = $sth->fetchrow_array(); 
+	while (my $a = $sth->fetchrow_array) {
+		$be = $be.",".$a; 
+	}
+	
+	return unless $be; 
+	
+#	$self->db->get_SeqAdaptor->remove_by_dbID(@be);  
+
+	   
+}
+

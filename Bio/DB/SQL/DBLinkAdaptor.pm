@@ -157,3 +157,26 @@ sub store{
 
    return;
 }
+
+
+=head2 remove_by_bioentry_id
+
+ Title   : remove_by_bioentry_id
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+
+sub remove_by_bioentry_id {
+	my($self) = shift; 
+	
+	my ($be) = join (",",@_);
+	
+	my $sth = $self->prepare("DELETE FROM bioentry_direct_links WHERE source_bioentry_id IN ($be)"); 
+	$sth->execute(); 
+}

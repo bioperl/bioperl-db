@@ -217,3 +217,71 @@ sub _store_component{
 }
 
 1;
+
+
+=head2 remove_by_dbID
+
+ Title   : remove_by_dbID
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub remove_by_dbID{
+   	my ($self) = shift;
+	
+	my ($dbID) = join (",",@_); 
+	
+	# seqfeature_location	
+	my $sth = $self->prepare("DELETE FROM seqfeature_location WHERE seqfeature_id IN($dbID)");
+	$sth->execute();
+	
+	$self->_clean_orphans(); 
+	return $sth->rows; 
+}
+
+
+=head2 _clean_orphans
+
+ Title   : _clean_orphans
+ Usage   : 
+ Function: Checks the remote_seqfeature_name table for entries that are not linked to any record in seqfeature_location and deletes such entries. 
+ Example :
+ Returns : number of records deleted
+ Args    : none
+
+
+=cut
+
+sub _clean_orphans {
+
+	my($self) = shift; 
+
+	my $sth = $self->prepare(
+			"select remote_seqfeature_name.seqfeature_location_id from remote_seqfeature_name ".
+			"left join seqfeature_location on ".
+			"remote_seqfeature_name.seqfeature_location_id  = seqfeature_location.seqfeature_location_id  where ".
+			"seqfeature_location.seqfeature_location_id is NULL" )	;
+	
+	
+	$sth->execute(); 
+	
+	
+	my $orph = $sth->fetchrow_array(); 	
+	return 0 if not $orph; 
+
+	while (my $a = $sth->fetchrow_array()) {
+		$orph = $orph.",".$a; 		
+	}
+	
+	$sth = $self->prepare("DELETE FROM remote_seqfeature_name WHERE seqfeature_location_id IN($orph)"); 
+	$sth->execute;
+		
+	return $sth->rows;  
+}
+
+1; 

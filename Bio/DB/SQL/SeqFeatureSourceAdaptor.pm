@@ -137,4 +137,46 @@ sub store_if_needed{
    }
 }
 
+
+=head2 _clean_orphans
+
+ Title   : _clean_orphans
+ Usage   : 
+ Function: Checks the seqfeature_souce table for entries that are not linked to any record in seqfeature and deletes such entries. 
+ Example :
+ Returns : number of references deleted
+ Args    : none
+
+
+=cut
+
+sub _clean_orphans {
+
+	my($self) = shift; 
+
+	my $sth = $self->prepare(
+			"select seqfeature_source.seqfeature_source_id from seqfeature_source ".
+			"left join seqfeature on ".
+			"seqfeature_source.seqfeature_source_id = seqfeature.seqfeature_source_id where ".
+			"seqfeature.seqfeature_source_id is NULL" )	;
+	
+	
+	$sth->execute(); 
+	
+	
+	my $orph = $sth->fetchrow_array(); 	
+	return 0 if not $orph; 
+
+	while (my $a = $sth->fetchrow_array()) {
+		$orph = $orph.",".$a; 		
+	}
+	
+	$sth = $self->prepare("DELETE FROM seqfeature_source WHERE seqfeature_souce_id IN($orph)"); 
+	$sth->execute;
+		
+	return $sth->rows;  
+}
+
+
+
 1;

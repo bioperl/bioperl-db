@@ -501,6 +501,66 @@ sub store{
 
 }
 
+
+=head2 remove_by_dbID 
+
+ Title   : remove
+ Usage   : $seq_adaptor->remove_by_dbID($db_id) or $seq_adaptor->remove_by_dbID(@db_ids)
+ Function: removes sequence(s) by their database IDs
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub remove_by_dbID {
+	my ($self) = shift;
+	
+	my ($be) = join ",", @_; 
+	
+	$self->throw("Required parameter sequence dbID is missing") unless $be;  
+
+	$self->db->get_SeqFeatureAdaptor->remove_by_bioentry_id(@_); 
+	$self->db->get_DBLinkAdaptor->remove_by_bioentry_id(@_); 
+	$self->db->get_ReferenceAdaptor->remove_by_bioentry_id(@_); 	
+	
+
+# Simple Job - removing records from tables that are not linked to anything else	
+	
+	my @simple_tables = qw( bioentry                   
+						 bioentry_date              
+						 bioentry_description       						       
+						 bioentry_keywords          
+						 bioentry_taxa              
+						 biosequence                
+						 comment);
+
+	foreach my $tab (@simple_tables)  {
+		my $sth = $self->prepare("DELETE FROM $tab WHERE bioentry_id IN($be)");
+		$sth->execute(); 
+	}
+
+	
+}
+
+sub remove_by_db_and_accession {
+   my ($self,$db,$accession) = @_;
+
+   my $sth = $self->prepare("select en.bioentry_id from bioentry en, biodatabase biodb where biodb.name = '$db' AND en.biodatabase_id = biodb.biodatabase_id AND en.accession = '$accession'");
+   $sth->execute;
+
+   my ($enid) = $sth->fetchrow_array();
+
+   if( defined $enid ) {
+       $self->remove_by_dbID($enid); 
+   } else {
+       $self->throw("Unable to retrieve sequence with $db and $accession");
+   }
+   
+}
+
+
 =head2 get_dates
 
  Title   : get_dates

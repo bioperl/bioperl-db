@@ -194,3 +194,74 @@ sub store{
 }
 
 
+
+
+=head2 remove_by_bioentry_id
+
+ Title   : remove_by_bioentry_id
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub remove_by_bioentry_id{
+   my ($self) = shift;
+   
+   my ($be) = join ",", @_; 
+
+   	my $sth = $self->prepare("select seqfeature_id from seqfeature where bioentry_id IN ($be)");
+   	$sth->execute;
+	my @sf = $sth->fetchrow_array;
+	
+	if (@sf) {
+		my $counter = 1; 
+	}
+	else {
+		return 0; 
+	}
+	
+	while (my $a = $sth->fetchrow_array) {
+		unshift @sf, $a; 
+	}
+	
+	return $self->remove_by_dbID(@sf); 
+}
+
+=head2 remove_by_dbID
+
+ Title   : remove_by_dbID
+ Usage   : 
+ Function: 
+ Example : 
+ Returns : 
+ Args    : @dbID - an array of seqfeature identifiers (seqfeature.seqfeature_id)
+
+
+=cut
+
+sub remove_by_dbID{
+	my ($self) = shift; 
+	my ($sf) = join (",", @_); 
+	
+	my $sth = $self->prepare("DELETE FROM seqfeature WHERE seqfeature_id IN($sf)");
+	$sth->execute();
+	$sth->finish;	
+	
+	
+	$self->db->get_SeqLocationAdaptor->remove_by_dbID(@_); 
+	
+ 	$self->db->get_SeqFeatureSourceAdaptor->_clean_orphans; 
+ 	$self->db->get_SeqFeatureKeyAdaptor->_clean_orphans; 
+ 
+	
+	$sth = $self->prepare("DELETE FROM seqfeature_qualifier_value WHERE seqfeature_id IN($sf)");
+	$sth->execute();
+	$self->db->get_SeqFeatureQualifierAdaptor->_clean_orphans; 
+
+	
+	return ++$#_; 	
+}

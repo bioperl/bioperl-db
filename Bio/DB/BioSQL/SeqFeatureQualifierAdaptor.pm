@@ -135,4 +135,46 @@ sub store_if_needed{
    }
 }
 
+=head2 _clean_orphans
+
+ Title   : _clean_orphans
+ Usage   : 
+ Function: Checks the seqfeature_qualifier table for entries that are not linked to any record in seqfeature_qualifier_value and deletes such entries. 
+ Example :
+ Returns : number of references deleted
+ Args    : none
+
+
+=cut
+
+sub _clean_orphans {
+
+	my($self) = shift; 
+
+	my $sth = $self->prepare(
+			"select seqfeature_qualifier.seqfeature_qualifier_id from seqfeature_qualifier ".
+			"left join seqfeature_qualifier_value on ".
+			"seqfeature_qualifier.seqfeature_qualifier_id = seqfeature_qualifier_value.seqfeature_qualifier_id where ".
+			"seqfeature_qualifier_value.seqfeature_qualifier_id is NULL" )	;
+	
+	
+	$sth->execute(); 
+	
+	
+	my $orph = $sth->fetchrow_array(); 	
+	return 0 if not $orph; 
+
+	while (my $a = $sth->fetchrow_array()) {
+		$orph = $orph.",".$a; 		
+	}
+	
+	$sth = $self->prepare("DELETE FROM seqfeature_qualifier WHERE seqfeature_qualifier_id IN($orph)"); 
+	$sth->execute;
+		
+	return $sth->rows;  
+}
+
+
+
+
 1;

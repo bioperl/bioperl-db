@@ -2,16 +2,11 @@
 #
 # BioPerl module for Bio::DB::BioSQL::ClusterAdaptor
 #
-# Cared for by Ewan Birney  <birney@ebi.ac.uk>
-#
-# Copyright Ewan Birney 
+# Cared for by Hilmar Lapp, hlapp at gmx.net
 #
 # You may distribute this module under the same terms as perl itself
 
 # 
-# Completely rewritten by Hilmar Lapp, hlapp at gmx.net
-#
-# Version 1.14 and beyond is also
 # (c) Hilmar Lapp, hlapp at gmx.net, 2002.
 # (c) GNF, Genomics Institute of the Novartis Research Foundation, 2002.
 #
@@ -59,9 +54,8 @@ Report bugs to the Bioperl bug tracking system to help us keep track
   bioperl-bugs@bio.perl.org
   http://bugzilla.bioperl.org/
 
-=head1 AUTHOR - Ewan Birney, Hilmar Lapp
+=head1 AUTHOR - Hilmar Lapp
 
-Email birney@ebi.ac.uk
 Email hlapp at gmx.net
 
 =head1 APPENDIX

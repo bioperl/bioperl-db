@@ -1,5 +1,5 @@
 
-%packages =(); 
+%packages =('DBI' => '0.0/Database Access/For all of this package one needs the DBI module'); 
 
 sub check_package {
     my ($name,$str) = @_;

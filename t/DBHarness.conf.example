@@ -1,16 +1,16 @@
-# $Id: DBHarness.conf.example,v 1.7 2003-04-17 01:43:06 lapp Exp $
+# $Id: DBHarness.conf.example,v 1.8 2003-07-10 22:25:26 lapp Exp $
 
 # FILE: t/DBHarness.conf.example
 # 
 # These are the default values for the test db configuration.  Copy
-# this file to t/DBHarness.biosql.conf and t/DBHarness.markerdb.conf and edit
-# to change the defaults.
+# this file to t/DBHarness.biosql.conf and edit to change the defaults.
+#
+# Note: You *must* execute the step above. The tests will *not* work without
+# it.
 
 {
     # DBD driver to use - mandatory
-    # note that you may use different drivers for biosql and markerdb; in
-    # fact, only mysql is supported for markerdb, whereas for biosql Pg
-    # and Oracle are supported too
+    # mysql, Pg, and Oracle are supported for biosql
 
     # for MySQL:
     'driver'        => 'mysql',
@@ -35,21 +35,21 @@
 
     # schema file - mandatory if you don't specify dbname below
     'schema_sql'    => [ '../biosql-schema/sql/biosqldb-mysql.sql'],
-    # or for the marker database (comment the line above and uncomment
-    # the one below for DBHarness.markerdb.conf)
-    #'schema_sql'    => [ './sql/markerdb-mysql.sql'],
 
     # Uncomment and set to the name of your pre-built database if you don't
     # want the the test scripts to build a temporary database from scratch at
     # the beginning and destroy it at the end. Note that if you uncomment
     # this, the respective database _must_ exist, or else all tests will fail.
+    #
+    # Note that it is recommended to pre-build your database for PostgreSQL
+    # and Oracle. In fact, I've never tested on Oracle without pre-building
+    # the database ...
 
     #'dbname'        => 'biosql',
 
     # The name of the database within bioperl-db
-    # There is right now two possible values:
+    # There is right now only one possible value:
     #   'biosql' for the biosql adaptors
-    #   'map' for the markerdb adaptors
     'database'      => 'biosql',
 
 }

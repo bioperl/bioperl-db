@@ -373,7 +373,7 @@ foreach $file ( @files ) {
     # create a handle if it's not one already
     if(! ref($fh)) {
 	$fh = gensym;
-	my $fspec = $uncompress ? "gunzip -d $file |" : "<$file";
+	my $fspec = $uncompress ? "gunzip -c $file |" : "<$file";
 	if(! open($fh, $fspec)) {
 	    warn "unable to open $file for reading, skipping: $!\n";
 	    next;

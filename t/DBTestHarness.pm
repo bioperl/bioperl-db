@@ -204,7 +204,7 @@ sub create_db {
     my $locator = 'dbi:'. $self->driver .':host='. $self->host .';';
     if ($self->driver eq "Pg") {
         # HACK! with DBD::Pg we *must* connect to a db
-        $locator = 'dbi:Pg:dbname=bioperltest';
+        $locator = 'dbi:Pg:dbname=template1';
         $locator .= ";host=".$self->host if $self->host;
     }
     print STDERR "locator:$locator\n" if $ENV{SQL_TRACE};
@@ -221,11 +221,13 @@ sub create_db {
 
 sub test_locator {
     my( $self ) = @_;
-    
-    my $locator = 'dbi:'. $self->driver .':database='. $self->dbname;
-    #if ($self->driver eq 'Pg') {
-    #    $locator = 'dbi:Pg:dbname='. $self->dbname;
-    #}
+
+    my %dbname_param = ("mysql"  => "database=",
+			"Pg"     => "dbname=",
+			"Oracle" => "");
+
+    my $locator = 'dbi:'. $self->driver .":". $dbname_param{$self->driver()} .
+	$self->dbname;
     foreach my $meth (qw{ host port }) {
         if (my $value = $self->$meth()) {
             $locator .= ";$meth=$value";
@@ -310,14 +312,29 @@ sub validate_sql {
 
 sub DESTROY {
     my( $self, $file ) = @_;
-    
-    if (my $dbh = $self->db_handle) {
-	#my $db_name = $self->dbname();
-        foreach my $db_name (@{$self->{"_created_dbs"}}) {
-	    $dbh->do("DROP DATABASE $db_name");
-	}
-        $dbh->disconnect;
+    my $dbh = $self->db_handle();
+
+    if($dbh) {
+	$dbh->disconnect;
+	$dbh = undef;
     }
+    while(my $db_name = shift(@{$self->{"_created_dbs"}})) {
+	if(! $dbh) {
+	    ### FIXME: not portable between different drivers
+	    my $locator = 'dbi:'. $self->driver .':host='. $self->host .';';
+	    if ($self->driver eq "Pg") {
+		# HACK! with DBD::Pg we *must* connect to a db
+		$locator = 'dbi:Pg:dbname=template1';
+		$locator .= ";host=".$self->host if $self->host;
+	    }
+	    my $db = DBI->connect($locator, $self->user, $self->password,
+				  {RaiseError => 0})
+		or warn "Can't connect to server ($locator), ".
+		        "can't drop database $db_name: $@\n";
+	}
+	$dbh->do("DROP DATABASE $db_name") if $dbh;
+    }
+    $dbh->disconnect() if $dbh;
 }
 
 1;

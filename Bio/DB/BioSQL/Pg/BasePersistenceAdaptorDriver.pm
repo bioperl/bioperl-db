@@ -55,17 +55,15 @@ of the bugs and their resolution. Bug reports can be submitted via
 email or the web:
 
   bioperl-bugs@bioperl.org
-  http://bioperl.org/bioperl-bugs/
+  http://bugzilla.bioperl.org/
 
 =head1 AUTHOR - Yves Bastide
 
 Email ybastide at irisa.fr
 
-Describe contact details here
-
 =head1 CONTRIBUTORS
 
-Additional contributors names and emails here
+ Hilmar Lapp, hlapp at gmx.net
 
 =head1 APPENDIX
 
@@ -103,10 +101,13 @@ my %object_entity_map = (
 		"Bio::DB::BioSQL::BiosequenceAdaptor" => "biosequence",
 		"Bio::SeqFeatureI"                    => "seqfeature",
 		"Bio::DB::BioSQL::SeqFeatureAdaptor"  => "seqfeature",
-		"Bio::Species"                        => "taxon",
-		"Bio::DB::BioSQL::SpeciesAdaptor"     => "taxon",
-		"Bio::LocationI"                      => "seqfeature_location",
-		"Bio::DB::BioSQL::LocationAdaptor"    => "seqfeature_location",
+		"Bio::Species"                        => "taxon_name",
+		"Bio::DB::BioSQL::SpeciesAdaptor"     => "taxon_name",
+		# TaxonNode is a hack: there is no such object, but we need it
+		# to distinguish between the node and the name table
+		"TaxonNode"                           => "taxon",
+		"Bio::LocationI"                      => "location",
+		"Bio::DB::BioSQL::LocationAdaptor"    => "location",
 		"Bio::DB::BioSQL::BioNamespaceAdaptor"=> "biodatabase",
 		"Bio::DB::Persistent::BioNamespace"   => "biodatabase",
 		"Bio::Annotation::DBLink"             => "dbxref",
@@ -115,38 +116,40 @@ my %object_entity_map = (
 		"Bio::DB::BioSQL::CommentAdaptor"     => "comment",
 		"Bio::Annotation::Reference"          => "reference",
 		"Bio::DB::BioSQL::ReferenceAdaptor"   => "reference",
-		"Bio::Annotation::SimpleValue"        => "ontology_term",
-		"Bio::DB::BioSQL::SimpleValueAdaptor" => "ontology_term",
-		"Bio::Annotation::OntologyTerm"       => "ontology_term",
-		"Bio::Ontology::TermI"                => "ontology_term",
-		"Bio::DB::BioSQL::TermAdaptor"        => "ontology_term",
+		"Bio::Annotation::SimpleValue"        => "term",
+		"Bio::DB::BioSQL::SimpleValueAdaptor" => "term",
+		"Bio::Annotation::OntologyTerm"       => "term",
+		"Bio::Ontology::TermI"                => "term",
+		"Bio::DB::BioSQL::TermAdaptor"        => "term",
+                "Bio::Ontology::OntologyI"            => "ontology",
+		"Bio::DB::BioSQL::OntologyAdaptor"    => "ontology",
 		   );
 my %association_entity_map = (
 	 "bioentry" => {
-	     "dbxref"         => "bioentry_dblink",
+	     "dbxref"         => "bioentry_dbxref",
 	     "reference"      => "bioentry_reference",
-	     "ontology_term"  => "bioentry_qualifier_value",
+	     "term"           => "bioentry_qualifier_value",
 	     "bioentry"       => {
-		 "ontology_term" => "bioentry_relationship",
+		 "term"       => "bioentry_relationship",
 	     }
 	 },
 	 "seqfeature" => {
-	     "ontology_term"  => "seqfeature_qualifier_value",
-	     "dbxref"         => undef,
+	     "term"           => "seqfeature_qualifier_value",
+	     "dbxref"         => "seqfeature_dbxref",
 	     "reference"      => undef,
 	     "seqfeature"     => {
-		 "ontology_term" => "seqfeature_relationship",
+		 "term"       => "seqfeature_relationship",
 	     }
 	 },
 	 "dbxref"   => {
-	     "bioentry"       => "bioentry_dblink",
-	     "seqfeature"     => undef,
+	     "bioentry"       => "bioentry_dbxref",
+	     "seqfeature"     => "seqfeature_dbxref",
 	 },
 	 "reference"   => {
 	     "bioentry"       => "bioentry_reference",
 	     "seqfeature"     => undef,
 	 },
-	 "ontology_term" => {
+	 "term" => {
 	     "bioentry"       => "bioentry_qualifier_value",
 	     "seqfeature"     => "seqfeature_qualifier_value",
 	 },
@@ -156,20 +159,36 @@ my %slot_attribute_map = (
 	     "namespace"      => "name",
 	     "authority"      => "authority",
 	 },
-	 "taxon" => {
-	     "classification" => "full_lineage",
-	     "common_name"    => "common_name",
+	 "taxon_name" => {
+	     "classification" => undef,
+	     "common_name"    => undef,
 	     "ncbi_taxid"     => "ncbi_taxon_id",
-	     "binomial"       => "binomial",
-	     "variant"        => "variant",
+	     "binomial"       => "name",
+	     "variant"        => undef,
+	     # the following are hacks: there is no such thing on
+	     # the object model. The sole reason they are here is so that you
+	     # can set the physical column name of your taxon_name table.
+	     # You MUST have these columns on the taxon node table, NOT the
+	     # taxon name table.
+	     "name_class"     => "name_class",
+	     "node_rank"      => "node_rank",
+	     "parent_taxon"   => "parent_taxon_id",
+	 },
+	 "taxon" => {
+	     "ncbi_taxid"     => "ncbi_taxon_id",
+	     # the following are hacks, see taxon_name mapping
+	     "name_class"     => "name_class",
+	     "node_rank"      => "node_rank",
+	     "parent_taxon"   => "parent_taxon_id",
 	 },
 	 "bioentry" => {
-	     "display_id"     => "display_id",
+	     "display_id"     => "name",
 	     "primary_id"     => "identifier",
 	     "accession_number" => "accession",
 	     "desc"           => "description",
 	     "description"    => "description",
-	     "version"        => "entry_version",
+	     "version"        => "version",
+	     "division"       => "division",
 	     "bionamespace"   => "biodatabase_id",
 	     "parent"         => "parent_bioentry_id",
 	     "child"          => "child_bioentry_id",
@@ -177,13 +196,13 @@ my %slot_attribute_map = (
 	 "bioentry_relationship" => {
 	     "parent"         => "parent_bioentry_id",
 	     "child"          => "child_bioentry_id",
+	     "rank"           => "rank",
 	 },
 	 "biosequence" => {
-	     "seq_version"    => "seq_version",
-	     "length"         => "seq_length",
-	     "seq"            => "biosequence_str",
+	     "seq_version"    => "version",
+	     "length"         => "length",
+	     "seq"            => "seq",
 	     "alphabet"       => "alphabet",
-	     "division"       => "division",
 	     "primary_seq"    => "bioentry_id",
 	 },
 	 "dbxref" => {
@@ -191,60 +210,75 @@ my %slot_attribute_map = (
 	     "primary_id"     => "accession",
 	     "version"        => "version",
 	 },
-	 "bioentry_dblink" => {
-	     "rank"           => undef,
+	 "bioentry_dbxref" => {
+	     "rank"           => "rank",
 	 },
 	 "reference" => {
-	     "authors"        => "reference_authors",
-	     "title"          => "reference_title",
-	     "location"       => "reference_location",
-	     "medline"        => "reference_identifier",
-	     "doc_id"         => "reference_crc",
+	     "authors"        => "authors",
+	     "title"          => "title",
+	     "location"       => "location",
+	     "medline"        => "dbxref_id",
+	     "doc_id"         => "crc",
 	     "start"          => "=>bioentry_reference.start",
 	     "end"            => "=>bioentry_reference.end",
 	 },
 	 "bioentry_reference" => {
-	     "start"          => "reference_start",
-	     "end"            => "reference_end",
-	     "rank"           => "reference_rank",
+	     "start"          => "start_pos",
+	     "end"            => "end_pos",
+	     "rank"           => "rank",
 	 },
-	 "comment"            => {
+	 "comment" => {
 	     "text"           => "comment_text",
-	     "rank"           => "comment_rank",
+	     "rank"           => "rank",
 	     "Bio::DB::BioSQL::SeqFeatureAdaptor" => undef,
 	 },
-         "ontology_term"      => {
-	     "identifier"     => "term_identifier",
-             "name"           => "term_name",
-	     "tagname"        => "term_name",
-             "definition"     => "term_definition",
-             "category"       => "category_id",
+         "term" => {
+	     "identifier"     => "identifier",
+             "name"           => "name",
+	     "tagname"        => "name",
+	     "is_obsolete"    => "is_obsolete",
+             "definition"     => "definition",
 	     "value"          => "=>{bioentry_qualifier_value,seqfeature_qualifier_value}.value",
+	     "ontology"       => "ontology_id",
+	 },
+         "ontology" => {
+             "name"           => "name",
+             "definition"     => "definition",
 	 },
          "bioentry_qualifier_value" => {
-	     "value"          => "qualifier_value",
-	     "rank"           => "qualifier_rank",
+	     "value"          => "value",
+	     "rank"           => "rank",
 	 },
-	 "seqfeature"         => {
-	     "display_name"   => undef,
-	     "rank"           => "seqfeature_rank",
-	     "primary_tag"    => "ontology_term_id",
-	     "source_tag"     => "seqfeature_source_id",
+	 "seqfeature" => {
+	     "display_name"   => "display_name",
+	     "rank"           => "rank",
+	     "primary_tag"    => "type_term_id",
+	     "source_tag"     => "source_term_id",
 	     "entire_seq"     => "bioentry_id",
+	     "parent"         => "parent_seqfeature_id",
+	     "child"          => "child_seqfeature_id",
 	 },
-	 "seqfeature_location" => {
-	     "start"          => "seq_start",
-	     "end"            => "seq_end",
-	     "strand"         => "seq_strand",
-	     "rank"           => "location_rank",
+	 "seqfeature_dbxref" => {
+	     "rank"           => "rank",
+	 },
+	 "location" => {
+	     "start"          => "start_pos",
+	     "end"            => "end_pos",
+	     "strand"         => "strand",
+	     "rank"           => "rank",
 	 },
 	 "seqfeature_qualifier_value" => {
-	     "value"          => "qualifier_value",
-	     "rank"           => "qualifier_rank",
+	     "value"          => "value",
+	     "rank"           => "rank",
+	 },
+	 "seqfeature_relationship" => {
+	     "parent"         => "parent_seqfeature_id",
+	     "child"          => "child_seqfeature_id",
+	     "rank"           => "rank",
 	 },
 			   );
 my %dont_select_attrs = (
-	 "biosequence.biosequence_str" => 1,
+	 "biosequence.seq" => 1,
 			);
 
 
@@ -292,7 +326,11 @@ sub new {
 sub primary_key_name{
     my ($self,$table) = @_;
 
-    $table = $self->table_name("Bio::BioEntry") if $table eq "biosequence";
+    if($table eq "biosequence") {
+	$table = $self->table_name("Bio::BioEntry");
+    } elsif($table eq "taxon_name") {
+	$table = $self->table_name("TaxonNode");
+    }
     return $self->SUPER::primary_key_name($table);
 }
 
@@ -313,7 +351,11 @@ sub primary_key_name{
 sub sequence_name{
     my ($self,$table) = @_;
 
-    $table = $self->table_name("Bio::BioEntry") if $table eq "biosequence";
+    if($table eq "biosequence") {
+	$table = $self->table_name("Bio::BioEntry");
+    } elsif($table eq "taxon_name") {
+	$table = $self->table_name("TaxonNode");
+    }
     return $table . "_pk_seq";
 }
 

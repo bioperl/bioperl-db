@@ -564,14 +564,17 @@ sub insert_object{
     # execute
     my $rv = $sth->execute();
     my $pk;
-    if($rv) {
-	# caveat: the insert may produce zero rows because internally the
-	# RDBMS encapsulation captures the exists-already condition
-	#
+    # Note: $rv may be 0E0 (evaluates to TRUE as a string) to indicate 
+    # success, but zero rows affected, which means no row was inserted.
+    # This may be (hopefully will be) due to an RDBMS having internally
+    # (by means of triggers [Oracle, Pg] or rules [Pg]) encapsulated and
+    # caught the already-exists condition.
+    if($rv && ($rv != 0)) {
 	# get the primary key that was just inserted
 	$pk = $adp->dbcontext()->dbi()->last_id_value(
 					   $dbh, $self->sequence_name($table));
-    } else {
+    } elsif(! $rv) { # note this is *not* equivalent to $rv == 0 !
+	# the statement failed
 	$self->warn("insert in ".ref($adp)." (driver) failed, values were (\"".
 		    join("\",\"",@$slotvals)."\") ".
 		    ($fkobjs ?

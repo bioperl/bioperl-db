@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::mysql::SpeciesAdaptorDriver
+# BioPerl module for Bio::DB::BioSQL::Pg::SpeciesAdaptorDriver
 #
 # Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
@@ -26,15 +26,16 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::mysql::SpeciesAdaptorDriver - DESCRIPTION of Object
+Bio::DB::BioSQL::Pg::SpeciesAdaptorDriver - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
-Give standard usage here
+    #
 
 =head1 DESCRIPTION
 
-Describe the object here
+ This is basically a copy-and-paste job from the mysql-specific file
+ of the very same name.
 
 =head1 FEEDBACK
 
@@ -75,23 +76,23 @@ Internal methods are usually preceded with a _
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::mysql::SpeciesAdaptorDriver;
+package Bio::DB::BioSQL::Pg::SpeciesAdaptorDriver;
 use vars qw(@ISA);
 use strict;
 
 # Object preamble - inherits from BasePersistenceAdaptorDriver
 
-use Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
+use Bio::DB::BioSQL::Pg::BasePersistenceAdaptorDriver;
 
-@ISA = qw(Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver);
+@ISA = qw(Bio::DB::BioSQL::Pg::BasePersistenceAdaptorDriver);
 
 
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::BioSQL::mysql::SpeciesAdaptorDriver();
- Function: Builds a new Bio::DB::BioSQL::mysql::SpeciesAdaptorDriver object 
- Returns : an instance of Bio::DB::BioSQL::mysql::SpeciesAdaptorDriver
+ Usage   : my $obj = new Bio::DB::BioSQL::Pg::SpeciesAdaptorDriver();
+ Function: Builds a new Bio::DB::BioSQL::Pg::SpeciesAdaptorDriver object 
+ Returns : an instance of Bio::DB::BioSQL::Pg::SpeciesAdaptorDriver
  Args    :
 
 

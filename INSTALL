@@ -64,8 +64,9 @@ The 'make install' step may require that you have root privileges.
 LOAD THE NCBI TAXONOMY
 
 It is advisable to pre-load the NCBI taxonomy database using the
-load_taxonomy.pl script in the BioSQL package. Otherwise you may see 
-errors from mis-parsed organisms when you attempt to load sequences.
+scripts/load_ncbi_taxonomy.pl script in the BioSQL package. Otherwise 
+you may see errors from mis-parsed organisms when you attempt to load 
+sequences.
 
 
 LOAD SEQUENCE DATA
@@ -84,6 +85,7 @@ for more information.
 
 This script has many options to flexibly deal with various update
 scenarios. Do read the POD before running an update.
+
 
 LOAD ONTOLOGIES
 
@@ -112,6 +114,7 @@ FEEDBACK
 Write down any problems or praise and send them to 
 bioperl-l@bioperl.org  ;-)
 
+
 INSTALLING bioperl-db ON WINDOWS
 
 The following is a report sent by Chris Fields, cjfields at uiuc.edu.
@@ -123,8 +126,8 @@ what I did:
 1) Install Activestate's free Perl package (the latest version of Perl 5.8).
 
 2) Using PPM, install Bioperl.  There are installation instructions
-   for this on the website, and I think Sudha has progressed at least
-   this far.
+   for this on the website.
+
 3) Install your database of choice.  I installed MySQL (which has a
    Windows installer).
 
@@ -165,7 +168,7 @@ what I did:
 
         d)  You don't have nmake?!?  get the old nmake here:
 
-                <http://download.microsoft.com/download/vc15/Patch/1.52/W95/EN-US/Nmake15.exe>http://download.microsoft.com/download/vc15/Patch/1.52/W95/EN-US/Nmake15.exe
+http://download.microsoft.com/download/vc15/Patch/1.52/W95/EN-US/Nmake15.exe
 
         e) nmake also comes with MSVC++.  You don't have MSVC++?!?
         Don't panic yet, because...

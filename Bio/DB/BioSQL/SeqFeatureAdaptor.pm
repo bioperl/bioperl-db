@@ -111,7 +111,7 @@ sub fetch_by_dbIDs {
        my $generic = Bio::SeqFeature::Generic->new();
        my $sfid = $row->{seqfeature_id};
        $sfh->{$sfid} = $generic;
-       my ($key,$source) = ($row->{key}, $row->{source});
+       my ($key,$source) = ($row->{key_name}, $row->{source_name});
 
        $generic->primary_tag($key);
        $generic->source_tag($source);

@@ -376,9 +376,9 @@ sub top_SeqFeatures{
 sub all_SeqFeatures{
    my ($self,@args) = @_;
 
-   $self->warn("Features not implemented yet in Bio::DB::Seq");
+   $self->warn("all_SeqFeatures not implemented with recursion. Chaining to top_SeqFeatures");
 
-   return ();
+   return $self->top_SeqFeatures;
 }
 
 

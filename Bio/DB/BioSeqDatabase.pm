@@ -107,9 +107,9 @@ sub new {
 =cut
 
 sub get_Seq_by_id {
-    my ($self,$id) = @_;
+    my ($self,$id,$cache) = @_;
 
-    return $self->_adaptor->fetch_Seq_by_display_id($self->_dbid,$id);
+    return $self->_adaptor->fetch_Seq_by_display_id($self->_dbid,$id,$cache);
 }
 
 
@@ -126,9 +126,9 @@ sub get_Seq_by_id {
 =cut
 
 sub get_Seq_by_acc {
-    my ($self,$acc) = @_;
+    my ($self,$acc,$cache) = @_;
 
-    return $self->_adaptor->fetch_Seq_by_accession($self->_dbid,$acc);
+    return $self->_adaptor->fetch_Seq_by_accession($self->_dbid,$acc,$cache);
 }
 
 
@@ -203,9 +203,9 @@ sub get_all_primary_ids{
 =cut
 
 sub get_Seq_by_primary_id {
-   my ($self,$id) = @_;
+   my ($self,$id,$cache) = @_;
 
-   return $self->_adaptor->db->get_SeqAdaptor->fetch_by_dbID($id);
+   return $self->_adaptor->db->get_SeqAdaptor->fetch_by_dbID($id,$cache);
 }
 
 

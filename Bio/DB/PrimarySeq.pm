@@ -233,9 +233,19 @@ sub length{
 
 sub seq{
    my ($self,@args) = @_;
+   my ($cache) = $self->_rearrange([qw(CACHE)],@args);
+   if($cache){
+       $self->{'_seq'} = $self->adaptor->get_seq_as_string($self->primary_id);
+   }
+   if($self->{'_seq'}){
+       return $self->{'_seq'};
+   }
+   else {
+    return $self->adaptor->get_seq_as_string($self->primary_id);
+   }
+
 
    # never cache sequences. Quite sane.
-   return $self->adaptor->get_seq_as_string($self->primary_id);
 }
 
 =head2 subseq

@@ -204,7 +204,7 @@ sub fetch_BioSeqDatabase_by_name{
 =cut
 
 sub fetch_Seq_by_display_id{
-   my ($self,$dbid,$id) = @_;
+   my ($self,$dbid,$id,$cache) = @_;
 
    my $sth = $self->prepare("select bioentry_id from bioentry where biodatabase_id = $dbid and display_id = '$id'");
    $sth->execute;
@@ -213,7 +213,7 @@ sub fetch_Seq_by_display_id{
    if( !defined $bid ) {
        $self->throw("Unable to find sequence in $dbid database for $id");
    }
-   return $self->db->get_SeqAdaptor->fetch_by_dbID($bid);
+   return $self->db->get_SeqAdaptor->fetch_by_dbID($bid,$cache);
 }
 
 =head2 fetch_Seq_by_display_id
@@ -229,7 +229,7 @@ sub fetch_Seq_by_display_id{
 =cut
 
 sub fetch_Seq_by_accession{
-   my ($self,$dbid,$acc) = @_;
+   my ($self,$dbid,$acc,$cache) = @_;
 
    #print STDERR "Asking for accession $acc with select bioentry_id from bioentry where biodatabase_id = $dbid and accession = '$acc'\n";
    my $sth = $self->prepare("select bioentry_id from bioentry where biodatabase_id = $dbid and accession = '$acc'");
@@ -240,7 +240,7 @@ sub fetch_Seq_by_accession{
    if( !defined $bid ) {
        $self->throw("Unable to find sequence in $dbid database for $acc");
    }
-   return $self->db->get_SeqAdaptor->fetch_by_dbID($bid);
+   return $self->db->get_SeqAdaptor->fetch_by_dbID($bid,$cache);
 }
 
 =head2 list_biodatabase_ids

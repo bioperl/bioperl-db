@@ -86,7 +86,7 @@ use Bio::DB::BioSQL::SqlQuery;
 =cut
 
 sub fetch_by_dbID{
-   my ($self,$id) = @_;
+   my ($self,$id,$cache) = @_;
 
    if( !defined $id || $id !~ /^\d+$/) {
        $self->throw("Must have an id to fetch by id! (and it must be a number not [$id])");
@@ -111,6 +111,9 @@ sub fetch_by_dbID{
                                 '-alphabet'   => $mol,
                                 '-division'   => $div,
                                 '-adaptor'    => $self);
+   if($cache){
+       $seq->seq(-cache=>1);
+    }
    my $DESC_ID =
      $self->db->get_OntologyTermAdaptor->DESCRIPTION_ID;
    my $desc =
@@ -137,7 +140,7 @@ sub fetch_by_dbID{
 =cut
 
 sub fetch_by_db_and_accession{
-   my ($self,$db,$accession) = @_;
+   my ($self,$db,$accession,$cache) = @_;
 
    my $sth = $self->prepare("select en.bioentry_id from bioentry en, biodatabase biodb where biodb.name = '$db' AND en.biodatabase_id = biodb.biodatabase_id AND en.accession = '$accession'");
    $sth->execute;
@@ -146,7 +149,7 @@ sub fetch_by_db_and_accession{
 
    if( defined $enid ) {
        # this is not well optimised. We could share common object building code here.
-       return $self->fetch_by_dbID($enid);
+       return $self->fetch_by_dbID($enid,$cache);
    } else {
        $self->throw("Unable to retrieve sequence with $db and $accession");
    }

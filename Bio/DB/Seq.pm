@@ -156,8 +156,17 @@ sub primary_seq{
 
 sub seq{
    my ($self,@args) = @_;
+   my ($cache) = $self->_rearrange([qw(CACHE)],@args);
+   if($cache){
+       $self->{'_seq'} = $self->primary_seq->seq;
+   }
+   if($self->{'_seq'}){
+       return $self->{'_seq'};
+   }
+   else {
+    return $self->primary_seq->seq;
+   }
 
-   return $self->primary_seq->seq;
 }
 
 =head2 subseq

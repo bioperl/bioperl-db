@@ -68,6 +68,30 @@ or
 
 for more information.
 
+This script has many options to flexibly deal with various update
+scenarios. Do read the POD before running an update.
+
+LOAD ONTOLOGIES
+
+Use scripts/biosql/load_ontology.pl in the bioperl-db
+package to load ontologies from flat files. Do:
+
+  >perldoc scripts/biosql/load_ontology.pl
+
+or
+
+  >scripts/biosql/load_ontology.pl --help
+
+for more information.
+
+This script has many options to flexibly deal with various update
+scenarios. Do read the POD before running an update. Also, some
+ontologies maintain obsoleted terms, for instance the Gene
+Ontology. Read the POD for possible options to deal with obsoleted
+terms; this is relevant even when you load the ontology the first
+time, as you may choose to keep obsoleted terms out of the database
+from the start.
+
 
 FEEDBACK
 

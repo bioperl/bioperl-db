@@ -122,65 +122,13 @@ queries.
 
 The second consequence was that every persistence adaptor is divided
 into two layers, the persistence adaptor itself which does not contain
-a single SQL phrase or query, and the its schema-specific driver which
+a single SQL phrase or query, and its schema-specific driver which
 implements those functions which cannot be accomplished without
 actually doing the concrete object-relational mapping.
-
 
 ===================================================================
 Information about Bio::DB::Map modules and database interface
 ===================================================================
 
-These modules are Copyright Jason Stajich 2001 and are licensed
-according to the perl Artistic license (see
-http://www.perl.com/pub/language/misc/Artistic.html).
+These modules have been deprecated and are no longer in the distribution.
 
-This project was started by Jason Stajich as an attempt to build a
-single normalized repository for marker and map data to facilitate map
-integration and exploring comparative genomic questions.  All queries
-should be addressed to bioperl list <bioperl-l@bioperl.org>.  More 
-information about this and related projects can be found at 
-http://bio.perl.org and http://www.open-bio.org.
-
-This project is very much in development. Currently the modules for 
-this project are in the Bio/Map directory. In the planning 
-stages are cgi scripts to interface with modules and allow researchers to
-integrate different map locations with sequence data.  
-
-Scripts for loading private genetic and marker maps are also to be
-provided.
-
-The following scripts have been removed from the bioperl-db package
-(please contact Jason Stajich for more information):
-
-download_marker_data.pl - automate downloading of marker information
-			  for local testing and faster installation
-
-load_marshfield_map.pl - load marshfield genetic map data from
-			 published data and associated marker primers
-			 from NCBI STS repository, either from local
-			 data or directly from the primary source
-			 (requires live internet connection).
-
-load_whitehead_markers.pl - load whitehead STS markers and related RH
-			    map information from 1997 publication,
-			    either from local data or directly from
-			    the primary source (requires live internet
-			    connection).
-
-load_genethon_data.pl - load genethon CA repeat markers and genetic
-			map from 1995 Nature publication, either from
-			local data or directly from the primary source
-			(requires live internet connection).
-
-load_genemap_data.pl - load genemap99 markers and map information from
-		       NCBI repository of the March 1999 published
-		       data, either from local data or directly from
-		       the primary source (requires live internet connection).
-
-
-===================================================================
-Information about modules formerly contained within this CVS module
-===================================================================
-
-Bio::EnsemblLite - Deprecated

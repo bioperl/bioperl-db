@@ -429,26 +429,33 @@ foreach $file ( @files ) {
 	eval {
 	    # set the adaptor variable before any operation which may throw
 	    # us out of the eval block
-	    $adp = $lseq->adaptor() if $lseq;
+	    $adp = $lseq ? $lseq->adaptor() : $db->get_object_adaptor($seq);
 	    # delete first if requested
 	    $lseq->remove() if $remove_flag && $lseq;
 	    # on update, skip the rest if we are not supposed to update
 	    if(! ($lseq && $no_update_flag)) {
-		# create a persistent object out of the seq
-		$pseq = $db->create_persistent($seq);
-		$adp = $pseq->adaptor();
+		# create a persistent object out of the seq if it's
+		# not one already (merge_objs may have touched it)
+		$pseq = $db->create_persistent($seq)
+		    unless $pseq->isa("Bio::DB::PersistentObjectI");
 		# store the primary key of what we found by lookup (this
 		# is going to be an udate then)
 		if($lseq && $lseq->primary_key) {
 		    $pseq->primary_key($lseq->primary_key);
 		}
-		$pseq->store();
+		$pseq->store(); # inserts if primary key not set
 	    }
 	    $adp->commit() unless $testonly_flag;
 	};
 	if ($@) {
 	    my $msg = "Could not store ".$seq->object_id().": $@\n";
-	    $adp->rollback();
+	    if($adp) {
+		$adp->rollback();
+	    } else {
+		$msg .= "\nFailed to load adaptor for ".ref($seq).
+		    " - not good. You may want to ctrl-c your run ".
+		    "if you had --safe switched on.";
+	    }
 	    &$throw($msg);
 	}
     }

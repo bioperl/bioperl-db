@@ -12,7 +12,7 @@
 
 =head1 NAME
 
-Bio::DB::SQL::SeqLocationAdaptor - 
+Bio::DB::SQL::SeqLocationAdaptor - An adaptor for retrieving sequence locations for a db.
 
 =head1 SYNOPSIS
 

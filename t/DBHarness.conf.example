@@ -1,4 +1,4 @@
-# $Id: DBHarness.conf.example,v 1.6 2002-10-08 04:07:09 lapp Exp $
+# $Id: DBHarness.conf.example,v 1.7 2003-04-17 01:43:06 lapp Exp $
 
 # FILE: t/DBHarness.conf.example
 # 
@@ -8,7 +8,16 @@
 
 {
     # DBD driver to use - mandatory
+    # note that you may use different drivers for biosql and markerdb; in
+    # fact, only mysql is supported for markerdb, whereas for biosql Pg
+    # and Oracle are supported too
+
+    # for MySQL:
     'driver'        => 'mysql',
+    # for Postgres:
+    #'driver'        => 'Pg',
+    # for Oracle:
+    #'driver'        => 'Oracle',
     
     # machine to connect to - mandatory
     'host'          => 'localhost',
@@ -17,14 +26,17 @@
     'user'          => 'biosql',
     
     # port the server is running on - optional
-    'port'          => '3306',
+    # you can leave this undefined if your DBI driver knows the default
+    # (mysql, Pg, and Oracle do)
+    #'port'          => '3306',
     
     # Password if needed
     'password'      => undef,
 
-    # mandatory - schema file
+    # schema file - mandatory if you don't specify dbname below
     'schema_sql'    => [ '../biosql-schema/sql/biosqldb-mysql.sql'],
-    # or for the marker database:
+    # or for the marker database (comment the line above and uncomment
+    # the one below for DBHarness.markerdb.conf)
     #'schema_sql'    => [ './sql/markerdb-mysql.sql'],
 
     # Uncomment and set to the name of your pre-built database if you don't
@@ -34,7 +46,10 @@
 
     #'dbname'        => 'biosql',
 
-    # The name of the database within bioperl-db (biosql or map)
+    # The name of the database within bioperl-db
+    # There is right now two possible values:
+    #   'biosql' for the biosql adaptors
+    #   'map' for the markerdb adaptors
     'database'      => 'biosql',
 
 }

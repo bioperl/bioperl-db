@@ -955,11 +955,10 @@ sub table_name{
 	   # if still no success, and it's not an adaptor, see which key it 
 	   # implements
 	   if(! ($tbl || $obj->isa("Bio::DB::PersistenceAdaptorI"))) {
-	       my ($class) = grep { $obj->isa($_); } keys %$objrel_map;
-	       if($class) {
-		   $tbl = $objrel_map->{$class};
-		   # cache for future use
-		   #$objrel_map->{ref($obj) || $obj} = $tbl;
+	       my (@classes) = grep { $obj->isa($_); } keys %$objrel_map;
+	       if(@classes) {
+		   @classes = &_order_classes_by_inheritance($obj,@classes);
+		   $tbl = $objrel_map->{$classes[0]};
 	       }
 	   }
        } else {
@@ -971,6 +970,13 @@ sub table_name{
 	   if(! $tbl) {
 	       # We may have a context appended. Strip the last component
 	       # and try to start over.
+	       #
+	       # Well, would be nice if we could do that. However, currently
+	       # context is appended with a '::' separator, so we can't tell
+	       # right away whether we'd be stripping off context or the module
+	       # from the path. In the absence of a method to determine what is
+	       # context and what is not, we can't go this route.
+	       #
 	       #@class = split(/::/, $obj);
 	       #pop(@class);
 	       #$tbl = $self->table_name(join('::', @class)) if @class;
@@ -978,6 +984,45 @@ sub table_name{
        }
    }
    return $tbl;
+}
+
+sub _order_classes_by_inheritance{
+    my ($obj, @classes) = @_;
+    my $class = ref($obj) || $obj;
+    my @sorted = ();
+
+    # recursion termination condition: an array of one or less elements
+    # is sorted already
+    return @classes if @classes <= 1;
+
+    # if there is a class equal to the class by which to order, that one
+    # moves to the top
+    my ($i) = grep { $classes[$_] eq $class; } (0..@classes-1);
+    if(defined($i)) {
+	splice(@classes,$i,1);
+	push(@sorted,$class);
+    }
+    # try to sort the rest
+    my $aryname = "${class}::ISA"; # this is a soft reference
+    # hence, allow soft refs
+    no strict "refs";
+    my @ancestors = @$aryname;
+    # and disallow again
+    use strict "refs";
+    # now loop over all ancestors in the order they are in the list of
+    # ancestors to sort the array
+    foreach my $ancestor (@ancestors) {
+	my @res = &_order_classes_by_inheritance($ancestor,@classes);
+	if(@res) {
+	    # remove those that are sorted and add to the list of sorted
+	    push(@sorted,@res);
+	    for($i = 0; $i < @res; $i++) {
+		@classes = grep { $_ ne $res[$i]; } @classes;
+	    }
+	}
+	last unless @classes > 0;
+    }
+    return @sorted;
 }
 
 =head2 association_table_name

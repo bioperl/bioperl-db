@@ -97,6 +97,7 @@ sub get_markers_for_region {
  Returns : Bio::DB::Map::MarkerI object or undef 
  Args    : -marker => $marker object to start with
            -direction => [1,-1]
+           -number => number of markers to retrieve
 =cut
 
 sub get_next_marker {

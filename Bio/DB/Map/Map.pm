@@ -116,30 +116,31 @@ sub get_markers_for_region{
 							'-start' => $start,
 							'-end'   => $end,
 							'-chrom' => $chrom);
+   return @markers;
 }
 
 =head2 get_next_marker
 
  Title   : get_next_marker
- Usage   : my $marker = $map->get_next_marker(-marker => $marker,
+ Usage   : my $marker = $map->get_next_marker(-marker    => $marker,
 					      -direction => 1);
  Function: returns the next marker in the map based on the given marker
            and either a positive or negative direction
  Returns : Bio::DB::Map::MarkerI object or undef 
- Args    : -marker => $marker Bio::DB::Map::MarkerI object to start with
+ Args    : -marker    => $marker Bio::DB::Map::MarkerI object to start with
            -direction => [1,-1]
+           -number    => number of markers to retrieve
 =cut
 
-sub get_next_marker{
-   my ($self,@args) = @_;
-   my ($marker,$direction) = $self->_rearrange([qw(MARKER DIRECTION)],
-					       @args);
-   if( !defined $marker ) {
-       $self->warn("Did not specify a marker to anchor the search");
-       return undef;
-   }
-   $direction = 1 unless defined $direction;
-
+sub get_next_marker {
+    my ($self,@args) = @_;
+    my ($marker,$direction,$number) = $self->_rearrange([qw(MARKER DIRECTION NUMBER)],
+							@args);
+    my @markers = $self->adaptor->get_next_marker('-markerid'  => $marker->id,
+				    '-mapid'     => $self->id,
+				    '-direction' => $direction,
+				    '-number'    => $number);
+    return @markers;
 }
 
 =head2 chrom_length

@@ -10,7 +10,7 @@
 The scalability issue will arise, when multiple huge bio databases are loaded
 in a single database in RDBMS, due to the scalability of the RDBMS. So one 
 solution to solve it is simply to distribute them into multiple physical 
-database, while I expect to manage them by one logic adaptor.
+database, while a user expects to manage them by one logic adaptor.
 
 So here you go, MultiDB aims at such issue to solve. The way to apply that is
 pretty simple. You, first, load data from different biodatabase, such as 
@@ -42,6 +42,11 @@ $multiDB->namespace('swissport');
 
 my $pseq = $multiDB->create_persistent($seq);
 $pseq->store;
+
+
+# If you want to fetch a seq, then you have to specify namespace for multiDB first
+$multiDB->namespace('swissport');
+$pseq = $multiDB->get_object_adaptor->find_by_unique_key($seq);
 
 =cut 
 
@@ -76,7 +81,7 @@ sub _namespace_dbs{
     if (exists $self->{_namespace_dbs}->{$key}){
 		return $self->{_namespace_dbs}->{$key};
 	}elsif(!defined $value){
-		$self->throw("Cannot find \'$key\' as namespace. It may not regiested");
+#		$self->throw("Cannot find \'$key\' as namespace. It may not regiested");
 	}
 
     return $self->{_namespace_dbs}->{$key} = $value if $value;
@@ -151,6 +156,62 @@ sub get_object_adaptor{
     $adpclass = $db->get_object_adaptor($class, $dbc);
 
     return $adpclass;
+}
+
+sub find_by_unique_key{
+    my ($self, $key) = @_;
+    
+    if($key->can('namespace')){
+        if(defined(my $namespace = $key->namespace)){
+            my $db = $self->_namespace_dbs($namespace);
+            if(defined $db){
+                my $adaptor = $db->get_object_adaptor($key);
+                return $adaptor->find_by_unique_key($key);
+            }
+        }
+    }
+
+    # namespace is unknown from the key, so search for all registered db(s).
+    eval{require Thread;};
+    if($@){
+#        $self->throw("Failed to load Thread:\n$@");
+        
+        # The non-thread approach
+        my @keys;
+        foreach(keys %{$self->{_namespace_dbs}} ){
+            my $db = $self->_namespace_dbs($_);
+            $key->namespace($_);
+            my $adaptor = $db->get_object_adaptor($key);
+            my $result = $adaptor->find_by_unique_key($key);
+			push @keys, $result if defined $result;
+        }
+        return @keys;
+    }
+    
+    my @threads;
+    foreach(keys %{$self->{_namespace_dbs}} ){
+        my $db = $self->_namespace_dbs($_);
+        my $adaptor = $db->get_object_adaptor($key);
+        my $t = Thread->new(
+            sub{
+                return shift->find_by_unique_key(shift);
+            }, 
+            $adaptor, $key);
+        push @threads, $t;
+    }
+
+    my @keys;
+    foreach(@threads){
+        my $result = $_->join();
+        push @keys, $result if defined $result;
+    }
+
+    return @keys;
+}
+
+sub _find_by_unique_key{
+    my ($adaptor, $key) = @_;
+    return $adaptor->find_by_unique_key($key);
 }
 
 =head2

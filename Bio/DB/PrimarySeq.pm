@@ -78,8 +78,8 @@ sub new {
     my $self = {};
     bless $self,$class;
 
-    my($primary_id,$display_id,$accession,$adaptor,$length) = 
-	$self->_rearrange([qw(PRIMARY_ID DISPLAY_ID ACCESSION ADAPTOR LENGTH)],@args);
+    my($primary_id,$display_id,$accession,$adaptor,$length,$moltype) = 
+	$self->_rearrange([qw(PRIMARY_ID DISPLAY_ID ACCESSION ADAPTOR LENGTH MOLTYPE)],@args);
 
     if( !defined $primary_id || !defined $display_id || !defined $accession || !defined $adaptor || !defined $length) {
 	$self->throw("Not got one of the arguments in DB::PrimarySeq new $primary_id,$display_id,$accession,$adaptor,$length");
@@ -90,6 +90,7 @@ sub new {
     $self->accession($accession);
     $self->adaptor($adaptor);
     $self->length($length);
+    $self->moltype($moltype);
 
     return $self;
 }
@@ -243,6 +244,27 @@ sub subseq{
    my ($self,$start,$end) = @_;
 
    return $self->adaptor->get_subseq_as_string($self->primary_id,$start,$end);
+}
+
+=head2 moltype
+
+ Title   : moltype
+ Usage   : $obj->moltype($newval)
+ Function: Getset for moltype value
+ Returns : value of moltype
+ Args    : newvalue (optional)
+
+
+=cut
+
+sub moltype{
+   my $obj = shift;
+   if( @_ ) {
+      my $value = shift;
+      $obj->{'moltype'} = $value;
+    }
+    return $obj->{'moltype'};
+
 }
 
 

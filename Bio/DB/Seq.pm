@@ -79,8 +79,8 @@ sub new {
     my $self = {};
     bless $self,$class;
 
-    my($primary_id,$display_id,$accession,$adaptor,$length) = 
-	$self->_rearrange([qw(PRIMARY_ID DISPLAY_ID ACCESSION ADAPTOR LENGTH)],@args);
+    my($primary_id,$display_id,$accession,$adaptor,$length,$division) = 
+	$self->_rearrange([qw(PRIMARY_ID DISPLAY_ID ACCESSION ADAPTOR LENGTH DIVISION)],@args);
 
     if( !defined $primary_id || !defined $display_id || !defined $accession || !defined $adaptor || !defined $length) {
 	$self->throw("Not got one of the arguments in DB::Seq new [$primary_id,$display_id,$accession,$adaptor,$length]");
@@ -91,8 +91,8 @@ sub new {
     $self->accession($accession);
     $self->adaptor($adaptor);
     $self->length($length);
-
-
+    $self->division($division);
+    
     return $self;
 }
 
@@ -156,6 +156,42 @@ sub subseq{
    return $self->primary_seq->subseq($start,$end);
 }
 
+=head2 moltype
+
+ Title   : moltype
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub moltype{
+   my ($self,@args) = @_;
+
+   return $self->primary_seq->moltype;
+}
+
+=head2 molecule
+
+ Title   : molecule
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub molecule{
+   my ($self,@args) = @_;
+
+   return $self->primary_seq->moltype;
+}
+
 
 =head2 desc
 
@@ -199,6 +235,28 @@ sub annotation{
    return $self->{'_annotation'};
 
 }
+
+=head2 division
+
+ Title   : division
+ Usage   : $obj->division($newval)
+ Function: Getset for division value
+ Returns : value of division
+ Args    : newvalue (optional)
+
+
+=cut
+
+sub division{
+   my $obj = shift;
+   if( @_ ) {
+      my $value = shift;
+      $obj->{'division'} = $value;
+    }
+    return $obj->{'division'};
+
+}
+
 
 =head2 species
 

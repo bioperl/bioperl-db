@@ -87,11 +87,11 @@ use Bio::DB::SQL::BaseAdaptor;
 sub fetch_by_dbID{
    my ($self,$id) = @_;
 
-   my $sth = $self->prepare("select en.display_id,en.accession,length(bs.biosequence_str) from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
+   my $sth = $self->prepare("select en.display_id,en.accession,length(bs.biosequence_str),bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
 
    $sth->execute;
 
-   my ($display,$acc,$len) = $sth->fetchrow_array;
+   my ($display,$acc,$len,$mol,$div) = $sth->fetchrow_array;
 
    if( !defined $display ) {
        $self->throw("Bioentry id $id does not have a biosequence or bioentry ");
@@ -100,7 +100,9 @@ sub fetch_by_dbID{
    return Bio::DB::Seq->new( -primary_id => $id,
 			     -display_id => $display,
 			     -accession  => $acc,
-			     '-length'     => $len,
+			     '-length'   => $len,
+			     -moltype   => $mol,
+			     -division   => $div,
 			     -adaptor    => $self);
    
 
@@ -158,6 +160,10 @@ sub store{
    my $did       = $seq->id;
    my $accession = $seq->accession;
    my $version   = $seq->seq_version;
+   my $division = 'UNK';
+   if (defined $seq->division) {
+       $division  = $seq->division;
+   }
    if( !defined $version ) {
        $version = 0;
    }
@@ -166,7 +172,7 @@ sub store{
        $self->throw("no display id ($did) or no accession ($accession). Cannot process");
    }
 
-   my $sth = $self->prepare("insert into bioentry (biodatabase_id,bioentry_id,display_id,accession,entry_version) values ($dbid,NULL,'$did','$accession',$version)");
+   my $sth = $self->prepare("insert into bioentry (biodatabase_id,bioentry_id,display_id,accession,entry_version,division) values ($dbid,NULL,'$did','$accession',$version,'$division')");
    $sth->execute;
    $sth = $self->prepare("select LAST_INSERT_ID()");
    $sth->execute;

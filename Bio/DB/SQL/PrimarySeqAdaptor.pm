@@ -85,20 +85,20 @@ use Bio::DB::PrimarySeq;
 sub fetch_by_dbID{
    my ($self,$id) = @_;
 
-   my $sth = $self->prepare("select en.display_id,en.accession,length(bs.biosequence_str) from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
+   my $sth = $self->prepare("select en.display_id,en.accession,length(bs.biosequence_str),bs.molecule from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
 
    $sth->execute;
 
-   my ($display,$acc,$len) = $sth->fetchrow_array;
+   my ($display,$acc,$len,$mol) = $sth->fetchrow_array;
 
    if( !defined $display ) {
        $self->throw("Bioentry id $id does not have a biosequence or bioentry ");
    }
-
    return Bio::DB::PrimarySeq->new( -primary_id => $id,
 				    -display_id => $display,
 				    -accession  => $acc,
-				    '-length'     => $len,
+				    -moltype    => $mol,
+				    '-length'   => $len,
 				    -adaptor    => $self);
    
 }

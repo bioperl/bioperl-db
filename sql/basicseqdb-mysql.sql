@@ -48,6 +48,7 @@ CREATE TABLE bioentry (
   display_id   varchar(40) NOT NULL,
   accession    varchar(40) NOT NULL,
   entry_version int(10) NOT NULL, 
+  division     varchar(3) NOT NULL,
   UNIQUE (accession,entry_version),
   KEY (biodatabase_id),
   PRIMARY KEY(bioentry_id)
@@ -71,6 +72,7 @@ CREATE TABLE biosequence (
   bioentry_id     int(10) NOT NULL,
   seq_version     int(6) NOT NULL,
   biosequence_str mediumtext NOT NULL,
+  molecule        varchar(10),
   UNIQUE(bioentry_id)
 );
 

@@ -122,7 +122,7 @@ sub new {
       $self->throw("connection err:$@");
   }
   
-  $dbh || $self->throw("Could not connect to database $db user $user using [$dsn] as a locator");
+  $dbh || $self->throw("Could not connect to database $db user $user using [$dsn] as a locator Die is $@, DBI error".$DBI::errstr);
   
   $self->_db_handle($dbh);
   $self->username( $user );

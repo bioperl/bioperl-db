@@ -176,7 +176,7 @@ sub fetch_Seq_by_display_id{
    if( !defined $bid ) {
        $self->throw("Unable to find sequence in $dbid database for $id");
    }
-   return $self->db->get_SeqAdaptor->fetch_by_dbID($dbid);
+   return $self->db->get_SeqAdaptor->fetch_by_dbID($bid);
 }
 
 =head2 fetch_Seq_by_display_id

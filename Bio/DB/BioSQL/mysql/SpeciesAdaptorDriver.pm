@@ -338,7 +338,8 @@ sub insert_object{
     my ($pk,$rv);
     foreach my $node (@clf) {
 	# set ncbi taxon id
-	my $ncbi_taxid = $node->[1] eq $taxid_rank ? $obj->ncbi_taxid : undef;
+	my $ncbi_taxid = defined($node->[1]) && ($node->[1] eq $taxid_rank) ?
+	    $obj->ncbi_taxid : undef;
 	# log and insert
 	if($adp->verbose > 0) {
 	    $adp->debug(substr(ref($adp),rindex(ref($adp),"::")+2).

@@ -27,18 +27,22 @@ using e.g. mysqlimport
 
 =head1 ARGUMENTS
    
-   (in order, * are required)
+  The last two arguments are data_title, and then the filelist.
+  These are the only args that are absolutely required.
+  Default values for each parameter are shown in brackets:
 
-  *-host    $URL        : the IP addy incl. port
-  *-sqldb   $db_name    : the name of the sql database
-  -dbuser  $username    : username
-  -dbpass  $password    : password
-  *-format  $FileFormat : format of the flat files (eg. embl)
-                        : can be any format read by Bio::SeqIO
-  -safe                 : flag to ignore errors
-  -bulk    0/1          : write to tab-delim flat files (faster)
-  *data_title           : A name to associate with this data
-  *file1 file2 file3... : the flatfiles to import
+  -host    $URL        : the IP addy incl. port (localhost)
+  -sqldb   $db_name    : the name of the sql database (bioperl_db)
+  -dbuser  $username   : username (root)
+  -dbpass  $password   : password (undef)
+  -format  $FileFormat : format of the flat files (embl)
+                       : Can be any format read by Bio::SeqIO
+  -safe                : flag to ignore errors
+  -bulk    0/1         : write to tab-delim flat files (0)
+                       : this cuts down loading time by about
+                       : half, including the manual mysqlimport.
+  *data_title          : A name to associate with this data
+  *file1 file2 file3...: the flatfiles to import
  
 
 =cut

@@ -300,6 +300,7 @@ my $help = 0;            # WTH?
 my $debug = 0;           # try it ...
 my $testonly_flag = 0;   # don't commit anything, rollback at the end?
 my $safe_flag = 0;       # tolerate exceptions on create?
+my $printerror = 0;      # whether to print DBI error messages
 my $computetc_default = "identity;related-to;implies;Predicate Ontology";
 ####################################################################
 # Global defaults or definitions not changeable through commandline
@@ -342,8 +343,8 @@ my $ok = GetOptions( 'host:s'      => \$host,
 		     'computetc:s' => \$compute_tc,
 		     'debug'       => \$debug,
 		     'testonly'    => \$testonly_flag,
-		     'h'           => \$help,
-		     'help'        => \$help
+                     'printerror'  => \$printerror,
+		     'h|help'      => \$help
 		     );
 
 if((! $ok) || $help) {
@@ -411,12 +412,13 @@ while($i+1 < @fmtargs) {
 #
 # create the DBAdaptorI for our database
 #
-my $db = Bio::DB::BioDB->new(-database => "biosql",
-			     -host     => $host,
-			     -dbname   => $dbname,
-			     -driver   => $driver,
-			     -user     => $dbuser,
-			     -pass     => $dbpass,
+my $db = Bio::DB::BioDB->new(-database   => "biosql",
+                             -printerror => $printerror,
+			     -host       => $host,
+			     -dbname     => $dbname,
+			     -driver     => $driver,
+			     -user       => $dbuser,
+			     -pass       => $dbpass,
 			     );
 $db->verbose($debug) if $debug > 0;
 
@@ -520,6 +522,19 @@ while( my $ont = $ontin->$nextobj ) {
 
     print STDERR "\t... relationships\n";
 
+    # first off, we need to delete the existing relationships in order
+    # to avoid having stale ones around
+    my $reladp = $db->get_object_adaptor("Bio::Ontology::RelationshipI");
+    eval {
+        $reladp->remove_all_relationships($ont);
+        $reladp->commit() unless $testonly_flag;
+    };
+    if ($@) {
+        $reladp->rollback();
+        &$throw("failed to remove relationships prior to inserting them");
+    }
+
+    # now go and insert all of them
     foreach my $rel ($ont->get_relationships()) {
 	# don't bother with relationships that reference an obsolete term
 	# if we don't load obsolete terms

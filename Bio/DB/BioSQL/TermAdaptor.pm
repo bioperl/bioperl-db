@@ -270,6 +270,7 @@ sub store_children{
     my $saved_foreign_key_slot = $obj->foreign_key_slot();
     $obj->foreign_key_slot(undef);
     # we possibly have synonyms to store
+    $self->remove_synonyms($obj);
     foreach my $syn ($obj->get_synonyms()) {
 	$ok = $self->store_synonym($obj,$syn) && $ok;
     }
@@ -487,6 +488,33 @@ sub get_unique_key_query{
 =head1 Public methods specific to this module
 
 =cut
+
+=head2 remove_synonyms
+
+ Title   : remove_synonyms
+ Usage   :
+ Function: Removes synonyms for the given ontology term.
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The persistent term object for which to remove the synonyms
+           (a Bio::DB::PersistentObjectI compliant object with defined
+           primary key).
+
+
+=cut
+
+sub remove_synonyms{
+    my ($self,$obj) = @_;
+    # do the error checking right here
+    $obj->isa("Bio::DB::PersistentObjectI") ||
+	$self->throw("$obj is not a persistent object. Bummer.");
+    $obj->primary_key ||
+	$self->throw("primary key not defined - cannot remove synonyms without");
+    # remove synonyms
+    my $rv = $self->dbd->remove_synonyms($self,$obj);
+    # done
+    return $rv;
+}
 
 =head2 store_synonym
 

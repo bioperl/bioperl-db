@@ -110,7 +110,12 @@ sub new {
     
     my $self = $pkg->SUPER::new(@args);
 
-    my ($biodb, $dbc) = $self->_rearrange([qw(DATABASE DBCONTEXT)], @args);
+    my ($biodb, $dbc, $prerr) = 
+        $self->_rearrange([qw(DATABASE 
+                              DBCONTEXT
+                              PRINTERROR
+                              )
+                           ], @args);
 
     $self->throw("you must provide the database (schema)") unless $biodb;
     if(exists($db_map{lc($biodb)})) {
@@ -124,7 +129,7 @@ sub new {
 		     "{" . join(",", @DBC_MODULES) . "} all failed to load");
     }
     my $mydbc = $dbc || Bio::DB::SimpleDBContext->new(@args);
-    my $dbadp = $dbadp_class->new(-dbcontext => $mydbc);
+    my $dbadp = $dbadp_class->new(-dbcontext => $mydbc, -printerror => $prerr);
     # store the adaptor in the context
     $mydbc->dbadaptor($dbadp);
     # success - we hope

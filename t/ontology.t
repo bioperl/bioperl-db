@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 291;
+    plan tests => 302;
 }
 
 use DBTestHarness;
@@ -53,14 +53,15 @@ ok ($dbont);
 ok ($dbont->primary_key());
 
 # set up the query to get all relationships
-my $query = Bio::DB::Query::BioQuery->new(
+my $queryrels = 
+    Bio::DB::Query::BioQuery->new(
        -datacollections => ["Bio::Ontology::OntologyI=>Bio::Ontology::RelationshipI"],
        -where => ["Bio::Ontology::OntologyI::primary_key = ".
 		  $dbont->primary_key()
 		  ]
-					  );
+                                  );
 my $reladp = $db->get_object_adaptor("Bio::Ontology::RelationshipI");
-my $qres = $reladp->find_by_query($query);
+my $qres = $reladp->find_by_query($queryrels);
 while(my $rel = $qres->next_object()) {
     ok ($rel->ontology->name, "My Test Ontology");
     $dbont->add_term($rel->subject_term);
@@ -142,3 +143,33 @@ while(my $path = $qres->next_object()) {
     $n++;
 }
 ok ($n, 1);
+
+#
+# test removal of relationships
+#
+$ont = Bio::Ontology::Ontology->new(-name => "My Test Ontology");
+ok ($reladp->remove_all_relationships($ont));
+
+# try to find any relationships
+$reladp = $db->get_object_adaptor("Bio::Ontology::RelationshipI");
+$qres = $reladp->find_by_query($queryrels);
+ok ($qres);
+$n = 0;
+while ($qres->next_object()) {
+    $n++;
+}
+ok ($n, 0);
+
+# there should still be terms though
+my $dbterm = Bio::Ontology::Term->new(-identifier => "MYTO:0000233");
+$dbterm = $db->get_object_adaptor($dbterm)->find_by_unique_key($dbterm);
+ok ($dbterm);
+ok ($dbterm->primary_key);
+ok ($dbterm->ontology);
+ok ($dbterm->ontology->name, "My Test Ontology");
+ok ($dbterm->identifier, "MYTO:0000233");
+($term) = $dbont->find_terms(-identifier => "MYTO:0000233");
+ok ($term);
+ok ($dbterm->name, $term->name);
+ok (scalar($dbterm->get_synonyms()), scalar($term->get_synonyms()));
+

@@ -381,6 +381,45 @@ sub get_unique_key_query{
     return $uk_h;
 }
 
+=head2 remove_all_relationships
+
+ Title   : remove_all_relationships
+ Usage   :
+ Function: Removes all relationships within a given ontology.
+
+           This is mostly a convenience method for calling
+           remove_association() with the appropriate arguments.
+
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : the ontology as an Bio::Ontology::OntologyI compliant object
+
+
+=cut
+
+sub remove_all_relationships{
+    my ($self,$ont) = @_;
+
+    if (! ($ont && ref($ont) && $ont->isa("Bio::Ontology::OntologyI"))) {
+        $self->throw("argument must be an OntologyI-compliant object");
+    }
+    if (! $ont->isa("Bio::DB::PersistentObjectI")) {
+        $ont = $self->_ont_adaptor->find_by_unique_key($ont);
+    }
+    return $ont ?
+        # note that having the persistent object in the -objs array
+        # will constrain by the foreign key to that object
+        $self->remove_association(-objs => ["Bio::Ontology::TermI",
+                                            "Bio::Ontology::TermI",
+                                            "Bio::Ontology::TermI",
+                                            $ont]
+                                  )
+        # if the ontology couldn't be found, there can't be relationships
+        # for it either
+        : 1;
+}
+
+
 =head1 Methods overriden from BasePersistenceAdaptor
 
 =cut

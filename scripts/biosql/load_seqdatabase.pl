@@ -277,6 +277,7 @@ my $debug = 0;           # try it ...
 my $testonly_flag = 0;   # don't commit anything, rollback at the end?
 my $safe_flag = 0;       # tolerate exceptions on create?
 my $uncompress = 0;      # whether to pipe through gunzip
+my $printerror = 0;      # whether to print DBI error messages
 ####################################################################
 # Global defaults or definitions not changeable through commandline
 ####################################################################
@@ -316,6 +317,7 @@ my $ok = GetOptions( 'host=s'         => \$host,
                      'debug'          => \$debug,
                      'testonly'       => \$testonly_flag,
                      'u|z|uncompress' => \$uncompress,
+                     'printerror'     => \$printerror,
                      'h|help'         => \$help
                      );
 
@@ -397,12 +399,13 @@ if($pipeline) {
 #
 # create the DBAdaptorI for our database
 #
-my $db = Bio::DB::BioDB->new(-database => "biosql",
-                             -host     => $host,
-                             -dbname   => $dbname,
-                             -driver   => $driver,
-                             -user     => $dbuser,
-                             -pass     => $dbpass,
+my $db = Bio::DB::BioDB->new(-database   => "biosql",
+                             -printerror => $printerror,
+                             -host       => $host,
+                             -dbname     => $dbname,
+                             -driver     => $driver,
+                             -user       => $dbuser,
+                             -pass       => $dbpass,
                              );
 $db->verbose($debug) if $debug > 0;
 

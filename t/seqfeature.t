@@ -77,10 +77,6 @@ eval {
     ($value) = $dbf->get_tag_values('another-tag');
     ok( $value , 'something else');
 
-    print STDERR "\n------------\n".
-	"be prepared to see 3 failed statement warnings, ".
-	"and one Bioperl-style warning\ntrust me, this is OK ...\n".
-	"------------\n";
     # add a tag value and update
     $dbf->add_tag_value('tag13','value for tag13');
     $dbf->attach_seq($pseq); # we need a FK seq to successfully update

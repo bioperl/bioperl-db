@@ -82,6 +82,50 @@ use Bio::DB::BioSQL::Pg::BasePersistenceAdaptorDriver;
 @ISA = qw(Bio::DB::BioSQL::Pg::BasePersistenceAdaptorDriver);
 
 
+=head2 remove_synonyms
+
+ Title   : remove_synonyms
+ Usage   :
+ Function: Removes all synonyms for an ontology term.
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The calling persistence adaptor.
+
+           The persistent term object for which to remove the synonyms
+           (a Bio::DB::PersistentObjectI compliant object with defined
+           primary key).
+
+
+=cut
+
+sub remove_synonyms{
+    my ($self,$adp,$obj) = @_;
+
+    # delete statement cached?
+    my $cachekey = "DELETE SYNONYMS";
+    my $sth = $adp->sth($cachekey);
+    # if not we need to build it
+    if(! $sth) {
+	# we need table name and foreign key
+	my $table = $self->table_name("TermSynonym");
+	my $fkname = $self->foreign_key_name($obj->obj);
+	# build, prepare, and cache the SQL statement
+	$sth = $self->_build_sth($adp, $cachekey,
+                                 "DELETE FROM $table WHERE $fkname = ?");
+    }
+    # bind parameters and execute insert
+    my $dbgmsg = "executing with values (".
+	$obj->primary_key().") (FK to ".ref($obj->obj).")";
+    $adp->debug("$cachekey: $dbgmsg\n");
+    my $rv = $sth->execute($obj->primary_key());
+    if(! $rv) {
+        $self->warn("failed to remove term synonyms (".ref($adp)
+                    .") with values (".$obj->primary_key()
+                    .") (FK to ".ref($obj->obj)."):\n".$sth->errstr());
+    }
+    return $rv;
+}
+
 =head2 store_synonym
 
  Title   : store_synonym
@@ -125,6 +169,12 @@ sub store_synonym{
     my $rv = $isth->execute($syn, $obj->primary_key());
     # in PostgreSQL, the UK failure is caught through a rule already,
     # so if $rv evaluates to FALSE it must be the statement being bad
+    if (! $rv) {
+        $self->warn("failed to store term synonym (".ref($adp)
+                    .") with values ($syn) (FK ".$obj->primary_key()
+                    ." to ".ref($obj->obj)."):\n"
+                    .$isth->errstr());
+    }
     return $rv;
 }
 

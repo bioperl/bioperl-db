@@ -78,6 +78,38 @@ eval {
 
     my $dbac = $dbseq->annotation;
     my $ac = $seq->annotation;
+    
+    # LocusLink annotates GO terms with their GO sub-division as the category,
+    # which isn't really the correct thing to do. If we run this script on a
+    # database into which GO was loaded already, we'll find the terms by their
+    # IDs - and then the category (tagname) will change to Gene Ontology. We
+    # try to fix this possible discrepancy here.
+    my ($t1) = grep {
+	$_->isa("Bio::Ontology::TermI") && $_->identifier eq "GO:0008152"; 
+    } $dbac->get_Annotations();
+    my ($t2) = grep { 
+	$_->isa("Bio::Ontology::TermI") && $_->identifier eq "GO:0005777"; 
+    } $dbac->get_Annotations();
+    my ($t3) = grep { 
+	$_->isa("Bio::Ontology::TermI") && $_->identifier eq "GO:0008131"; 
+    } $dbac->get_Annotations();
+    my %tagnames = ("biological process" => $t1->ontology->name,
+		    "cellular component" => $t2->ontology->name,
+		    "molecular function" => $t3->ontology->name);
+    foreach my $tag (keys %tagnames) {
+	if($tag ne $tagnames{$tag}) {
+	    # we need to fix this one before we can compare
+	    map { $_->tagname($tagnames{$tag}); $ac->add_Annotation($_);
+	      } $ac->remove_Annotations($tag);
+	}
+    }
+    my %uniquenames = map { ($_, undef); } values %tagnames;
+    # we also need to make up for tests that we won't conduct
+    # (namely the count comparison per annotation key)
+    for (1..(3-scalar(values %uniquenames))) {
+	skip("GO sub-division tag became GO name", $tag);
+    }
+
     my @keys = $ac->get_all_annotation_keys();
     ok (scalar($dbac->get_all_annotation_keys()), scalar(@keys));
 

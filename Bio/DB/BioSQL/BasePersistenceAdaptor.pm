@@ -146,6 +146,8 @@ schema supports such associations.
 
 sub create{
     my ($self,$obj,@args) = @_;
+    my $skip_children; # at some point we may want to introduce an
+                       # argument that allows you to supply this
 
     # If the object wasn't a PersistentObjectI already it needs to become
     # one now. We do this always to make sure the children etc are persistent,
@@ -175,12 +177,21 @@ sub create{
     # because those will be new in most cases.
     #
     # Note that since foreign keys may be part of the unique key, we can
-    # do this only now (i.e., after having stored the unique keys).
+    # do this only now (i.e., after having stored the parent rows).
     my $foundobj;
     if($self->caching_mode() &&
        ($foundobj = $self->find_by_unique_key($obj, @args))) {
 	$obj->primary_key($foundobj->primary_key);
-	# should we return right here instead of storing children? Not sure.
+	# Should we return right here instead of storing children? Not sure.
+	#
+	# My take is that we shouldn't store the children for found objects,
+	# because it essentially would amount to updating dependent
+	# information, which is inconsistent with the fact that we don't
+	# update the object itself. So, leave it to the caller to physically
+	# trigger an update (which will cascade through to the children)
+	# instead of doing possibly unwanted magic here.
+	# 
+	$skip_children = 1 unless defined($skip_children);
     } else {
 	# either caching disabled or not found in cache
 	#
@@ -200,7 +211,7 @@ sub create{
 	$obj->primary_key($pk);
     }
     # insert child records if any
-    my $ok = $self->store_children($obj, \@fkobjs);
+    my $ok = $skip_children ? 1 : $self->store_children($obj, \@fkobjs);
     if((! defined($ok)) || ($ok <= 0)) {
 	$self->warn("failed to store ".
 		    ($ok ? -$ok : "one or more").

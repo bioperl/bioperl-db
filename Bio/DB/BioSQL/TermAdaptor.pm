@@ -273,10 +273,26 @@ sub store_children{
 	$ok = $self->store_synonym($obj,$syn) && $ok;
     }
     # we also possibly have db-xrefs to store
+    my $dbladp = $self->db->get_object_adaptor("Bio::Annotation::DBLink");
     foreach my $dbl ($obj->get_dblinks()) {
-	$dbl = $dbl->create() unless $dbl->primary_key();
+	# terms store dblinks as flat strings currently
+	if(!ref($dbl)) {
+	    # some ontologies have URLs here or even whole sentences (check
+	    # out GO for an example); don't spend any effort here
+	    next if (index($dbl,"http") == 0) || (index($dbl," ") > 0);
+	    $dbl = $self->_build_dblink($dbl) unless ref($dbl);
+	}
+	# catch the dbxref non-compliant things that weren't caught in the
+	# if condition before
+	next if($dbl->database() eq "http" || 
+		(index($dbl->primary_id," ") > 0));
+	# now make persistent and serialize if necessary
+	if(!($dbl->isa("Bio::DB::PersistentObjectI") && $dbl->primary_key())){
+	    $dbl = $dbladp->create($dbl);
+	}
 	$ok = $dbl && $ok;
-	$dbl->adaptor->add_association(-objs => [$obj, $dbl]);
+	# add the association between term and dbxref
+	$dbl->adaptor->add_association(-objs => [$obj, $dbl]) if $dbl;
     }
     # done
     return $ok;
@@ -314,7 +330,8 @@ sub attach_children{
     my $dbladp = $self->db->get_object_adaptor("Bio::Annotation::DBLink");
     my $qres = $dbladp->find_by_association(-objs => [$obj,$dbladp]);
     while(my $dbl = $qres->next_object()) {
-	$obj->add_dblink($dbl);
+	# terms store dblinks as flat strings currently
+	$obj->add_dblink($dbl->namespace_string());
     }
     # retrieve the synonyms (synonyms aren't objects in their own right
     # in bioperl - although they could be)
@@ -554,6 +571,36 @@ sub _ont_adaptor{
 	    $self->db->get_object_adaptor("Bio::Ontology::OntologyI");
     }
     return $self->{'_ont_adaptor'};
+}
+
+=head2 _build_dblink
+
+ Title   : _build_dblink
+ Usage   :
+ Function: Create a Bio::Annotation::DBLink object for a flat 
+           dbxref string.
+ Example :
+ Returns : A Bio::Annotation::DBLink instance
+ Args    : The dbxref as a flat string (DB:acc.version format)
+
+
+=cut
+
+sub _build_dblink{
+    my ($self,$dbxref) = @_;
+
+    my ($db,$acc,$version) = $dbxref =~ /^([^:]+?):(.*)/;
+    # only extract numerical versions, and only where there is only one dot
+    # (EC numbers may come as dbxrefs - we don't want to chop off the last
+    # digit there)
+    my @accv = split(/\./,$acc);
+    if((@accv == 2) && ($accv[1] =~ /^\d+$/)) {
+	$version = $accv[1];
+	$acc = $accv[0];
+    }
+    return Bio::Annotation::DBLink->new(-database => $db,
+					-primary_id => $acc,
+					-version => $version);
 }
 
 1;

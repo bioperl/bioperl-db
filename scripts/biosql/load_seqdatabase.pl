@@ -292,7 +292,8 @@ if((! $ok) || $help) {
 # $safe_flag
 #
 my $throw = $safe_flag ?
-    ($debug > 0 ? \&cluck : \&carp) : ($debug > 0 ? \&confess : \&croak);
+    ($debug > 0 ? \&Carp::cluck : \&Carp::carp) :
+    ($debug > 0 ? \&Carp::confess : \&Carp::croak);
 
 #
 # load and/or parse condition if supplied
@@ -421,7 +422,7 @@ foreach $file ( @files ) {
 	    # set the adaptor variable before any operation which may throw
 	    # us out of the eval block
 	    $adp = $lseq->adaptor() if $lseq;
-	    # delete if requested
+	    # delete first if requested
 	    $lseq->remove() if $remove_flag && $lseq;
 	    # on update, skip the rest if we are not supposed to update
 	    if(! ($lseq && $no_update_flag)) {

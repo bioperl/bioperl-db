@@ -267,7 +267,8 @@ sub attach_foreign_key_objects{
 sub store_children{
     my ($self,$obj,$fkobjs) = @_;
     my $ok = 1;
-
+    my $saved_foreign_key_slot = $obj->foreign_key_slot();
+    $obj->foreign_key_slot(undef);
     # we possibly have synonyms to store
     foreach my $syn ($obj->get_synonyms()) {
 	$ok = $self->store_synonym($obj,$syn) && $ok;
@@ -295,6 +296,7 @@ sub store_children{
 	$dbl->adaptor->add_association(-objs => [$obj, $dbl]) if $dbl;
     }
     # done
+    $obj->foreign_key_slot($saved_foreign_key_slot);
     return $ok;
 }
 

@@ -6,7 +6,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 22;
+    plan tests => 19;
 }
 
 use DBTestHarness;
@@ -77,11 +77,6 @@ $sth->execute();
 
 ok (!@arr); 
 
-$sth = $dba->prepare("select seqfeature_qualifier_id from seqfeature_qualifier_value br where br.seqfeature_id IN ($seq_feature_ids)"); 
-$sth->execute(); 
-@arr = $sth->fetchrow_array();  
-
-ok (!@arr); 
 
 $sth = $dba->prepare("select reference_id from bioentry_reference br where br.bioentry_id=$dbID"); 
 $sth->execute(); 
@@ -89,23 +84,12 @@ $sth->execute();
 
 ok (!@arr); 
 
-$sth = $dba->prepare("select keywords from bioentry_keywords br where br.bioentry_id=$dbID"); 
+$sth = $dba->prepare("select * from bioentry_qualifier_value where bioentry_id=$dbID"); 
 $sth->execute(); 
 @arr = $sth->fetchrow_array();  
 
 ok (!@arr); 
 
-$sth = $dba->prepare("select date from bioentry_date br where br.bioentry_id=$dbID"); 
-$sth->execute(); 
-@arr = $sth->fetchrow_array();  
-
-ok (!@arr); 
-
-$sth = $dba->prepare("select description from bioentry_description br where br.bioentry_id=$dbID"); 
-$sth->execute(); 
-@arr = $sth->fetchrow_array();  
-
-ok (!@arr); 
 
 
 $sth = $dba->prepare("select taxa_id from bioentry_taxa br where br.bioentry_id=$dbID"); 

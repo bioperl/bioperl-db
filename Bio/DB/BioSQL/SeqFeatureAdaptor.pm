@@ -95,14 +95,14 @@ sub fetch_by_dbIDs {
 
    # first pick out the central feature information
    my @rows =
-     $self->selectall("seqfeature f,seqfeature_key k,seqfeature_source s",
-                      "f.seqfeature_key_id = k.seqfeature_key_id and f.seqfeature_source_id = s.seqfeature_source_id and f.seqfeature_id in ($idjoin)",
-                      "f.seqfeature_id,k.key_name,s.source_name",
+     $self->selectall("seqfeature f,ontology_term k,seqfeature_source s",
+                      "f.seqfeature_key_id = k.ontology_term_id and f.seqfeature_source_id = s.seqfeature_source_id and f.seqfeature_id in ($idjoin)",
+                      "f.seqfeature_id,k.term_name,s.source_name",
                      );
    my @qualrows =
-     $self->selectall("seqfeature_qualifier q,seqfeature_qualifier_value qv",
-                      "q.seqfeature_qualifier_id = qv.seqfeature_qualifier_id and qv.seqfeature_id in ($idjoin)",
-                      "qv.seqfeature_id, q.qualifier_name,qv.qualifier_value"
+     $self->selectall("ontology_term t,seqfeature_qualifier_value qv",
+                      "t.ontology_term_id = qv.ontology_term_id and qv.seqfeature_id in ($idjoin)",
+                      "qv.seqfeature_id, t.term_name,qv.qualifier_value"
                      );
 
    my $loc_by_sfid =
@@ -111,7 +111,7 @@ sub fetch_by_dbIDs {
        my $generic = Bio::SeqFeature::Generic->new();
        my $sfid = $row->{seqfeature_id};
        $sfh->{$sfid} = $generic;
-       my ($key,$source) = ($row->{key_name}, $row->{source_name});
+       my ($key,$source) = ($row->{term_name}, $row->{source_name});
 
        $generic->primary_tag($key);
        $generic->source_tag($source);
@@ -119,7 +119,7 @@ sub fetch_by_dbIDs {
        my @q = grep { $_->{seqfeature_id} == $sfid } @qualrows;
        foreach my $qh (@q) {
 #           die "$qh->{qualifier_name}= $qh->{qualifier_value}\n";
-           $generic->add_tag_value($qh->{qualifier_name},
+           $generic->add_tag_value($qh->{term_name},
                                    $qh->{qualifier_value});
        }
    }
@@ -209,7 +209,7 @@ sub store{
        $self->throw("Must store a seqfeature with a rank and bioentry id");
    }
 
-   my $keyid = $self->db->get_SeqFeatureKeyAdaptor->store_if_needed($feature->primary_tag);
+   my $keyid = $self->db->get_OntologyTermAdaptor->get_id($feature->primary_tag);
    my $sourceid = $self->db->get_SeqFeatureSourceAdaptor->store_if_needed($feature->source_tag);
 
    if ($self->db->bulk_import){
@@ -222,16 +222,16 @@ sub store{
 
       $self->db->get_SeqLocationAdaptor->store($feature->location,$last_id);
 
-      my $adp = $self->db->get_SeqFeatureQualifierAdaptor();
+      my $adp = $self->db->get_OntologyTermAdaptor();
 
       foreach my $tag ( $feature->all_tags() ) {
-         my $qid = $adp->store_if_needed($tag);
+         my $qid = $adp->get_id($tag);
 
           # placeholder would be more efficient here
          my $rank = 1;
          foreach my $value ( $feature->each_tag_value($tag) ) {
             $value = $self->quote($value);
-            my $sth= $self->prepare("INSERT into seqfeature_qualifier_value (seqfeature_id,seqfeature_qualifier_id,qualifier_value,seqfeature_qualifier_rank) VALUES ($last_id,$qid,$value,$rank)");
+            my $sth= $self->prepare("INSERT into seqfeature_qualifier_value (seqfeature_id,ontology_term_id,qualifier_value,qualifier_rank) VALUES ($last_id,$qid,$value,$rank)");
             $sth->execute;
             $rank++;
          }
@@ -320,12 +320,11 @@ sub remove_by_dbID{
 	$self->db->get_SeqLocationAdaptor->remove_by_dbID(@_); 
 	
  	$self->db->get_SeqFeatureSourceAdaptor->_clean_orphans; 
- 	$self->db->get_SeqFeatureKeyAdaptor->_clean_orphans; 
+# 	$self->db->get_SeqFeatureKeyAdaptor->_clean_orphans; 
  
 	
 	$sth = $self->prepare("DELETE FROM seqfeature_qualifier_value WHERE seqfeature_id IN($sf)");
 	$sth->execute();
-	$self->db->get_SeqFeatureQualifierAdaptor->_clean_orphans; 
 
 	$sth = $self->prepare("DELETE FROM seqfeature WHERE seqfeature_id IN($sf)");
 	$sth->execute();

@@ -202,12 +202,13 @@ sub store_if_needed{
                return $id;
            }
        }
-       $self->insert("reference",
-                     {reference_authors=>$authors,
-                      reference_title=>$title,
-                      reference_location=>$location,
-                      reference_medline=>$med});
-       return $self->get_last_id;
+       my $rid =
+         $self->insert("reference",
+                       {reference_authors=>$authors,
+                        reference_title=>$title,
+                        reference_location=>$location,
+                        reference_medline=>$med});
+       return $rid;
    }
 }
 

@@ -4,11 +4,12 @@ use Bio::DB::SQL::DBAdaptor;
 use Bio::SeqIO;
 use Getopt::Long;
 
+my $outfmt = 'EMBL';
 my $host = "localhost";
 my $sqlname = "bioperl_db";
 my $dbuser = "root";
 my $dbpass = undef;
-my $dbname = 'embl';
+my $dbname = '';
 my $acc;
 my $stdout=0;
 my $format='embl';
@@ -23,8 +24,12 @@ my $driver = 'mysql';
 	     'dbname:s' => \$dbname,
 	     'accession:s' => \$acc,
 	     'format:s' => \$format,
+	     'outformat:s' => \$outfmt,
 	     'file:s' => \$file
 	     );
+
+$dbname = shift @ARGV unless $dbname;
+$acc    = shift @ARGV unless $acc;
 
 $db = Bio::DB::SQL::DBAdaptor->new( -host => $host,
                                     -driver => $driver,
@@ -43,7 +48,7 @@ if ($file) {
     $seqio->write_seq($dbseq);
 }
 else {
-    $out = Bio::SeqIO->newFh('-format' => 'EMBL'); 
+    $out = Bio::SeqIO->newFh('-format' => $outfmt); 
     print $out $dbseq;
 }
 

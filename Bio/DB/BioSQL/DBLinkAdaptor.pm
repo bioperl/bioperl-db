@@ -63,6 +63,7 @@ use vars qw(@ISA);
 use strict;
 use Bio::Annotation::DBLink;
 use Bio::DB::SQL::BaseAdaptor;
+use Bio::DB::SQL::DBXrefAdaptor;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
@@ -83,15 +84,12 @@ sub _table {"bioentry_direct_links"}
 sub fetch_by_dbID{
    my ($self,$dbid) = @_;
 
-   my $sth = $self->prepare("select dbname,accession from bioentry_direct_links where bio_dblink_id = $dbid");
+   my $sth = $self->prepare("select dbxref_id from bioentry_direct_links where bio_dblink_id = $dbid");
    $sth->execute;
 
-   my ($dbname,$acc) = $sth->fetchrow_array();
+   my ($dbxref_id) = $sth->fetchrow_array();
 
-   my $dblink = Bio::Annotation::DBLink->new();
-
-   $dblink->database($dbname);
-   $dblink->primary_id($acc);
+   my $dblink = $self->db->get_DBXrefAdaptor->fetch_by_dbID($dbxref_id);
 
    return $dblink;
 }
@@ -152,8 +150,9 @@ sub store{
         print $fh "NULL\t$bioentry_id\t$db\t$acc\n";
         return;
    } else {
-        my $sth = $self->prepare("insert into bioentry_direct_links (source_bioentry_id,dbname,accession) VALUES ($bioentry_id,'$db','$acc')");
-        $sth->execute;
+       my $id = $self->db->get_DBXrefAdaptor->store($dblink);
+       my $sth = $self->prepare("insert into bioentry_direct_links (source_bioentry_id,dbxref_id) VALUES ($bioentry_id,$id)");
+       $sth->execute;
    }
    return;
 }

@@ -48,12 +48,13 @@ use Bio::DB::SQL::SeqAdaptor;
 use Bio::DB::SQL::PrimarySeqAdaptor;
 use Bio::DB::SQL::BioDatabaseAdaptor;
 use Bio::DB::SQL::SeqFeatureKeyAdaptor;
-use Bio::DB::SQL::SeqFeatureQualifierAdaptor;
+use Bio::DB::SQL::OntologyTermAdaptor;
 use Bio::DB::SQL::SeqFeatureSourceAdaptor;
 use Bio::DB::SQL::SeqLocationAdaptor;
 use Bio::DB::SQL::SeqFeatureAdaptor;
 use Bio::DB::SQL::CommentAdaptor;
 use Bio::DB::SQL::DBLinkAdaptor;
+use Bio::DB::SQL::DBXrefAdaptor;
 use Bio::DB::SQL::SpeciesAdaptor;
 use Bio::DB::SQL::ReferenceAdaptor;
 
@@ -121,7 +122,7 @@ sub new {
   if ($@) {
       $self->throw("connection err:$@");
   }
-  
+  $dbh->{ChopBlanks} = 1;
   $dbh || $self->throw("Could not connect to database $db user $user using [$dsn] as a locator Die is $@, DBI error".$DBI::errstr);
   
   $self->_db_handle($dbh);
@@ -195,10 +196,8 @@ sub _prepareFilehandles {
     foreach (qw(
 	biodatabase
 	bioentry
-	bioentry_date
-	bioentry_description
 	bioentry_direct_links
-	bioentry_keywords
+	bioentry_qualifier_value
 	bioentry_reference
 	bioentry_taxa
 	biosequence
@@ -341,9 +340,9 @@ sub get_SeqFeatureKeyAdaptor{
 }
 
 
-=head2 get_SeqFeatureKeyAdaptor
+=head2 get_OntologyTermAdaptor
 
- Title   : get_SeqFeatureKeyAdaptor
+ Title   : get_OntologyTermAdaptor
  Usage   :
  Function:
  Example :
@@ -353,14 +352,14 @@ sub get_SeqFeatureKeyAdaptor{
 
 =cut
 
-sub get_SeqFeatureQualifierAdaptor{
+sub get_OntologyTermAdaptor{
    my ($self) = @_;
 
-   if( !defined $self->{'_seq_qual_adaptor'} ) {
-       $self->{'_seq_qual_adaptor'} = Bio::DB::SQL::SeqFeatureQualifierAdaptor->new($self);
+   if( !defined $self->{'_ontology_term_adaptor'} ) {
+       $self->{'_ontology_term_adaptor'} = Bio::DB::SQL::OntologyTermAdaptor->new($self);
    }
 
-   return $self->{'_seq_qual_adaptor'}
+   return $self->{'_ontology_term_adaptor'}
 }
 
 =head2 get_SeqFeatureSourceAdaptor
@@ -503,6 +502,29 @@ sub get_DBLinkAdaptor{
    }
 
    return $self->{'_dblink_adaptor'}
+
+}
+
+=head2 get_DBXrefAdaptor
+
+ Title   : get_DBXrefAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_DBXrefAdaptor{
+   my ($self) = @_;
+
+   if( !defined $self->{'_dbxref_adaptor'} ) {
+       $self->{'_dbxref_adaptor'} = Bio::DB::SQL::DBXrefAdaptor->new($self);
+   }
+
+   return $self->{'_dbxref_adaptor'}
 
 }
 

@@ -94,26 +94,32 @@ sub fetch_by_dbID{
 
    #print STDERR "select en.display_id,en.accession,en.entry_version,length(bs.biosequence_str),bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id\n";
 
-   my $sth = $self->prepare("select en.display_id,en.accession,en.entry_version,bs.molecule,en.division,bed.description from biosequence bs,bioentry en,bioentry_description bed where bed.bioentry_id=en.bioentry_id and bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
+   my $sth = $self->prepare("select en.display_id,en.accession,en.entry_version,bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
 
    $sth->execute;
 
-   my ($display,$acc,$version,$mol,$div,$desc) = $sth->fetchrow_array;
+   my ($display,$acc,$version,$mol,$div) = $sth->fetchrow_array;
 
    if( !defined $display ) {
        $self->throw("Bioentry id $id does not have a biosequence or bioentry ");
    }
 
-   return Bio::DB::Seq->new( '-primary_id' => $id,
-			     '-display_id' => $display,
-			     '-accession'  => $acc,
-			     '-version'    => $version,
-			     '-alphabet' => $mol,
-			     '-division'   => $div,
-			     '-desc'       => $desc,
-			     '-adaptor'    => $self);
-   
-
+   my $seq = Bio::DB::Seq->new( '-primary_id' => $id,
+                                '-display_id' => $display,
+                                '-accession'  => $acc,
+                                '-version'    => $version,
+                                '-alphabet'   => $mol,
+                                '-division'   => $div,
+                                '-adaptor'    => $self);
+   my $DESC_ID =
+     $self->db->get_OntologyTermAdaptor->DESCRIPTION_ID;
+   my $desc =
+     $self->select_colval(["bioentry_qualifier_value"],
+                          ["bioentry_id = $id",
+                           "ontology_term_id = $DESC_ID"],
+                          "qualifier_value");
+   $seq->desc($desc);
+   return $seq;
 }
 
 
@@ -352,14 +358,17 @@ sub constraint_resolver {
 	my ($self, $sqlq, $cvalue) = @_;		
 	my @wh = ();
 	my $dbh = $self->db->_db_handle;
-	$sqlq->add_datacollection("bioentry_description");
-	push(@wh, "bioentry_description.bioentry_id = bioentry.bioentry_id");
+        my $DESC_ID =
+          $self->db->get_OntologyTermAdaptor->DESCRIPTION_ID;
+	$sqlq->add_datacollection("bioentry_qualifier_value");
+	push(@wh, "bioentry_qualifier_value.bioentry_id = bioentry.bioentry_id");
+	push(@wh, "bioentry_qualifier_value.ontology_term_id = $DESC_ID");
 	if ($cvalue  =~ /\*/) {
 	    $cvalue  =~ s/\*/\%/g;
-	    push(@wh, "bioentry_description.description like ".$dbh->quote($cvalue));
+	    push(@wh, "bioentry_qualifier_value.qualifier_value like ".$dbh->quote($cvalue));
 	}
 	else {
-	    push(@wh, "bioentry_description.description = ".$dbh->quote($cvalue));
+	    push(@wh, "bioentry_qualifier_value.qualifier_value = ".$dbh->quote($cvalue));
 	}
 	return @wh;
     },
@@ -369,17 +378,21 @@ sub constraint_resolver {
 	my ($self, $sqlq, $cvalue) = @_;		
 	my @wh = ();
 	my $dbh = $self->db->_db_handle;
-	$sqlq->add_datacollection("bioentry_keywords");
-	push(@wh, "bioentry_keywords.bioentry_id = bioentry.bioentry_id");
+        my $DESC_ID =
+          $self->db->get_OntologyTermAdaptor->KEYWORDS_ID;
+	$sqlq->add_datacollection("bioentry_qualifier_value");
+	push(@wh, "bioentry_qualifier_value.bioentry_id = bioentry.bioentry_id");
+	push(@wh, "bioentry_qualifier_value.ontology_term_id = $DESC_ID");
 	if ($cvalue  =~ /\*/) {
 	    $cvalue  =~ s/\*/\%/g;
-	    push(@wh, "bioentry_keywords.keywords like ".$dbh->quote($cvalue));
+	    push(@wh, "bioentry_qualifier_value.qualifier_value like ".$dbh->quote($cvalue));
 	}
 	else {
-	    push(@wh, "bioentry_keywords.keywords = ".$dbh->quote($cvalue));
+	    push(@wh, "bioentry_qualifier_value.qualifier_value = ".$dbh->quote($cvalue));
 	}
 	return @wh;
     },
+
 
 };
 }
@@ -470,20 +483,30 @@ sub store{
        $self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
 
        if ( defined $seq->desc && $seq->desc ne '' ) {
-           my $desc = $self->quote($seq->desc);
-           $sth = $self->prepare("insert into bioentry_description (bioentry_id,description) VALUES ($id,$desc)");
-           $sth->execute;
+           my $TERM_ID =
+             $self->db->get_OntologyTermAdaptor->DESCRIPTION_ID;
+           $self->insert("bioentry_qualifier_value",
+                         {bioentry_id=>$id,
+                          qualifier_value=>$seq->desc,
+                          ontology_term_id=>$TERM_ID});
        }
 
        if ( $seq->isa('Bio::Seq::RichSeqI') ) {
+           my $TERM_ID =
+             $self->db->get_OntologyTermAdaptor->DATES_ID;
            foreach my $date ($seq->get_dates) {
-               $sth = $self->prepare("insert into bioentry_date (bioentry_id,date) VALUES ($id,'$date')");
-               $sth->execute;
+               $self->insert("bioentry_qualifier_value",
+                             {bioentry_id=>$id,
+                              qualifier_value=>$date,
+                              ontology_term_id=>$TERM_ID});
            }
            if (my $kw = $seq->keywords) {
-               $kw = $self->quote($kw);
-               $sth= $self->prepare("insert into bioentry_keywords(bioentry_id,keywords) VALUES ($id,$kw)");
-               $sth->execute;
+               my $TERM_ID =
+                 $self->db->get_OntologyTermAdaptor->KEYWORDS_ID;
+               $self->insert("bioentry_qualifier_value",
+                             {bioentry_id=>$id,
+                              qualifier_value=>$kw,
+                              ontology_term_id=>$TERM_ID});
            }
        }
 
@@ -672,9 +695,7 @@ sub remove_by_dbID {
 # Simple Job - removing records from tables that are not linked to anything else	
 	
 	my @simple_tables = qw( 
-                               bioentry_date              
-                               bioentry_description       						       
-                               bioentry_keywords          
+                               bioentry_qualifier_value
                                bioentry_taxa              
                                biosequence                
                                comment
@@ -720,7 +741,10 @@ sub remove_by_db_and_accession {
 sub get_dates{
     my ($self,$bioentry_id) = @_;
     
-    my $sth = $self->prepare("select date from bioentry_date where bioentry_id = $bioentry_id");
+    my $TERM_ID =
+      $self->db->get_OntologyTermAdaptor->DATES_ID;
+
+    my $sth = $self->prepare("select qualifier_value from bioentry_qualifier_value where bioentry_id = $bioentry_id and ontology_term_id = $TERM_ID");
     $sth->execute();
     my @dates;
     my $seen=0;
@@ -770,7 +794,7 @@ sub get_taxa_id{
 sub get_length{
    my ($self,$id) = @_;
 
-   my $sth = $self->prepare("select length(bs.biosequence_str) from bioentry en,biosequence bs bs.bioentry_id = en.bioentry_id and en.bioentry_id = $id");
+   my $sth = $self->prepare("select length(bs.biosequence_str) from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and en.bioentry_id = $id");
    $sth->execute();
 
    my ($length) = $sth->fetchrow_array();
@@ -792,13 +816,15 @@ sub get_length{
 
 sub get_keywords{
    my ($self,$id) = @_;
+   my $TERM_ID =
+     $self->db->get_OntologyTermAdaptor->KEYWORDS_ID;
 
-   my $sth = $self->prepare("select keywords from bioentry_keywords where bioentry_id = $id");
+   my $sth = $self->prepare("select qualifier_value from bioentry_qualifier_value where bioentry_id = $id and ontology_term_id = $TERM_ID");
    $sth->execute;
 
-   my ($desc) = $sth->fetchrow_array;
+   my ($kw) = $sth->fetchrow_array;
 
-   return $desc;
+   return $kw;
 }
 
 =head2 get_description_by_accession
@@ -816,7 +842,9 @@ sub get_keywords{
 sub get_description_by_accession{
    my ($self,$acc) = @_;
 
-   my $sth = $self->prepare("select bd.description from bioentry_description bd, bioentry be where be.accession = '$acc' and be.bioentry_id = bd.bioentry_id");
+   my $TERM_ID =
+     $self->db->get_OntologyTermAdaptor->DESCRIPTION_ID;
+   my $sth = $self->prepare("select qualifier_value from bioentry_qualifier_value qv, bioentry e where accession = '$acc' and e.bioentry_id = qv.bioentry_id");
    $sth->execute;
 
    my ($desc) = $sth->fetchrow_array;

@@ -99,12 +99,12 @@ sub prepare{
 sub execute {
     my $self = shift;
     my $string = shift;
-    my $sth = $self->prepare($string);
     if ($ENV{SQL_TRACE}) {
         if (@_) {
             printf STDERR "VALS:%s\n", join(", ", @_);
         }
     }
+    my $sth = $self->prepare($string);
     $sth->execute(@_);
     return $sth;
 }
@@ -270,6 +270,33 @@ sub insert {
     return $id;
 }
 
+=head2 deleterows
+
+ Title   : deleterows
+ Usage   : $ad->deleterows("mytable", {col1=>$x, col2=>$y});
+ Function:
+ Returns :
+ Args    : table [string], hashref
+
+
+=cut
+
+sub deleterows {
+    my ($self, $table, $valh) = @_;
+    my @cols = keys %$valh;
+    my $sql =
+      sprintf("DELETE FROM %s WHERE %s",
+              $table,
+              join(" AND ",
+                   map {
+                       defined($_) ? 
+                         "$_ = ".$self->quote($valh->{$_}) : "$_ is NULL"
+                   } @cols),
+             );
+    my $sth = $self->execute($sql);
+    return $sth;
+}
+
 =head2 db
 
  Title   : db
@@ -320,7 +347,9 @@ sub get_last_id{
        }
        my $seqn  = $table."_pkey_seq";
        my $sth = $self->prepare("select currval('$seqn') AS curr");
-       my $rv  = $sth->execute;
+       my $rv;
+       $rv = $sth->execute;
+       $self->throw("uh oh $@") unless $rv;
        my $rowhash = $sth->fetchrow_hashref;
        return $rowhash->{'curr'};
    }

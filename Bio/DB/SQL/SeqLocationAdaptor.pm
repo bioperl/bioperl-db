@@ -104,9 +104,9 @@ sub fetch_by_dbIDs {
    my @locids = map {$_->{seqfeature_location_id}} @rows;
    my $locidjoin = join(",", @locids);
    my @qualrows =
-     $self->selectall("location_qualifier_value lqv, seqfeature_qualifier sfq",
+     $self->selectall("location_qualifier_value lqv, ontology_term t",
                       ["seqfeature_location_id in ($locidjoin)",
-                       "lqv.seqfeature_qualifier_id = sfq.seqfeature_qualifier_id"]);
+                       "lqv.ontology_term_id = t.ontology_term_id"]);
    my @remoterows =
      $self->selectall("remote_seqfeature_name",
                       "seqfeature_location_id in ($locidjoin)");
@@ -155,9 +155,13 @@ sub fetch_by_dbIDs {
            $component = $loc_class->new();
            $component->start($seq_start);
            $component->end($seq_end);
+           $component->min_end(undef);
+           $component->max_end(undef);
+           $component->min_start(undef);
+           $component->max_start(undef);
            $component->strand($seq_strand);
            foreach my $q (@qual) {
-               my $n =$q->{qualifier_name};
+               my $n =$q->{term_name};
                if ($component->can($n)) {
                    $component->$n($q->{qualifier_value});
                }
@@ -165,7 +169,6 @@ sub fetch_by_dbIDs {
                    $self->throw("unapplicable qualifier $n for $sflocid");
                }
            }
-
        }
        push(@{$loc_by_sf->{$sfid}}, $component);
    }
@@ -325,17 +328,9 @@ sub _store_qual {
     my ($loc_id, $qual, $slot) = @_;
     return unless defined $slot;
     # get the qualifier from the controlled vocab
-    my $qual_id =
-      $self->select_colval("seqfeature_qualifier",
-                           {qualifier_name=>$qual},
-                           "seqfeature_qualifier_id");
-    if (!$qual_id) {
-        $qual_id =
-          $self->insert("seqfeature_qualifier",
-                        {qualifier_name=>$qual});
-    }
+    my $qual_id = $self->db->get_OntologyTermAdaptor->get_id($qual);
     $self->insert("location_qualifier_value",
-                  {seqfeature_qualifier_id=>$qual_id,
+                  {ontology_term_id=>$qual_id,
                    seqfeature_location_id=>$loc_id,
                    qualifier_value=>$slot,
                    qualifier_int_value=>int($slot)});

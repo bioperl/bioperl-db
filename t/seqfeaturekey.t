@@ -7,7 +7,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 11;
+    plan tests => 5;
 }
 
 
@@ -25,30 +25,6 @@ $db = $harness->get_DBAdaptor();
 ok $db;
 
 
-$sk = $db->get_SeqFeatureKeyAdaptor;
-
-ok $sk; 
-
-$id = $sk->store_if_needed("key12");
-
-ok $id;
-
-$id2 = $sk->store_if_needed("key12");
-
-ok ( $id == $id2);
-
-
-$sk = $db->get_SeqFeatureQualifierAdaptor;
-
-ok $sk; 
-
-$id = $sk->store_if_needed("key12");
-
-ok $id;
-
-$id2 = $sk->store_if_needed("key12");
-
-ok ( $id == $id2);
 
 $sk = $db->get_SeqFeatureSourceAdaptor;
 

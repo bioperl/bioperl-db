@@ -210,7 +210,7 @@ sub get_subseq_as_string{
 sub get_description{
    my ($self,$id) = @_;
 
-   my $sth = $self->prepare("select description from bioentry_description where bioentry_id = $id");
+   my $sth = $self->prepare("select qualifier_value AS description from bioentry_qualifier_value v, ontology_term t where bioentry_id = $id AND t.ontology_term_id = v.ontology_term_id AND term_name = 'description'");
    $sth->execute;
 
    my ($desc) = $sth->fetchrow_array;
@@ -233,7 +233,7 @@ sub get_description{
 sub get_length{
    my ($self,$id) = @_;
 
-   my $sth = $self->prepare("select length(bs.biosequence_str) from bioentry en,biosequence bs bs.bioentry_id = en.bioentry_id and en.bioentry_id = $id");
+   my $sth = $self->prepare("select length(bs.biosequence_str) from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and en.bioentry_id = $id");
    $sth->execute();
 
    my ($length) = $sth->fetchrow_array();

@@ -1,5 +1,5 @@
 
-%packages =('DBI' => '0.0/Database Access/For all of this package one needs the DBI module'); 
+%packages =('DBI' => '0.0/Database Access/this entire package/'); 
 
 sub check_package {
     my ($name,$str) = @_;
@@ -7,7 +7,7 @@ sub check_package {
 
     ($ver,$desc,$expl,$module) = split( /\// , $str);
     if( !eval "require $name") {
-	print "External Module $name, $desc,\n is not installed on this computer.\n  The $module in Bioperl needs it for $expl\n\n";
+	print "External Module $name, $desc,\n is not installed on this computer.\n  The $module in Bioperl-db needs it for $expl\n\n";
 	return 1;
     }
 

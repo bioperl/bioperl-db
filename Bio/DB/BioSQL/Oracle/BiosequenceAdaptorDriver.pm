@@ -113,13 +113,16 @@ use DBD::Oracle qw(:ora_types);
 
 sub insert_object{
     my $self = shift;
-    my ($adp,$obj,$fkobjs) = @_;
+    my ($adp,$obj,$fkobjs,$isdef) = @_;
     
-    # obtain the object's slot values to be serialized
-    my $slotvals = $adp->get_persistent_slot_values($obj, $fkobjs);
-    # any value present?
-    my $isdef;
-    foreach (@$slotvals) { $isdef ||= $_; last if $isdef; }
+    # this may come precomputed from the update_object() method below
+    if(!defined($isdef)) {
+	# no, not precomputed
+	# obtain the object's slot values to be serialized
+	my $slotvals = $adp->get_persistent_slot_values($obj, $fkobjs);
+	# any value present?
+	foreach (@$slotvals) { $isdef ||= $_; last if $isdef; }
+    }
     return $self->SUPER::insert_object(@_) if $isdef;
     return -1;
 }
@@ -155,12 +158,21 @@ sub insert_object{
 sub update_object{
     my ($self,$adp,$obj,$fkobjs) = @_;
 
+    # see whether there are any values defined at all
+    my $slotvals = $adp->get_persistent_slot_values($obj, $fkobjs);
+    my $isdef = 0;
+    foreach (@$slotvals) { $isdef ||= $_; last if $isdef; }
     # in the majority of cases this actually will be an update indeed - so
-    # let's just go ahead and try
-    my $rv = $self->SUPER::update_object($adp,$obj,$fkobjs);
-    # if the number of affected rows was zero, then it needs to be an insert
-    if($rv && ($rv == 0)) {
-	$rv = $self->insert_object($adp,$obj,$fkobjs);
+    # let's just go ahead and try if there are any values to update
+    my $rv = -1;
+    if($isdef) {
+	$rv = $self->SUPER::update_object($adp,$obj,$fkobjs);
+	# if the number of affected rows was zero, then it needs to be
+	# an insert
+	if($rv && ($rv == 0)) {
+	    # pass on the pre-computed $isdef (see the implementation above)
+	    $rv = $self->insert_object($adp,$obj,$fkobjs,$isdef);
+	}
     }
     # done
     return $rv;
@@ -247,39 +259,6 @@ sub get_biosequence{
     return (@$row ? $row->[0]->[0] : undef);
 }
 
-=head2 bind_param
-
- Title   : bind_param
- Usage   :
- Function: Binds a parameter value to a prepared statement.
-
-           The reason this method is here is to give RDBMS-specific
-           drivers a chance to intercept the parameter
-           binding. DBD::Oracle needs to be helped for the seq column.
-
- Example :
- Returns : the return value of the DBI::bind_param() call
- Args    : the DBI statement handle to bind to
-           the index of the column
-           the value to bind
-           additional arguments to be passed to the sth->bind_param call
-
-
-=cut
-
-sub bind_param{
-   my ($self,$sth,$i,$val,@bindargs) = @_;
-
-   if($val && (length($val) > 4000) && ($sth->{Statement} =~ /^update/i)) {
-       my $h = @bindargs ? $bindargs[-1] : {};
-       $h->{ora_field} = 'SEQ';
-       $h->{ora_type} = ORA_CLOB;
-       push(@bindargs, $h) unless @bindargs;
-   }
-   # delegate to the inherited version
-   return $self->SUPER::bind_param($sth,$i,$val,@bindargs);
-}
-
 =head2 prepare
 
  Title   : prepare
@@ -314,42 +293,99 @@ sub prepare{
     if($sql =~ /^update\s+$table/i) {
 	# yes it is.
 	#
-	# first let's find out who we are
-	my $rows = $dbh->selectall_arrayref("SELECT user FROM dual");
-	my $usr = $rows->[0]->[0];
-	# now figure out what the real table is that this synonym points to,
-	# if the table name is actually a synonym (this exercise will tell us
-	# whether it is)
-	my $dictsql = 
-	    "SELECT table_owner, table_name FROM all_synonyms ".
-	    "WHERE synonym_name = ? AND owner = ?";
-	my $selsth = $dbh->prepare($dictsql) or
-	    $self->throw("failed to prepare SQL statement '$dictsql': ".
-			 $dbh->errstr);
-	# we'll now walk through the synonym chain (if it is one)
-	my $target = $table; # initialize
-	my $rv = $selsth->execute($target,$usr);
-	my $row;
-	while($rv && ($row = $selsth->fetchrow_arrayref())) {
-	    # update user and target
-	    $usr = $row->[0];
-	    $target = $row->[1];
-	    # retrieve next link in the chain (if any)
-	    $rv = $selsth->execute($target,$usr);
-	}
-	# complain about errors - there really shouldn't be any
-	if(! $rv) {
-	    $self->throw("failed to execute SQL statement '$dictsql' ".
-			 "with parameters '$target' and '$usr': ".
-			 $selsth->errstr());
-	}
-	# $usr.$target should now hold the target of the synonym if the table
-	# is in fact a synonym, and $target should be the table otherwise.
-	# We'll edit the statement now accordingly.
-	$sql =~ s/^update\s+$table/UPDATE $usr.$target/i;
+	# copy the sql and edit to remove the NVL() for the SEQ column
+	my $sql2 = $sql;
+	$sql2 =~ s/seq\s+=\s+nvl\(\s*\?\s*,\s*seq\s*\)/seq = \?/i;
+	# prepare the edited version in addition to the default one for
+	# later reuse
+	my $sth2 = $dbh->prepare($sql2);
+	$self->_upd_sth2($sth2);
     }
     return $dbh->prepare($sql,@args);
 }
 
+=head2 get_sth
+
+ Title   : get_sth
+ Usage   :
+ Function: Retrieves the (prepared) statement handle to bind
+           parameters for and to execute for the given operation.
+
+           By default this will use the supplied key to retrieve the
+           statement from the cache.
+
+           This method is here to provide an opportunity for
+           inheriting drivers to intercept the cached statement
+           retrieval in order to on-the-fly redirect the statement
+           execution to use a different statement than it would have
+           used by default.
+
+           This method may return undef if for instance there is no
+           appropriate statement handle in the cache. Returning undef
+           will trigger the calling method to construct a statement
+           from scratch.
+
+ Example :
+ Returns : a prepared statement handle if one is exists for the query,
+           and undef otherwise
+ Args    : - the calling adaptor (a Bio::DB::BioSQL::BasePersistenceAdaptor
+             derived object
+	   - the object for the persistence operation
+           - a reference to an array of foreign key objects; if any of
+             those foreign key values is NULL then the class name
+           - the key to the cache of the adaptor
+           - the operation requesting a cache key (a scalar basically
+             representing the name of the method)
+
+
+=cut
+
+sub get_sth{
+    my ($self,$adp,$obj,$fkobjs,$key,$op) = @_;
+
+    # check whether we have to return the statement here for the edited
+    # update statement
+    if(($op eq "update_object") &&
+       (grep { $_ && (length($_) > 4000);
+	   } @{$adp->get_persistent_slot_values($obj, $fkobjs)})) {
+	$key .= " clob-compat";
+	# we like to get this statement into the cache as well in order
+	# for it to be automatically finished etc when the connection goes
+	# away
+	my $sth = $adp->sth($key) || $adp->sth($key, $self->_upd_sth2);
+	return $sth;
+    }
+    return $adp->sth($key);
+}
+
+=head2 _upd_sth2
+
+ Title   : _upd_sth2
+ Usage   : $obj->_upd_sth2($newval)
+ Function: Get/set the second version of the update row statement
+           as a prepared statement handle.
+
+           The 'second version' differs from the default in that the
+           set parameter for the SEQ column is not wrapped in a NVL()
+           call. This is needed to make it work for LOB values (values
+           longer than 4000 chars). However, this statement should
+           only be executed if the value is defined in order to
+           prevent unwanted un-sets of the value in the database.
+
+           This is a private method. Do not use from outside.
+
+ Example : 
+ Returns : value of _upd_sth2 (a DBI statement handle)
+ Args    : on set, new value (a DBI statement handle or undef, optional)
+
+
+=cut
+
+sub _upd_sth2{
+    my $self = shift;
+
+    return $self->{'_upd_sth2'} = shift if @_;
+    return $self->{'_upd_sth2'};
+}
 
 1;

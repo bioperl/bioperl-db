@@ -936,7 +936,7 @@ sub insert_object{
     # get the INSERT statement 
     # is it cached?
     my $cache_key = 'INSERT '.ref($obj).' '.join(';',@slots);
-    my $sth = $adp->sth($cache_key);
+    my $sth = $self->get_sth($adp,$obj,$fkobjs,$cache_key,'insert_object');
     # we need the slot map regardless of whether we need to construct the
     # SQL or not, because we need to know which slots do not map to a column
     # (indicated by them being mapped to undef)
@@ -950,6 +950,8 @@ sub insert_object{
 	$sth = $self->prepare_insert_sth($adp, \@slots, $fkobjs);
 	# and cache
 	$adp->sth($cache_key, $sth);
+	# and give interceptors a chance to do their work
+	$sth = $self->get_sth($adp,$obj,$fkobjs,$cache_key,'insert_object');
     }
     # the implementation here is a post-insert primary-key retrieval, so
     # just go ahead and bind the attributes, no a-priori pk retrieval
@@ -1042,8 +1044,8 @@ sub update_object{
     my @slots = $adp->get_persistent_slots($obj);
     # get the UPDATE statement 
     # is it cached?
-    my $cache_key = 'UPDATE '.ref($obj).' '.join(';',@slots);
-    my $sth = $adp->sth($cache_key);
+    my $cache_key = 'UPDATE '.ref($adp).' '.join(';',@slots);
+    my $sth = $self->get_sth($adp,$obj,$fkobjs,$cache_key,'update_object');
     # we need the slot map regardless of whether we need to construct the
     # SQL or not, because we need to know which slots do not map to a column
     # (indicated by them being mapped to undef)
@@ -1055,6 +1057,8 @@ sub update_object{
 	$sth = $self->prepare_update_sth($adp, \@slots, $fkobjs);
 	# and cache
 	$adp->sth($cache_key, $sth);
+	# and give interceptors a chance to do their work
+	$sth = $self->get_sth($adp,$obj,$fkobjs,$cache_key,'update_object');
     }
     # bind paramater values
     my $slotvals = $adp->get_persistent_slot_values($obj, $fkobjs);
@@ -1106,6 +1110,48 @@ sub update_object{
     }
     # done, return
     return $rv;
+}
+
+=head2 get_sth
+
+ Title   : get_sth
+ Usage   :
+ Function: Retrieves the (prepared) statement handle to bind
+           parameters for and to execute for the given operation.
+
+           By default this will use the supplied key to retrieve the
+           statement from the cache.
+
+           This method is here to provide an opportunity for
+           inheriting drivers to intercept the cached statement
+           retrieval in order to on-the-fly redirect the statement
+           execution to use a different statement than it would have
+           used by default.
+
+           This method may return undef if for instance there is no
+           appropriate statement handle in the cache. Returning undef
+           will trigger the calling method to construct a statement
+           from scratch.
+
+ Example :
+ Returns : a prepared statement handle if one is exists for the query,
+           and undef otherwise
+ Args    : - the calling adaptor (a Bio::DB::BioSQL::BasePersistenceAdaptor
+             derived object
+	   - the object for the persistence operation
+           - a reference to an array of foreign key objects; if any of
+             those foreign key values is NULL then the class name
+           - the key to the cache of the adaptor
+           - the operation requesting a cache key (a scalar basically
+             representing the name of the method)
+
+
+=cut
+
+sub get_sth{
+    my ($self,$adp,$obj,$fkobjs,$key,$op) = @_;
+
+    return $adp->sth($key);
 }
 
 =head2 translate_query

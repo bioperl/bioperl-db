@@ -231,11 +231,9 @@ sub password{
 =cut
 
 sub host {
-    my ($self,$value) = @_;
-    if( defined $value) {
-	$self->{'host'} = $value;
-    }
-    return "localhost" if(! exists($self->{'host'}));
+    my $self = shift;
+
+    return $self->{'host'} = shift if @_;
     return $self->{'host'};
 }
 

@@ -537,15 +537,24 @@ sub find_by_primary_key{
     # Gather the foreign key slots; we'll need that in any case.
     my @fkslots = $self->get_foreign_key_objects();
     # Prepared statement cached?
-    my $sth = $self->sth("SELECT PK ".ref($self));
+    my $cache_key = "SELECT PK ".ref($self);
+    my $sth = $self->sth($cache_key);
     if(! $sth) {
 	# not cached, get from driver peer
 	$sth = $self->dbd()->prepare_findbypk_sth($self,\@fkslots);
 	# and cache
-	$self->sth("SELECT PK ".ref($self), $sth);
+	$self->sth($cache_key, $sth);
     }
     # bind primary key and execute
-    $sth->execute($dbid);
+    if(! $sth->execute($dbid)) {
+	# The subsequent exception may be caught. Remove sth from cache
+	# in order not to trip up obscure driver-specific bugs.
+	my $err = $sth->errstr;
+	$sth->finish();
+	$self->sth($cache_key, undef);
+	$self->throw("error while executing statement in ".ref($self).
+		     "::find_by_primary_key: ".$err);
+    }
     # fetch row, instantiate and populate object
     my $rows = $sth->fetchall_arrayref();
     # any rows returned?
@@ -613,12 +622,28 @@ sub find_by_unique_key{
 	# and cache
 	$self->sth($cache_key, $sth);
     }
-    # bind values in proper order and execute
-    my $i = 0;
-    $self->debug(join("", map {
-	"binding UK column ".(++$i)." to \"".$ukval_h->{$_}."\" ($_)\n";
-    } keys %$ukval_h));
-    $sth->execute(@$ukval_h{(keys %$ukval_h)});
+    # bind values in proper order
+    my $i;
+    if($self->verbose > 0) {
+	$i = 0;
+	$self->debug(join("", map {
+	    "binding UK column ".(++$i)." to \"".$ukval_h->{$_}."\" ($_)\n";
+	} keys %$ukval_h));
+    }
+    $i = 0;
+    foreach (keys %$ukval_h) {
+	$sth->bind_param(++$i, $ukval_h->{$_});
+    }
+    # execute and check for error
+    if(! $sth->execute()) {
+	# The subsequent exception may be caught. Remove sth from cache
+	# in order not to trip up obscure driver-specific bugs.
+	my $err = $sth->errstr;
+	$sth->finish();
+	$self->sth($cache_key, undef);
+	$self->throw("error while executing statement in ".ref($self).
+		     "::find_by_unique_key: ".$err);
+    }
     # fetch rows
     my $rows = $sth->fetchall_arrayref();
     # any rows returned?
@@ -734,8 +759,15 @@ sub find_by_association{
 	}
     }
     # execute
-    my $rv = $sth->execute();
-    $self->throw("execution of SQL query failed") unless $rv;
+    if(! $sth->execute()) {
+	# The subsequent exception may be caught. Remove sth from cache
+	# in order not to trip up obscure driver-specific bugs.
+	my $err = $sth->errstr;
+	$sth->finish();
+	$self->sth($cache_key, undef);
+	$self->throw("error while executing statement in ".ref($self).
+		     "::find_by_association: ".$err);
+    }
     # construct query result object
     my $qres = Bio::DB::Query::DBQueryResult->new(-sth => $sth,
 						  -adaptor => $self,
@@ -815,9 +847,16 @@ sub find_by_query{
 	}
     }
     # ready to execute
-    my $rv = $sth->execute();
-    $self->throw("execution of SQL query " .
-		 ($qname ? "$qname " : "") . "failed") unless $rv;
+    if(! $sth->execute()) {
+	# The subsequent exception may be caught. Remove sth from cache
+	# in order not to trip up obscure driver-specific bugs.
+	my $err = $sth->errstr;
+	$sth->finish();
+	$self->sth($qname, undef) if $qname;
+	$self->throw("error while executing query ".
+		     ($qname ? "$qname " : "") . "in ".ref($self).
+		     "::find_by_query: ".$err);
+    }
     # construct query result object
     my $qres = Bio::DB::Query::DBQueryResult->new(-sth => $sth,
 						  -adaptor => $self,
@@ -961,20 +1000,21 @@ sub dbcontext{
  Usage   : $obj->sth($key, $prepared_sth)
  Function: caches prepared statements
  Example : 
- Returns : a DBI statement handle
+ Returns : a DBI statement handle cached under the key, or all statement
+           handles in the cache if no key is supplied
  Args    : the key for the cached prepared statement handle, and optionally
-           on set the new statement handle to be cached
+           on set the new statement handle to be cached, or undef to
+           remove the handle from the cache
 
 
 =cut
 
 sub sth{
-    my ($self,$key,$sth) = @_;
+    my $self = shift;
+    my $key = shift;
 
     $self->{'_sth'} = {} if ! exists($self->{'_sth'});
-    if( defined $sth) {
-	$self->{'_sth'}->{$key} = $sth;
-    }
+    return $self->{'_sth'}->{$key} = shift if @_;
     return $self->{'_sth'}->{$key} if $key;
     return values %{$self->{'_sth'}};
 }

@@ -63,7 +63,7 @@ use Bio::SeqIO;
 ####################################################################
 # Defaults for options changeable through command line
 ####################################################################
-my $host = "localhost";
+my $host; # should make the driver to default to localhost
 my $dbname = "biosql";
 my $dbuser = "root";
 my $driver = 'mysql';

@@ -171,7 +171,6 @@ sub last_id_value{
     }
     # we need to construct the sql statement
     $oraseq = $self->sequence_name() unless $oraseq;
-    print "SELECT $oraseq.currval FROM dual\n";
     my $row = $dbh->selectrow_arrayref("SELECT $oraseq.currval FROM dual");
     my $dbid;
     if(! ($row && @$row && ($dbid = $row->[0]))) {
@@ -199,10 +198,13 @@ sub build_dsn{
     my ($self,$dbc) = @_;
 
     my $dsn = "DBI:" . $dbc->driver() . ":";
-    $dsn .= "host=" . $dbc->host() if $dbc->host();
-    $dsn .= ";sid=" . $dbc->dbname();
+    if($dbc->host()) {
+	$dsn .= "host=" . $dbc->host() if $dbc->host();
+	$dsn .= ";sid=" . $dbc->dbname();
+    } else {
+	$dsn .= $dbc->dbname();
+    }
     $dsn .= ";port=" . $dbc->port() if $dbc->port();
-
     return $dsn;
 }
 

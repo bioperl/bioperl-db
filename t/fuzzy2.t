@@ -44,7 +44,7 @@ ok $seqadp;
 eval {
     my $sequk = Bio::Seq::RichSeq->new(-accession_number => "AB030700",
 				       -namespace => "mytestnamespace");
-    $dbseq = $seqadp->find_by_unique_key($uk);
+    $dbseq = $seqadp->find_by_unique_key($sequk);
     ok $dbseq;
 
     ok ($dbseq->display_id, $seq->display_id);
@@ -66,7 +66,7 @@ eval {
     ok (scalar(@dblinks), scalar(@stdlinks));
 
     for(my $i = 0; $i < @dblinks; $i++) {
-	ok($dblinks[$i]->dbname_id, $stdlinks[$i]->dbname_id);
+	ok($dblinks[$i]->database, $stdlinks[$i]->database);
 	ok($dblinks[$i]->primary_id, $stdlinks[$i]->primary_id);
 	ok($dblinks[$i]->optional_id, $stdlinks[$i]->optional_id);
     }

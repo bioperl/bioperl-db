@@ -627,6 +627,44 @@ sub remove_by_db_and_accession {
 }
 
 
+=head2 each_tag_value
+
+ Title   : each_tag_value
+ Usage   :
+ Function:
+ Example :
+ Returns : An array of references to 2-element arrays of (tag,value) pairs
+           representing the matching qualifier/value associations 
+ Args    : The bioentry primary key, or alternatively a Bio::PrimarySeqI
+           object. Optionally, the ontology term as the qualifier (a string).
+
+
+=cut
+
+sub each_tag_value {
+    my ($self, $bioentryid, $term) = @_;
+
+    if(ref($bioentryid) && $bioentryid->isa('Bio::PrimarySeqI')) {
+	$bioentryid = $bioentryid->primary_id();
+    }
+    my $sth = $self->prepare("SELECT o.term_name, eoa.qualifier_value ".
+			     "FROM ontology_term o, ".
+			     "bioentry_qualifier_value eoa ".
+			     "WHERE eoa.ontology_term_id = o.ontology_term_id".
+			     " AND eoa.bioentry_id = ?".
+			     ($term ? " AND o.term_name = ?" : ""));
+    if($term) {
+	$sth->execute($bioentryid, $term);
+    } else {
+	$sth->execute($bioentryid);
+    }
+    my @tagvalues = ();
+    while(my @row = $sth->fetchrow_array()) {
+	push(@tagvalues, [$row[0], $row[1]]);
+    }
+    return @tagvalues;
+}
+
 =head2 get_dates
 
  Title   : get_dates

@@ -1,3 +1,6 @@
+# -*-Perl-*-
+# $Id$
+
 use lib 't';
 
 BEGIN {
@@ -6,116 +9,88 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 19;
+    plan tests => 20;
 }
 
-use DBTestHarness;
+use BioSQLBase;
 use Bio::DB::SQL::DBAdaptor;
 use Bio::SeqIO;
 
-$harness = DBTestHarness->new();
+$biosql = BioSQLBase->new();
+ok $biosql;
 
+my $seqio = Bio::SeqIO->new('-format' => 'genbank',
+			    '-file' => Bio::Root::IO->catfile('t','data',
+							      'test.genbank'));
 
-ok $harness;
+my $seq;
+my @seqs = ();
+my @arr = ();
 
-$db_name = $harness->dbname; 
+eval {
+    while($seq = $biosql->store_seq($seqio, "mytestnamespace")) {
+	push(@seqs, $seq);
+	ok $seq->primary_id();
+    }
+    ok (scalar(@seqs), 4);
+    $seq = @seqs[$#seqs];
 
-ok $db_name;
+    $seqadaptor = $biosql->db()->get_SeqAdaptor;
+    ok $seqadaptor;
 
+    # features
+    my $sfadp = $biosql->db()->get_SeqFeatureAdaptor();
+    ok $sfadp;
 
-$db = $harness->get_DBAdaptor();
+    @arr = $sfadp->fetch_by_bioentry_id($seq->primary_id());
+    ok (scalar(@arr), 26);
 
-ok $db;
+    # references
+    my $rfadp = $biosql->db()->get_ReferenceAdaptor();
+    ok $rfadp;
 
-$dba = $db->get_BioDatabaseAdaptor; 
+    @arr = $rfadp->fetch_by_bioentry_id($seq->primary_id());
+    ok (scalar(@arr), 1);
 
-ok $dba; 
+    # qualifier/value
+    @arr = $seqadaptor->each_tag_value($seq->primary_id());
+    ok (scalar(@arr), 2);
 
-$seqio = Bio::SeqIO->new('-format' => 'GenBank',-file => 't/data/test.genbank');
+    # checking whether sequence can be deleted by dbID
+    ok ($seqadaptor->remove_by_dbID($seq->primary_id()), 1);
 
-ok $seqio;
+    # should be no features anymore
+    @arr = $sfadp->fetch_by_bioentry_id($seq->primary_id());
+    ok (scalar(@arr), 0);
 
-$db_id = $dba->fetch_by_name_store_if_needed('sprot');
+    # should be no references anymore
+    @arr = $rfadp->fetch_by_bioentry_id($seq->primary_id());
+    ok (scalar(@arr), 0);
+    
+    # should be no qualifier/values anymore
+    @arr = $seqadaptor->each_tag_value($seq->primary_id());
+    ok (scalar(@arr), 0);
 
-ok $db_id; 
+#  $sth = $dba->prepare("select taxa_id from bioentry_taxa br where br.bioentry_id=$dbID"); 
+#  $sth->execute(); 
+#  @arr = $sth->fetchrow_array();  
 
-$seqadaptor = $db->get_SeqAdaptor;
+#  ok (!@arr); 
 
-ok $seqadaptor;
+#  $sth = $dba->prepare("select biosequence_id from biosequence br where br.bioentry_id=$dbID"); 
+#  $sth->execute(); 
+#  @arr = $sth->fetchrow_array();  
 
-$seq_detailed = $seqio->next_seq(); 
-$acc = $seq_detailed->accession; 
-$seqadaptor->store($db_id,$seq_detailed); 
+#  ok (!@arr); 
 
-ok ($acc); 
+};
 
-while ($seq = $seqio->next_seq()) {
-	$dbID = $seqadaptor->store($db_id,$seq); 
+print STDERR $@ if $@;
+
+# delete seqs
+pop @seqs;
+foreach $seq (@seqs) {
+    ok ($biosql->delete_seq($seq), 1);
 }
+ok ($biosql->delete_biodatabase("mytestnamespace"), 1);
 
-ok ($dbID); 
-
-# checking whether sequence can be deleted by dbID
-
-$sth = $dba->prepare("select seqfeature_id from seqfeature br where br.bioentry_id=$dbID"); 
-$sth->execute(); 
-$seq_feature_ids = join ",",$sth->fetchrow_array(); 
-
-ok ($seq_feature_ids); 
-
-eval ("\$seqadaptor->remove_by_dbID($dbID)"); 
-ok (!$@); 
-
-
-#ok (!$@); 
-
-#checking whether all sequence features are deleted correctly
-
-$sth = $dba->prepare("select seqfeature_location_id from seqfeature_location br where br.seqfeature_id IN ($seq_feature_ids)"); 
-$sth->execute(); 
-@arr = $sth->fetchrow_array();  
-
-ok (!@arr); 
-
-
-$sth = $dba->prepare("select reference_id from bioentry_reference br where br.bioentry_id=$dbID"); 
-$sth->execute(); 
-@arr = $sth->fetchrow_array();  
-
-ok (!@arr); 
-
-$sth = $dba->prepare("select * from bioentry_qualifier_value where bioentry_id=$dbID"); 
-$sth->execute(); 
-@arr = $sth->fetchrow_array();  
-
-ok (!@arr); 
-
-
-
-$sth = $dba->prepare("select taxa_id from bioentry_taxa br where br.bioentry_id=$dbID"); 
-$sth->execute(); 
-@arr = $sth->fetchrow_array();  
-
-ok (!@arr); 
-
-$sth = $dba->prepare("select biosequence_id from biosequence br where br.bioentry_id=$dbID"); 
-$sth->execute(); 
-@arr = $sth->fetchrow_array();  
-
-ok (!@arr); 
-
-$sth = $dba->prepare("select seqfeature_id from seqfeature br where br.bioentry_id=$dbID"); 
-$sth->execute(); 
-@arr = $sth->fetchrow_array();  
-
-ok (!@arr); 
-
-
-eval ("\$seqadaptor->remove_by_db_and_accession('sprot',$acc)"); 
-
-ok (!$@); 
-
-
-eval( '$dba->remove_by_name("sprot")' );
- 
-ok (!$@); 

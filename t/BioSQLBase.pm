@@ -42,7 +42,7 @@ use DBTestHarness;
  Function: Reads the next sequence from the given Bio::SeqIO stream and
            stores it under the namespace given by 2nd argument.
  Returns : The sequence object that was stored, with the PK in
-           $seq->primary_id().
+           $seq->primary_id(), and undef if there was no sequence in the stream
  Args    : SeqIO stream (object) and namespace (a string)
 
 =cut
@@ -51,6 +51,7 @@ sub store_seq {
     my ($self, $seqio, $namespace) = @_;
 
     my $seq = $seqio->next_seq();
+    return unless $seq;
     my $biodbadaptor = $self->db()->get_BioDatabaseAdaptor;
     my $bdbid = $biodbadaptor->fetch_by_name_store_if_needed($namespace);
     my $seqadaptor = $self->db()->get_SeqAdaptor;

@@ -1,4 +1,4 @@
-
+# $Id$
 #
 # BioPerl module for Bio::DB::SQL::SeqFeatureAdaptor
 #
@@ -80,8 +80,8 @@ sub _table {"seqfeature"}
  Usage   :
  Function:
  Example :
- Returns :
- Args    :
+ Returns : a reference to a hash that holds the features keyed by their IDs
+ Args    : a reference to an array of IDs, or a single ID
 
 =cut
 
@@ -141,8 +141,8 @@ sub fetch_by_dbIDs {
  Usage   :
  Function:
  Example :
- Returns :
- Args    :
+ Returns : a Bio::SeqFeatureI implementing object
+ Args    : a single ID (primary key for seqfeatures)
 
 =cut
 
@@ -160,8 +160,8 @@ sub fetch_by_dbID{
  Usage   :
  Function:
  Example :
- Returns : 
- Args    :
+ Returns : an array of Bio::SeqFeatureI implementing objects
+ Args    : the primary key of the bioentry
 
 
 =cut
@@ -178,7 +178,7 @@ sub fetch_by_bioentry_id{
        my ($sf_id) = @{$arrayref};
        push(@sfids,$sf_id);
    }
-   my $sfh = $self->fetch_by_dbIDs(\@sfids);
+   my $sfh = $self->fetch_by_dbIDs(\@sfids) if @sfids;
    return values %$sfh;
 }
 
@@ -189,8 +189,9 @@ sub fetch_by_bioentry_id{
  Usage   :
  Function:
  Example :
- Returns : 
- Args    :
+ Returns : the primary key of the stored feature
+ Args    : the feature to store (a Bio::SeqFeatureI object), the rank (an
+           integer), and the primary key of the bioentry
 
 
 =cut
@@ -234,6 +235,7 @@ sub store{
             $rank++;
          }
       }
+   return $last_id;
 }
 
 sub _storeText {

@@ -173,5 +173,39 @@ sub store{
    return $id;
 }
 
+=head2 remove
+
+ Title   : remove
+ Usage   :
+ Function: deletes the respective Dbxrefs from the database
+ Example :
+ Returns : 
+ Args    : The primary key of the Dbxref entry to be deleted, or the
+           Bio::Annotation::DBLink object to be deleted.
+
+
+=cut
+
+sub remove {
+    my ($self,$dbxref) = @_;
+    my $dbxid = $dbxref;
+    my $numdel;
+    my $sth;
+
+    if(ref($dbxref) && $dbxref->isa('Bio::Annotation::DBLink')) {
+	$sth = $self->prepare("SELECT dbxref_id FROM dbxref ".
+			      "WHERE dbname = ? AND accession = ?");
+	$sth->execute($dbxref->database(), $dbxref->primary_id());
+	($dbxid) = $sth->fetchrow_array();
+	$sth->finish();
+    }
+    # delete children
+    $self->deleterows("dbxref_qualifier_value", {dbxref_id=>$dbxid});
+    # delete parent
+    $sth = $self->prepare("DELETE FROM dbxref WHERE dbxref_id = ?");
+    $numdel = $sth->execute($dbxid);
+    return $numdel;
+}
 
 1;
+

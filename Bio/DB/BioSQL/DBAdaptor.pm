@@ -494,7 +494,7 @@ sub get_SpeciesAdaptor{
 
  Title   : get_dbNames
  Usage   : $obj->get_dbNames()
- Function: find all possible biodatabase.name's available
+ Function: find all possible biodatabase.names available
  Example : 
  Returns : list of biodatabase.name fields
  Args    : none

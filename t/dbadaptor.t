@@ -1,4 +1,5 @@
-
+# -*-Perl-*-
+# $Id$
 
 use lib 't';
 
@@ -8,26 +9,32 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 3;
+    plan tests => 5;
 }
 
-use DBTestHarness;
+use BioSQLBase;
 use Bio::DB::SQL::DBAdaptor;
 
 
-$harness = DBTestHarness->new();
+$biosql = BioSQLBase->new();
+ok $biosql;
 
-ok $harness;
-
-
-$db = $harness->get_DBAdaptor();
-
+my $db = $biosql->db();
 ok $db;
 
-$sth = $db->prepare("select now()");
+# test connection
+my $rc = $db->_db_handle()->ping();
+ok ($rc && ($rc ne '0 but true'));
 
-$sth->execute;
+# execute some SQL that must work
+my $sth = $db->prepare("SELECT count(*) FROM biodatabase");
+$sth->execute();
 
 ok $sth;
+my @n = $sth->fetchrow_array();
+ok (scalar(@n), 1);
+
+$sth->finish();
+
 
 

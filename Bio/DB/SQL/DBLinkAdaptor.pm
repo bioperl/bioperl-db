@@ -145,11 +145,15 @@ sub store{
    my $acc = $dblink->primary_id();
    my $db  = $dblink->database();
 
-       my $id = $self->db->get_DBXrefAdaptor->store($dblink);
-       my $sth = $self->prepare("insert into bioentry_direct_links (source_bioentry_id,dbxref_id) VALUES ($bioentry_id,$id)");
-       $sth->execute;
+   my $dbxid = $self->db->get_DBXrefAdaptor->store($dblink);
+#   my $sth = $self->prepare("insert into bioentry_direct_links (source_bioentry_id,dbxref_id) VALUES ($bioentry_id,$dbxid)");
+   my $dblid = $self->insert("bioentry_direct_links",
+			     {'source_bioentry_id' => $bioentry_id,
+			       'dbxref_id' => $dbxid
+			       });
+   #$sth->execute;
 
-   return;
+   return $dblid;
 }
 
 

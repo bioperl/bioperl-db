@@ -61,9 +61,9 @@ eval {
     ok ($dbseq->length, length($dbseq->seq));
     ok ($dbseq->desc, $seq->desc);
 
-    my $sequk = Bio::PrimarySeq->new(-accession_number =>
-				     $pseq->accession_number());
-    $sequk->namespace($pseq->namespace());
+    my $sequk = Bio::PrimarySeq->new(
+			      -accession_number => $pseq->accession_number(),
+			      -namespace => $pseq->namespace());
     $dbseq = $db->get_object_adaptor($sequk)->find_by_unique_key($sequk);
     ok $dbseq;
     ok ($dbseq->primary_key, $pseq->primary_key());

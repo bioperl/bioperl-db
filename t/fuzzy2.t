@@ -19,39 +19,41 @@ BEGIN {
 # cjm@fruitfly.org
 # -----------------------------------------------
 
-use BioSQLBase;
-use Bio::DB::BioSQL::DBAdaptor;
+use DBTestHarness;
 use Bio::SeqIO;
+use Bio::Root::IO;
 
-$biosql = BioSQLBase->new();
-ok $biosql;
+$biosql = DBTestHarness->new("biosql");
+$db = $biosql->get_DBAdaptor();
+ok $db;
+$db->verbose(1) if $ENV{HARNESS_VERBOSE};
 
-$seq = $biosql->store_seq(Bio::SeqIO->new('-format' => 'embl',
-					  '-file' => Bio::Root::IO->catfile(
-					        't','data','AB030700.embl')),
-			  "mytestnamespace");
+my $seqio = Bio::SeqIO->new('-format' => 'embl',
+			    '-file' => Bio::Root::IO->catfile(
+						 't','data','AB030700.embl'));
+my $seq = $seqio->next_seq();
 ok $seq;
-ok $seq->primary_id();
+my $pseq = $db->create_persistent($seq);
+$pseq->namespace("mytestnamespace");
+$pseq->create();
+ok $pseq->primary_key();
+
+my $seqadp = $db->get_object_adaptor($seq);
+ok $seqadp;
 
 eval {
-    $seqadaptor = $biosql->db()->get_SeqAdaptor;
-    ok $seqadaptor;
-
-    $dbseq = $seqadaptor->fetch_by_db_and_accession("mytestnamespace",
-						    "AB030700");
+    my $sequk = Bio::Seq::RichSeq->new(-accession_number => "AB030700",
+				       -namespace => "mytestnamespace");
+    $dbseq = $seqadp->find_by_unique_key($uk);
     ok $dbseq;
 
     ok ($dbseq->display_id, $seq->display_id);
     ok ($dbseq->accession, $seq->accession);
-    ok ($dbseq->seq, $seq->seq);
     ok ($dbseq->subseq(3,10), $seq->subseq(3,10) );
     ok ($dbseq->subseq(1,15), $seq->subseq(1,15) );
     ok ($dbseq->length, $seq->length);
-    ok ($dbseq->length, length($dbseq->seq));
-
-    my $test_desc = $seq->desc;
-    $test_desc =~ s/\s+$//g;
-    ok ($dbseq->desc, $test_desc);
+    ok ($dbseq->seq, $seq->seq);
+    ok ($dbseq->desc, $seq->desc);
 
     @dblinks = sort {
 	$a->primary_id cmp $b->primary_id
@@ -61,23 +63,21 @@ eval {
 	} $seq->annotation->get_Annotations('dblink');
 
     ok (scalar(@dblinks));
-    ok (scalar(@stdlinks));
     ok (scalar(@dblinks), scalar(@stdlinks));
 
-    ok($dblinks[0]->optional_id, $stdlinks[0]->optional_id);
-
-    $dl1 = shift @dblinks;
-    $std1 = shift @stdlinks;
-    ok ( $dl1->primary_id, $std1->primary_id);
-
-    #$out = Bio::SeqIO->new( -file => '>t/tmp.embl' , -"format" => 'embl');
-    #$out->write_seq($dbseq);
-
+    for(my $i = 0; $i < @dblinks; $i++) {
+	ok($dblinks[$i]->dbname_id, $stdlinks[$i]->dbname_id);
+	ok($dblinks[$i]->primary_id, $stdlinks[$i]->primary_id);
+	ok($dblinks[$i]->optional_id, $stdlinks[$i]->optional_id);
+    }
 };
 
 print STDERR $@ if $@;
 
 # delete seq
-ok ($biosql->delete_seq($seq), 1);
-ok ($biosql->delete_biodatabase("mytestnamespace"), 1);
+ok ($pseq->remove(), 1);
+my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pseq);
+ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);
+ok $ns->primary_key();
+ok ($ns->remove(), 1);
 

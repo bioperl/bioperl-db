@@ -50,7 +50,7 @@ my $pfeat = $db->create_persistent($feat);
 ok $pfeat->isa("Bio::DB::PersistentObjectI");
 
 # store seq
-$pseq->store();
+$pseq->create();
 ok $pseq->primary_key();
 
 # attach seq (the foreign key)

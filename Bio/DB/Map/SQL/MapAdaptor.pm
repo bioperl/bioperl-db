@@ -67,11 +67,11 @@ use Bio::DB::Map::Map;
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
 
 
-=head2 get_Map
+=head2 get
 
- Title   : get_Map
- Usage   : my $map = $adaptor->get_Map(-id => $mapid); OR
-           my $map = $adaptor->get_Map(-name => $name); 
+ Title   : get
+ Usage   : my $map = $adaptor->get(-id => $mapid); OR
+           my $map = $adaptor->get(-name => $name); 
  Function: finds the map based on a criteria
  Returns : Bio::DB::Map::MapI object
  Args    : -id => mapid OR
@@ -79,7 +79,7 @@ use Bio::DB::Map::Map;
 
 =cut
 
-sub get_Map{
+sub get{
    my ($self,@args) = @_;
    my ($id,$name) = $self->_rearrange([qw(ID NAME)], @args);
 
@@ -103,15 +103,15 @@ sub get_Map{
 	   $SQL .= 'name = ?';
        }
        my $sth = $self->prepare($SQL); 
-       $sth->execute($id || $name);
-       
+       if( ! $id  ) { $id = $name; }
+       $sth->execute($id );
        my $row;
        # only want the first hit, plus name and mapid are both unique fields
        if( defined($row = $sth->fetchrow_hashref ) ){ 
 	   $map = new Bio::DB::Map::Map( '-adaptor' => $self,
 					 %{$row} );
        } else { 
-	   $self->warn("Searching for " . $id || $name . " did not find any maps");
+	   $self->warn("Searching for $id did not find any maps");
        }
        $sth->finish();
    };
@@ -145,6 +145,7 @@ sub write{
        $self->warn($@);
        $map = undef;
    }
+   $map->adaptor($self);
    return $map;
 }
 

@@ -72,6 +72,7 @@ use strict;
 use Bio::Root::RootI;
 use Bio::DB::Map::SQL::MapAdaptor;
 use Bio::DB::Map::SQL::MarkerAdaptor;
+use DBI;
 
 @ISA = qw(Bio::Root::RootI );
 

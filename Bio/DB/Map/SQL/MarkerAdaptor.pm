@@ -74,10 +74,10 @@ sub new {
 }
 
 
-=head2 get_Markers
+=head2 get
 
- Title   : get_Markers
- Usage   : my @markers = $markeradaptor->get_Markers(-ids => \@ids );
+ Title   : get
+ Usage   : my @markers = $markeradaptor->get(-ids => \@ids );
  Function: gets a list of Bio::DB::Map::Marker objects based on
            the list of queries
  Returns : list of Bio::DB::Map::Marker objects
@@ -87,7 +87,7 @@ sub new {
            -names=> array ref of marker names
 =cut
 
-sub get_Markers {
+sub get {
     my ($self, @args) = @_;
     my ($id, $ids, $name,$names) = $self->_rearrange( [qw(ID IDS NAME NAMES)], 
 						     @args );
@@ -152,7 +152,7 @@ sub write {
 	my $UPDATESQL = 'UPDATE marker %s WHERE markerid = ?';  
 	# let's get the original and compare for
 	# the sake of comparing aliases and map positions
-	my ($markercopy) = $self->get_Markers('-id' => $marker->id );
+	my ($markercopy) = $self->get('-id' => $marker->id );
 	if( ! $markercopy ) {
 	    $self->warn("Marker ". join(' ', ($marker->id, $marker->locus,
 					      $marker->probe)). "DNE \n");
@@ -239,6 +239,7 @@ sub write {
 					 fwdprimer,revprimer,length)
 					VALUES ( ?, ?, ?, ?, ?, ?, ?)));
 	    my (undef,$chrom) = ( $marker->chrom =~ /(chr)?(X|Y|UL|\d+)/ );
+
 	    $sth->execute($marker->locus,$marker->probe,$marker->type,
 			  $chrom, $marker->pcrfwd,$marker->pcrrev, 
 			  $marker->length);	   
@@ -278,10 +279,12 @@ sub write {
 	};
 	if($@ ) {
 	    $self->warn($@);	
+	    $self->warn("Working on marker " . $marker->to_string());
 	    $marker = undef;
 	}
     }
-   return $marker;
+    $marker->adaptor($self) if( $marker);
+    return $marker;
 }
 
 =head2 delete

@@ -30,7 +30,7 @@ CREATE TABLE species (
 CREATE TABLE strain_to_map_study (
     strain_id	        integer(11) not null,
     map_study_id	integer(11) not null,
-    UNIQUE KEY          i_strain_map (strain_id,map_study_id)
+    UNIQUE          (strain_id,map_study_id)
 );
 
 CREATE TABLE map (
@@ -38,7 +38,7 @@ CREATE TABLE map (
     map_study_id        integer(11) not null,
     map_name 	        varchar(32) not null,
     linkage_group       varchar(32), -- ????  or chromosome?
-    UNIQUE KEY          i_name (map_study_id,map_name)
+    UNIQUE          (map_study_id,map_name)
 );
 
 -- This is essential the locus table, in which markers are assigned to maps
@@ -117,7 +117,7 @@ create table marker_alias (
     marker_id           integer(11) not null,
     alias		varchar(64) not null,
     evidence_id         integer(11) not null,
-    UNIQUE KEY          i_marker_alias (marker_id,alias)
+    UNIQUE          (marker_id,alias)
 );
 
 CREATE TABLE enzyme (
@@ -134,7 +134,7 @@ CREATE TABLE next_number (
 CREATE TABLE marker_to_marker_group (
     marker_group_id     integer(11) not null,
     marker_id           integer(11) not null,
-    UNIQUE KEY          i_marker_group (marker_group_id,marker_id)
+    UNIQUE          (marker_group_id,marker_id)
 );
 
 CREATE TABLE marker_group (
@@ -150,8 +150,8 @@ CREATE TABLE marker_polymorphic (
    marker_id             integer(11) not null,
    strain1_id            integer(11) not null,
    strain2_id            integer(11) not null,
-   is_polymorphic        tinyint default 0,
-   UNIQUE KEY            i_marker_strain1_strain2 (marker_id,strain1_id,strain2_id)
+   is_polymorphic        tinyint,
+   UNIQUE            (marker_id,strain1_id,strain2_id)
 );
 
 -- microsatellites, isozymes and morphological markers have values
@@ -160,7 +160,7 @@ CREATE TABLE microsatellite_allele (
    marker_id             integer(11) not null,
    strain_id             integer(11) not null,
    allele_length         integer(6),
-   UNIQUE KEY            i_marker_strain (marker_id,strain_id)
+   UNIQUE            (marker_id,strain_id)
 );
 INSERT INTO map (map_id,map_study_id,map_name,linkage_group) values(NULL,1,'marshfield','chr');
 INSERT INTO map_type (map_type,map_units) VALUES ('Genetic','cM');

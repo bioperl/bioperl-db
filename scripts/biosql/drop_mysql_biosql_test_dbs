@@ -1,0 +1,19 @@
+#!/usr/bin/perl
+use strict;
+use DBI;
+my $dns="DBI:mysql:host=localhost";
+my $dbh=DBI->connect($dns, 'root', '') or die "Connect error: $DBI::error";
+
+my $table_pattern='_test_db_%';
+my $sql="SHOW DATABASES LIKE '$table_pattern'";
+my $sth=$dbh->prepare($sql);
+$sth->execute;
+my $arrayref=$sth->fetchall_arrayref;
+
+print join("\n", map{$_->[0]} @$arrayref), "\n";
+
+for my $db_name (map{$_->[0]} @$arrayref){
+    $sql="DROP DATABASE $db_name";
+    $dbh->do($sql);
+}
+

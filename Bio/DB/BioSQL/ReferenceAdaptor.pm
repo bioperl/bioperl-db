@@ -116,7 +116,7 @@ sub fetch_by_bioentry_id{
    my ($self,$bioentry_id) = @_;
 
    # yes - not optimised. We could removed quite a few nested gets here
-   my $sth = $self->prepare("select reference_id from reference where bioentry_id = $bioentry_id order by reference_rank");
+   my $sth = $self->prepare("select reference_id from bioentry_reference where bioentry_id = $bioentry_id order by reference_rank");
    $sth->execute;
 
    my @out;
@@ -143,11 +143,10 @@ sub fetch_by_bioentry_id{
 =cut
 
 sub store_if_needed{
-   my ($self,$reference,$rank,$bioentry_id) = @_;
+   my ($self,$reference) = @_;
 
-   if( !defined $bioentry_id ) {
-       $self->throw("Must store comemnts with bioentry_id");
-   }
+   $reference || $self->throw("Need a reference to store, doh...");
+
    my $start='NULL';
    my $end='NULL';
    if ($reference->start) {
@@ -172,18 +171,18 @@ sub store_if_needed{
 
    if ($med) {
        my $sth= $self->prepare("select reference_id from reference where reference_medline = $med");
-       
-       
        $sth->execute();
        my ($id) = $sth->fetchrow_array();
        if ($id) {
+	   print STDERR "Returning id $id\n";
 	   return $id;
        }
    }
 
-   my $sth = $self->prepare("insert into reference (reference_id,bioentry_id,reference_start,reference_end,reference_authors,reference_title,reference_location,reference_medline,reference_rank) values (NULL,$bioentry_id,$start,$end,'$authors','$title','$location',$med,$rank)");
-   #print STDERR "insert into reference (reference_id,bioentry_id,reference_start,reference_end,reference_authors,reference_title,reference_location,reference_medline,reference_rank) values (NULL,$bioentry_id,$start,$end,'$authors','$title','$location',$med,$rank)\n";
+   my $sth = $self->prepare("insert into reference (reference_id,reference_start,reference_end,reference_authors,reference_title,reference_location,reference_medline) values (NULL,$start,$end,'$authors','$title','$location',$med)");
+   print STDERR "insert into reference (reference_id,reference_start,reference_end,reference_authors,reference_title,reference_location,reference_medline) values (NULL,$start,$end,'$authors','$title','$location',$med)\n";
    $sth->execute();
+   return $sth->{'mysql_insertid'};
 }
 
 

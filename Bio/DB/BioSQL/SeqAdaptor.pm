@@ -211,12 +211,17 @@ sub store{
    $adp = $self->db->get_CommentAdaptor();
    foreach my $comment ( $seq->annotation->each_Comment ) {
        $adp->store($comment,$rank,$id);
+       $rank++;
    }
    
    $rank = 1;
    my $rdp = $self->db->get_ReferenceAdaptor();
    foreach my $ref ( $seq->annotation->each_Reference ) {
-       $rdp->store_if_needed($ref,$rank,$id);
+       my $rid = $rdp->store_if_needed($ref);
+       $sth = $self->prepare("insert into bioentry_reference(bioentry_id,reference_id,reference_rank) values($id,$rid,$rank)");
+       print STDERR "insert into bioentry_reference(bioentry_id,reference_id,reference_rank) values($id,$rid,$rank)\n";
+       $sth->execute;
+       $rank++;
    }
 
 

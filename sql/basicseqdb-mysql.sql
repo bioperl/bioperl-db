@@ -101,21 +101,28 @@ CREATE TABLE bioentry_direct_links (
        KEY (source_bioentry_id)
 );
 
-#We can have multiple references per bioentry
+#We can have multiple references per bioentry, but one reference
+#can also be used for the same bioentry.
 
 CREATE TABLE reference (
   reference_id       int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
-  bioentry_id        int(10) NOT NULL,
   reference_start    int(10),
   reference_end      int(10),
   reference_location varchar(255) NOT NULL,
   reference_title    mediumtext NOT NULL,
   reference_authors  mediumtext NOT NULL,
   reference_medline  int(10) NOT NULL,
-  reference_rank     int(5) NOT NULL,                 
 
-  KEY (reference_medline),
-  KEY (bioentry_id)
+  KEY (reference_medline)
+);
+
+CREATE TABLE bioentry_reference (
+  bioentry_id int(10) unsigned NOT NULL,
+  reference_id int(10) unsigned NOT NULL,
+  reference_rank int(5) unsigned NOT NULL,
+
+  PRIMARY KEY(bioentry_id,reference_id),
+  KEY (reference_rank)
 );
 
 # We can have multiple comments per seqentry, and

@@ -189,8 +189,16 @@ sub _store_component{
  
    my $sth = $self->prepare("insert into seqfeature_location (seqfeature_location_id,seqfeature_id,seq_start,seq_end,seq_strand,location_rank) VALUES (NULL,$seqfeature_id,$start,$end,$strand,$rank)");
    $sth->execute;
+   my $id= $sth->{'mysql_insertid'};
 
-   return $sth->{'last_insert_id'};
+   $location->seq_id =~ /(\S+)\.(\S+)/;
+   my $acc = $1;
+   my $v = $2;
+   if ($location->is_remote) {
+       my $sth = $self->prepare("insert into remote_seqfeature_name (seqfeature_location_id,accession,version) values($id,'$acc',$v)");
+       $sth->execute;
+   }
+   return $id;
 }
 
 1;

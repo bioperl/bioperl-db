@@ -865,14 +865,5 @@ sub get_seq_lengths {
 }
 
 
-sub store_feature_array {
-
-    my ($self,$bioentryid,@feature)=@_;
-    my $rank = 1;
-    foreach my $feature (@feature){
-	$self->store($feature,$rank,$bioentryid);
-	$rank++;
-    }
-}
 
 1;

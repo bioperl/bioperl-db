@@ -116,7 +116,7 @@ sub store_if_needed{
    if( exists $self->{'_linneage_hash'}->{$str} ) {
        return $self->{'_linneage_hash'}->{$str};
    }
-
+   $str =~ s/\'/\\\'/g;
    my $sth = $self->prepare("select taxa_id from taxa where full_lineage = '$str'");
    $sth->execute();
 
@@ -133,7 +133,7 @@ sub store_if_needed{
    if( !defined $common_name ) {
        $common_name = "";
    }
-
+   $common_name =~ s/\'/\\\'/g; 
    $sth = $self->prepare("insert into taxa (taxa_id,full_lineage,common_name) values (NULL,'$str','$common_name')");
    $sth->execute;
 

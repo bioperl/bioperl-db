@@ -167,7 +167,6 @@ sub store{
    }
 
    my $sth = $self->prepare("insert into bioentry (biodatabase_id,bioentry_id,display_id,accession,entry_version) values ($dbid,NULL,'$did','$accession',$version)");
-   
    $sth->execute;
    $sth = $self->prepare("select LAST_INSERT_ID()");
    $sth->execute;
@@ -175,9 +174,10 @@ sub store{
 
    $self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
 
-
+   my $desc = $seq->desc;
+   $desc =~ s/\'/\\\'/g;
    if( defined $seq->desc && $seq->desc ne '' ) {
-       $sth = $self->prepare("insert into bioentry_description (bioentry_id,description) VALUES ($id,'".$seq->desc."')");
+       $sth = $self->prepare("insert into bioentry_description (bioentry_id,description) VALUES ($id,'$desc')");
        $sth->execute;
    }
 

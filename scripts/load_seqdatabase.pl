@@ -28,10 +28,10 @@ use Bio::SeqIO;
 
 
 my $host = "localhost";
-my $sqlname = "bioperl";
+my $sqlname = "bioperl_db";
 my $dbuser = "root";
 my $dbpass = undef;
-my $format = 'fasta';
+my $format = 'embl';
 
 &GetOptions( 'host:s' => \$host,
 	     'sqldb:s'  => \$sqlname,

@@ -113,8 +113,12 @@ sub store_if_needed{
        return $self->{'_name_dbID'}->{$name};
    }
 
+   #Catch 5' and 3' and call them 5 prime and 3 prime
+   $name =~ s/\'/\\\'/g;
+
    # could be in database 
    my $sth = $self->prepare("select seqfeature_key_id from seqfeature_key where key_name = '$name'");
+   
    $sth->execute;
    my ($dbid) = $sth->fetchrow_array();
    if( defined $dbid ) {

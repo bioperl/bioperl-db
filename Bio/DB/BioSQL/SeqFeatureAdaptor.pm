@@ -187,6 +187,7 @@ sub store{
        # placeholder would be more efficient here
        my $qrank = 1;
        foreach my $value ( $feature->each_tag_value($tag) ) {
+	   $value =~ s/\'/\\\'/g;
 	   $sth= $self->prepare("INSERT into seqfeature_qualifier_value (seqfeature_id,seqfeature_qualifier_id,qualifier_value,seqfeature_qualifier_rank) VALUES ($last_id,$qid,'$value',$rank)");
 	   $sth->execute;
 	   $rank++;

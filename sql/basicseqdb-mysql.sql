@@ -6,8 +6,8 @@
 # author Ewan Birney 
 # comments to bioperl - bioperl-l@bioperl.org
 
-# database have bioentries. That's about it.
-# we do not store different versions of a database as different dbid's
+# database have bioentries. That is about it.
+# we do not store different versions of a database as different dbids
 # (there is no concept of versions of database). There is a concept of
 # versions of entries. Versions of databases deserve their own table and
 # join to bioentry table for tracking with versions of entries 
@@ -159,7 +159,7 @@ CREATE TABLE seqfeature_qualifier_value (
 # just have one location. We need to have a location id so for remote
 # split locations we can specify the start/end point
 
-# please don't try to model complex assemblies with this thing. It wont
+# please do not try to model complex assemblies with this thing. It wont
 # work. Check out the ensembl schema for this.
 
 CREATE TABLE seqfeature_location (
@@ -175,7 +175,7 @@ CREATE TABLE seqfeature_location (
 # beware - in the object layer it has to make a double SQL query to figure out
 # whether this is remote location or not
 
-# like DR links, we don't link directly to a bioentry_id - we have to do
+# like DR links, we do not link directly to a bioentry_id - we have to do
 # this run-time
 
 CREATE TABLE remote_seqfeature_name (

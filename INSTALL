@@ -26,8 +26,9 @@ its INSTALL file. You can obtain the BioSQL package at www.open-bio.org.
 
 MAKE
 
-Edit the file bioperl-db/t/DBHarness.biosql.conf as needed. Then 
-issue the following commands from within bioperl-db/:
+Copy or rename t/DBHarness.conf.example to t/DBHarness.biosql.conf and 
+edit the file as needed. Then issue the following commands from within 
+bioperl-db/:
 
   >perl Makefile.PL
   >make
@@ -59,7 +60,7 @@ or
 for more information.
 
 
-JOIN BIOPERL!
+FEEDBACK
 
 Write down any problems or praise and send them to 
 bioperl-l@bioperl.org  ;-)

@@ -80,6 +80,7 @@ use strict;
 use Bio::DB::Query::PrebuiltResult;
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
 use Bio::Annotation::AnnotationFactory;
+use Bio::Ontology::Ontology;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 

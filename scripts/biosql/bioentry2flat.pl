@@ -12,17 +12,19 @@ my $dbuser = "root";
 my $dbpass = undef;
 my $dbname = '';
 my $acc;
+my $version;
 my $stdout=0;
 my $format='embl';
 my $file;
 my $driver = 'mysql';
 
-&GetOptions( 'host:s' => \$host,
-             'driver:s' => \$driver,
-	     'dbuser:s' => \$dbuser,
-	     'dbpass:s' => \$dbpass,
-	     'dbname:s' => \$dbname,
-	     'accession:s' => \$acc,
+&GetOptions( 'host=s' => \$host,
+             'driver=s' => \$driver,
+	     'dbuser=s' => \$dbuser,
+	     'dbpass=s' => \$dbpass,
+	     'dbname=s' => \$dbname,
+	     'accession=s' => \$acc,
+	     'version=s' => \$version,
 	     'format:s' => \$format,
 	     'outformat:s' => \$outfmt,
 	     'file:s' => \$file
@@ -49,7 +51,9 @@ my $db = Bio::DB::BioDB->new(-database => "biosql",
 
 my $seqadaptor = $db->get_object_adaptor('Bio::SeqI');
 
-my $seq = Bio::Seq::RichSeq->new( -accession_number => $acc, -namespace => $biodbname );
+my $seq = Bio::Seq::RichSeq->new( -accession_number => $acc, 
+				  -version => $version,
+				  -namespace => $biodbname );
 
 $seq = $seqadaptor->find_by_unique_key($seq);
 

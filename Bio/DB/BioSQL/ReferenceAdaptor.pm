@@ -125,7 +125,7 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("authors","title","location","medline","start","end");
+    return ("authors","title","location","medline","doc_id","start","end");
 }
 
 =head2 get_persistent_slot_values
@@ -159,7 +159,8 @@ sub get_persistent_slot_values {
     my @vals = ($obj->authors(),
 		$obj->title(),
 		$obj->location(),
-		$obj->medline() ? $obj->medline : $self->_crc64($obj),
+		$obj->medline(),
+		$self->_crc64($obj),
 		$obj->start(),
 		$obj->end()
 		);
@@ -301,8 +302,8 @@ sub populate_from_row{
 	$obj->title($row->[2]) if $row->[2];
 	$obj->location($row->[3]) if $row->[3];
 	$obj->medline($row->[4]) if $row->[4] && ($row->[4] !~ /^CRC/);
-	$obj->start($row->[5]) if $row->[5];
-	$obj->end($row->[6]) if $row->[6];
+	$obj->start($row->[6]) if $row->[6];
+	$obj->end($row->[7]) if $row->[7];
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($row->[0]);
 	}
@@ -339,7 +340,7 @@ sub get_unique_key_query{
     if($obj->medline()) {
 	$uk_h->{'medline'} = $obj->medline();
     } elsif($obj->authors()) {
-	$uk_h->{'medline'} = $self->_crc64($obj);
+	$uk_h->{'doc_id'} = $self->_crc64($obj);
     }
     
     return $uk_h;

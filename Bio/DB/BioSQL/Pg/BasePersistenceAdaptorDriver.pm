@@ -1,14 +1,15 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver
+# BioPerl module for Bio::DB::BioSQL::Pg::BasePersistenceAdaptorDriver
 #
-# Cared for by Hilmar Lapp <hlapp at gmx.net>
+# Cut&pasted by Yves Bastide <ybastide at irisa.fr> from mysql/Oracle ones
 #
-# Copyright Hilmar Lapp
+# Copyright INRIA
 #
 # You may distribute this module under the same terms as perl itself
 
 #
+# Original:
 # (c) Hilmar Lapp, hlapp at gmx.net, 2002.
 # (c) GNF, Genomics Institute of the Novartis Research Foundation, 2002.
 #
@@ -26,7 +27,7 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver - DESCRIPTION of Object
+Bio::DB::BioSQL::Pg::BasePersistenceAdaptorDriver - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -56,9 +57,9 @@ email or the web:
   bioperl-bugs@bioperl.org
   http://bioperl.org/bioperl-bugs/
 
-=head1 AUTHOR - Hilmar Lapp
+=head1 AUTHOR - Yves Bastide
 
-Email hlapp at gmx.net
+Email ybastide at irisa.fr
 
 Describe contact details here
 
@@ -77,7 +78,7 @@ Internal methods are usually preceded with a _
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
+package Bio::DB::BioSQL::Pg::BasePersistenceAdaptorDriver;
 use vars qw(@ISA);
 use strict;
 
@@ -250,9 +251,9 @@ my %dont_select_attrs = (
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver();
- Function: Builds a new Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver object 
- Returns : an instance of Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver
+ Usage   : my $obj = new Bio::DB::BioSQL::Pg::BasePersistenceAdaptorDriver();
+ Function: Builds a new Bio::DB::BioSQL::Pg::BasePersistenceAdaptorDriver object 
+ Returns : an instance of Bio::DB::BioSQL::Pg::BasePersistenceAdaptorDriver
  Args    :
 
 
@@ -268,7 +269,7 @@ sub new {
     $self->slot_attribute_map(\%slot_attribute_map);
     $self->not_select_attrs(\%dont_select_attrs);
     $self->association_entity_map(\%association_entity_map);
-    
+
     return $self;
 }
 
@@ -295,5 +296,25 @@ sub primary_key_name{
     return $self->SUPER::primary_key_name($table);
 }
 
+=head2 sequence_name
+
+ Title   : sequence_name
+ Usage   :
+ Function: Returns the name of the primary key generator (SQL sequence)
+           for the given table.
+
+ Example :
+ Returns : the name of the sequence (a string)
+ Args    : The name of the table.
+
+
+=cut
+
+sub sequence_name{
+    my ($self,$table) = @_;
+
+    $table = $self->table_name("Bio::BioEntry") if $table eq "biosequence";
+    return $table . "_pk_seq";
+}
 
 1;

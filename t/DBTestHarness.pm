@@ -112,7 +112,7 @@ sub host {
     if ($value) {
         $self->{'host'} = $value;
     }
-    return $self->{'host'} || confess "host not set";
+    return $self->{'host'};
 }
 
 sub user {

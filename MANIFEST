@@ -37,6 +37,9 @@ Bio/DB/BioSQL/mysql/BiosequenceAdaptorDriver.pm
 Bio/DB/BioSQL/Oracle/AnnotationCollectionAdaptorDriver.pm
 Bio/DB/BioSQL/Oracle/BasePersistenceAdaptorDriver.pm
 Bio/DB/BioSQL/Oracle/BiosequenceAdaptorDriver.pm
+Bio/DB/BioSQL/Pg/AnnotationCollectionAdaptorDriver.pm
+Bio/DB/BioSQL/Pg/BasePersistenceAdaptorDriver.pm
+Bio/DB/BioSQL/Pg/BiosequenceAdaptorDriver.pm
 Bio/DB/BioSQL/PrimarySeqAdaptor.pm
 Bio/DB/BioSQL/ReferenceAdaptor.pm
 Bio/DB/BioSQL/SeqAdaptor.pm
@@ -51,6 +54,7 @@ Bio/DB/DBD.pm
 Bio/DB/DBI/base.pm
 Bio/DB/DBI/mysql.pm
 Bio/DB/DBI/Oracle.pm
+Bio/DB/DBI/Pg.pm
 Bio/DB/DBI.pm
 Bio/DB/Map/BaseAdaptor.pm
 Bio/DB/Map/DBAdaptor.pm

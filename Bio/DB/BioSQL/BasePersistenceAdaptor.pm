@@ -1063,7 +1063,10 @@ sub find_by_query{
 	for(my $i = 1; $i <= @$qvalues; $i++) {
 	    $self->debug("Query $qname: binding column $i to \"".
 			 $qvalues->[$i-1]."\"\n");
-	    if(! $sth->bind_param($i, $qvalues->[$i-1])) {
+	    # We generally don't want to raise an exception.
+	    my $rv;
+	    eval { $rv = $sth->bind_param($i, $qvalues->[$i-1]); };
+	    if(! $rv) {
 		# This is either due to an internal bug or to a constraint
 		# column not supported by the underlying schema (i.e., mapped
 		# to undef). While the first case warrants an exception, the

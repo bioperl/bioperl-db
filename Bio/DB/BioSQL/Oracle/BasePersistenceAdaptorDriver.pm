@@ -204,6 +204,7 @@ my %slot_attribute_map = (
 	     "title"          => "title",
 	     "location"       => "location",
 	     "medline"        => "document_id",
+	     "doc_id"         => "crc",
 	     "start"          => "=>BS_bioentry_ref_assoc.start",
 	     "end"            => "=>BS_bioentry_ref_assoc.end",
 	 },

@@ -111,11 +111,10 @@ post-processing of objects after the stream parser returns
 them. Cf. L<Bio::Seq::BaseSeqProcessor> for a base implementation for
 such modules.
 
-Modules are separated by the pipe character '|' or white space. In
-addition, you can specify initialization parameters for each of the
-modules by enclosing a comma-separated list of alternating parameter
-name and value pairs in parentheses or angle brackets directly after
-the module.
+Modules are separated by the pipe character '|'. In addition, you can
+specify initialization parameters for each of the modules by enclosing
+a comma-separated list of alternating parameter name and value pairs
+in parentheses or angle brackets directly after the module.
 
 Examples: 
     # one module

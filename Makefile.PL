@@ -1,7 +1,5 @@
 
-%packages = (
-	     'Bio::DB::UpdateableSeqI'    => '0.0/Part of the Bioperl package/Updateable Databases of Seq Interface/Bio::EnsemblLite::UpdateableDB',
-	     );
+%packages =(); 
 
 sub check_package {
     my ($name,$str) = @_;

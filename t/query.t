@@ -153,8 +153,8 @@ ok ($sql,
     "AND (bioentry.bioentry_id = 10 AND sv.ontology_id = 3)");
 
 $query->datacollections(
-		  ["Bio::PrimarySeqI c::child",
-		   "Bio::PrimarySeqI p::parent",
+		  ["Bio::PrimarySeqI c::subject",
+		   "Bio::PrimarySeqI p::object",
 		   "Bio::PrimarySeqI<=>Bio::PrimarySeqI<=>Bio::Ontology::TermI"]);
 $query->where(["p.accession_number = 'Hs.2'",
 	       "Bio::Ontology::TermI::name = 'cluster member'"]);
@@ -163,16 +163,16 @@ $sql = $sqlgen->generate_sql($tquery);
 ok ($sql,
     "SELECT * ".
     "FROM bioentry c, bioentry p, term, bioentry_relationship ".
-    "WHERE c.bioentry_id = bioentry_relationship.child_bioentry_id ".
-    "AND p.bioentry_id = bioentry_relationship.parent_bioentry_id ".
+    "WHERE c.bioentry_id = bioentry_relationship.subject_bioentry_id ".
+    "AND p.bioentry_id = bioentry_relationship.object_bioentry_id ".
     "AND term.term_id = bioentry_relationship.term_id ".
     "AND (p.accession = 'Hs.2' AND term.name = 'cluster member')");
 
 # this must also work with different objects in the association that map
 # to the same tables though
 $query->datacollections(
-		  ["Bio::PrimarySeqI c::child",
-		   "Bio::PrimarySeqI p::parent",
+		  ["Bio::PrimarySeqI c::subject",
+		   "Bio::PrimarySeqI p::object",
 		   "Bio::PrimarySeqI<=>Bio::ClusterI<=>Bio::Ontology::TermI"]);
 $query->where(["p.accession_number = 'Hs.2'",
 	       "Bio::Ontology::TermI::name = 'cluster member'"]);
@@ -181,8 +181,8 @@ $sql = $sqlgen->generate_sql($tquery);
 ok ($sql,
     "SELECT * ".
     "FROM bioentry c, bioentry p, term, bioentry_relationship ".
-    "WHERE c.bioentry_id = bioentry_relationship.child_bioentry_id ".
-    "AND p.bioentry_id = bioentry_relationship.parent_bioentry_id ".
+    "WHERE c.bioentry_id = bioentry_relationship.subject_bioentry_id ".
+    "AND p.bioentry_id = bioentry_relationship.object_bioentry_id ".
     "AND term.term_id = bioentry_relationship.term_id ".
     "AND (p.accession = 'Hs.2' AND term.name = 'cluster member')");
 

@@ -306,11 +306,12 @@ sub remove{
     $rv2 = $self->dbd()->cascade_delete($self->dbcontext(), $obj) if $rv;
     # the caller should commit if necessary
     #
+    # take care of the children (do this before undefining the primary key
+    # as something might have children that need this to locate them)
+    $rv = $self->remove_children($obj,@args) ? $rv : 0;
     # undefine the objects primary key - it doesn't exist in the datastore any
     # longer
     $obj->primary_key(undef);
-    # take care of the children
-    $rv = $self->remove_children($obj,@args) ? $rv : 0;
     # done
     return $rv;
 }
@@ -1516,6 +1517,7 @@ sub _remove_from_obj_cache{
     my @delkeys = ();
 
     while(($key, $val) = each %{$self->{'_obj_cache'}}) {
+	next unless $val && ref($val);
 	push(@delkeys, $key) if $val->primary_key() == $obj->primary_key();
     }
     foreach (@delkeys) {

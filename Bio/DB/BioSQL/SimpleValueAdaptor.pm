@@ -158,7 +158,6 @@ sub get_foreign_key_objects{
 
     if(ref($obj)) {
 	$ont = $self->_ontology_fk($obj);
-	#$ont->foreign_key_slot("Bio::Ontology::TermI::ontology");
     } else {
 	$ont = "Bio::Ontology::OntologyI";
     }
@@ -190,6 +189,66 @@ sub attach_foreign_key_objects{
 
     # we don't need to attach an ontology here, since it's a constant ...
     return $ok;
+}
+
+=head2 store_children
+
+ Title   : store_children
+ Usage   :
+ Function: Inserts or updates the child entities of the given object in the 
+           datastore.
+
+           Usually, those child objects will reference the given
+           object as a foreign key.
+
+           We override this here from the ontology term adaptor
+           because there is no synonyms or dbxrefs for SimpleValue
+           tags. I.e., we revert to the default behaviour of doing
+           nothing.
+
+ Example :
+ Returns : TRUE on success, and FALSE otherwise
+ Args    : The Bio::DB::PersistentObjectI implementing object for which the
+           child objects shall be made persistent.
+           A reference to an array of foreign key values, in the order of
+           foreign keys returned by get_foreign_key_objects().
+
+
+=cut
+
+sub store_children{
+    return 1;
+}
+
+=head2 attach_children
+
+ Title   : attach_children
+ Usage   :
+ Function: Possibly retrieve and attach child objects of the given object.
+
+           This is needed when whole object trees are supposed to be built
+           when a base object is queried for and returned. An example would
+           be Bio::SeqI objects and all the annotation objects that hang off
+           of it.
+
+           This is called by the find_by_XXXX() methods once the base object
+           has been built. 
+
+           We override this here from the ontology term adaptor
+           because there is no synonyms or dbxrefs for SimpleValue
+           tags. I.e., we revert to the default behaviour of doing
+           nothing.
+
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The object for which to find and to which to attach the child
+           objects.
+
+
+=cut
+
+sub attach_children{
+    return 1;
 }
 
 =head2 remove_children

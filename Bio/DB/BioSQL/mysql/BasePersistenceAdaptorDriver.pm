@@ -127,6 +127,8 @@ my %object_entity_map = (
 		"Bio::DB::BioSQL::PathAdaptor"        => "term_path",
                 "Bio::Ontology::OntologyI"            => "ontology",
 		"Bio::DB::BioSQL::OntologyAdaptor"    => "ontology",
+		# TermSynonym is a hack - there is no such object
+		"TermSynonym"                         => "term_synonym",
 		   );
 my %association_entity_map = (
 	 "bioentry" => {
@@ -155,6 +157,7 @@ my %association_entity_map = (
 	 "dbxref"   => {
 	     "bioentry"       => "bioentry_dbxref",
 	     "seqfeature"     => "seqfeature_dbxref",
+	     "term"           => "dbxref_qualifier_value",
 	 },
 	 "reference"   => {
 	     "bioentry"       => "bioentry_reference",
@@ -162,6 +165,7 @@ my %association_entity_map = (
 	 },
 	 "term" => {
 	     "bioentry"       => "bioentry_qualifier_value",
+	     "dbxref"         => "term_dbxref",
 	     "seqfeature"     => "seqfeature_qualifier_value",
 	     "term"           => {
 		 "term"       => {
@@ -215,13 +219,19 @@ my %slot_attribute_map = (
 	     "division"       => "division",
 	     "bionamespace"   => "biodatabase_id",
 	     # these are for context-sensitive FK name resolution
-	     "parent"         => "parent_bioentry_id",
-	     "child"          => "child_bioentry_id",
+	     "object"         => "object_bioentry_id",
+	     "subject"        => "subject_bioentry_id",
+	     # parent and child are for backwards compatibility
+	     "parent"         => "object_bioentry_id",
+	     "child"          => "subject_bioentry_id",
 	 },
 	 "bioentry_relationship" => {
-	     "parent"         => "parent_bioentry_id",
-	     "child"          => "child_bioentry_id",
+	     "object"         => "object_bioentry_id",
+	     "subject"        => "subject_bioentry_id",
 	     "rank"           => "rank",
+	     # parent and child are for backwards compatibility
+	     "parent"         => "object_bioentry_id",
+	     "child"          => "subject_bioentry_id",
 	 },
 	 "biosequence" => {
 	     "seq_version"    => "version",
@@ -236,6 +246,9 @@ my %slot_attribute_map = (
 	     "version"        => "version",
 	 },
 	 "bioentry_dbxref" => {
+	     "rank"           => "rank",
+	 },
+	 "term_dbxref" => {
 	     "rank"           => "rank",
 	 },
 	 "reference" => {
@@ -270,6 +283,12 @@ my %slot_attribute_map = (
 	     "predicate"      => "predicate_term_id",
 	     "object"         => "object_term_id",
 	 },
+	 # term_synonym is more a hack - it doesn't correspond to an object
+	 # in bioperl, but this does let you specify your column naming
+	 "term_synonym" => {
+	     "synonym"        => "synonym",
+	     "term"           => "term_id"
+	 },
 	 "term_relationship" => {
 	     "subject"        => "subject_term_id",
 	     "predicate"      => "predicate_term_id",
@@ -298,6 +317,9 @@ my %slot_attribute_map = (
 	     "source_tag"     => "source_term_id",
 	     "entire_seq"     => "bioentry_id",
 	     # these are for context-sensitive FK name resolution
+	     "object"         => "object_seqfeature_id",
+	     "subject"        => "subject_seqfeature_id",
+	     # parent and child are for backwards compatibility
 	     "parent"         => "parent_seqfeature_id",
 	     "child"          => "child_seqfeature_id",
 	 },
@@ -315,9 +337,12 @@ my %slot_attribute_map = (
 	     "rank"           => "rank",
 	 },
 	 "seqfeature_relationship" => {
+	     "object"         => "object_seqfeature_id",
+	     "subject"        => "subject_seqfeature_id",
+	     "rank"           => "rank",
+	     # parent and child are for backwards compatibility
 	     "parent"         => "parent_seqfeature_id",
 	     "child"          => "child_seqfeature_id",
-	     "rank"           => "rank",
 	 },
 			   );
 my %dont_select_attrs = (

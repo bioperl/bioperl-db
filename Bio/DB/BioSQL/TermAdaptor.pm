@@ -161,7 +161,7 @@ sub get_persistent_slot_values {
     my @vals = ($obj->identifier(),
 		$obj->name(),
 		$obj->definition(),
-		$obj->is_obsolete()
+		$obj->is_obsolete() ? 'X' : undef
 		);
     return \@vals;
 }
@@ -235,15 +235,91 @@ sub attach_foreign_key_objects{
     my $ok = 1;
     
     if($fks && @$fks) {
-	# the foreign key to ontology is optional
-	if($fks->[0]) {
-	    if(my $ont = $self->_ont_adaptor->find_by_primary_key($fks->[0])) {
-		$obj->ontology($ont);
-	    } else {
-		$ok = 0;
-	    }
-	}
+	my $ont = $self->_ont_adaptor->find_by_primary_key($fks->[0]);
+	$obj->ontology($ont) if $ont;
+	$ok = $ont && $ok;
     }
+    return $ok;
+}
+
+=head2 store_children
+
+ Title   : store_children
+ Usage   :
+ Function: Inserts or updates the child entities of the given object in the 
+           datastore.
+
+           The implementation can assume that all of the child objects
+           are already Bio::DB::PersistentObjectI.
+
+           Ontology terms have synonyms and dbxrefs as children.
+
+ Example :
+ Returns : TRUE on success, and FALSE otherwise
+ Args    : The Bio::DB::PersistentObjectI implementing object for which the
+           child objects shall be made persistent.
+           A reference to an array of foreign key values, in the order of
+           foreign keys returned by get_foreign_key_objects().
+
+
+=cut
+
+sub store_children{
+    my ($self,$obj,$fkobjs) = @_;
+    my $ok = 1;
+
+    # we possibly have synonyms to store
+    foreach my $syn ($obj->get_synonyms()) {
+	$ok = $self->store_synonym($obj,$syn) && $ok;
+    }
+    # we also possibly have db-xrefs to store
+    foreach my $dbl ($obj->get_dblinks()) {
+	$dbl = $dbl->create() unless $dbl->primary_key();
+	$ok = $dbl && $ok;
+	$dbl->adaptor->add_association(-objs => [$obj, $dbl]);
+    }
+    # done
+    return $ok;
+}
+
+=head2 attach_children
+
+ Title   : attach_children
+ Usage   :
+ Function: Possibly retrieve and attach child objects of the given object.
+
+           This is needed when whole object trees are supposed to be
+           built when a base object is queried for and returned. An
+           example would be Bio::SeqI objects and all the annotation
+           objects that hang off of it.
+
+           This is called by the find_by_XXXX() methods once the base
+           object has been built.
+
+           An ontology term has synonyms and dbxrefs as children.
+
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The object for which to find and to which to attach the child
+           objects.
+
+
+=cut
+
+sub attach_children{
+    my ($self,$obj) = @_;
+    my $ok = 1;
+
+    # get and attach the dbxrefs
+    my $dbladp = $self->db->get_object_adaptor("Bio::Annotation::DBLink");
+    my $qres = $dbladp->find_by_association(-objs => [$obj,$dbladp]);
+    while(my $dbl = $qres->next_object()) {
+	$obj->add_dblink($dbl);
+    }
+    # retrieve the synonyms (synonyms aren't objects in their own right
+    # in bioperl - although they could be)
+    $ok = $self->get_synonyms($obj) && $ok;
+    # done
     return $ok;
 }
 
@@ -253,7 +329,6 @@ sub attach_foreign_key_objects{
  Usage   :
  Function: This method is to cascade deletes in maintained objects.
 
-           We just return TRUE here.
 
  Example :
  Returns : TRUE on success and FALSE otherwise
@@ -387,6 +462,66 @@ sub get_unique_key_query{
 =head1 Methods overriden from BasePersistenceAdaptor
 
 =cut
+
+=head1 Public methods specific to this module
+
+=cut
+
+=head2 store_synonym
+
+ Title   : store_synonym
+ Usage   :
+ Function: Stores a synonym for an ontology term.
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The persistent term object for which to store the synonym
+           (a Bio::DB::PersistentObjectI compliant object with defined
+           primary key).
+           The synonym to store (a scalar). 
+
+
+=cut
+
+sub store_synonym{
+    my ($self,$obj,$syn) = @_;
+    # do the error checking right here
+    $obj->isa("Bio::DB::PersistentObjectI") ||
+	$self->throw("$obj is not a persistent object. Bummer.");
+    $obj->primary_key ||
+	$self->throw("primary key not defined - cannot store synonym without");
+    # insert
+    my $rv = $self->dbd->store_synonym($self,$obj,$syn);
+    # done
+    return $rv;
+}
+
+=head2 get_synonyms
+
+ Title   : get_synonyms
+ Usage   :
+ Function: Retrieves the synonyms for an ontology term and adds them
+           the term's synonyms.
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The persistent term object for which to retrieve the synonyms
+           (a Bio::DB::PersistentObjectI compliant object with defined
+           primary key).
+
+
+=cut
+
+sub get_synonyms{
+    my ($self,$obj) = @_;
+    # do the error checking right here
+    $obj->isa("Bio::DB::PersistentObjectI") ||
+	$self->throw("$obj is not a persistent object. Bummer.");
+    $obj->primary_key ||
+	$self->throw("primary key not defined - cannot get synonyms without");
+    # retrieve and add
+    my $rv = $self->dbd->get_synonyms($self,$obj);
+    # done
+    return $rv;
+}
 
 =head1 Private methods
 

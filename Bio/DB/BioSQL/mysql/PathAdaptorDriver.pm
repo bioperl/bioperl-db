@@ -143,7 +143,7 @@ sub compute_transitive_closure{
     }
     # initialize the path table with all relationships under the ontology.
     #
-    # for this need to map a number of objects to foreign keys, so gather
+    # for this we need to map a number of objects to foreign keys, so gather
     # keys, and obtain an attribute map
     my $termcl = "Bio::Ontology::TermI";
     my @fks = map {

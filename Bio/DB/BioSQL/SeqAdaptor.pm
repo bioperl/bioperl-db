@@ -204,6 +204,7 @@ sub attach_foreign_key_objects{
            datastore.
 
            A Bio::SeqI has annotation and seqfeatures as children.
+
  Example :
  Returns : TRUE on success, and FALSE otherwise
  Args    : The Bio::DB::PersistentObjectI implementing object for which the
@@ -231,10 +232,10 @@ sub store_children{
 	$self->throw("PrimarySeq object is not a persistent object. ".
 		     "This is alarming - probably an internal bug.");
     }
-    $obj->add_SeqFeature($obj->flush_SeqFeatures());
+    $obj->add_SeqFeature($obj->remove_SeqFeatures());
     # loop over the seqfeatures and store
     my $i = 0;
-    foreach my $feat ($obj->top_SeqFeatures()) {
+    foreach my $feat ($obj->get_SeqFeatures()) {
 	# we need to assign a rank if there isn't one already -- likewise,
 	# if there is one already make sure we don't clash with that
 	if(my $rank = $feat->rank()) {

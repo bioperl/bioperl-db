@@ -447,7 +447,7 @@ sub setup_pipeline{
     my @pipemods = ();
 
     # split into modules
-    my @mods = split(/[\|\s]+/, $pipeline);
+    my @mods = split(/\|/, $pipeline);
     # instantiate a module 'loader'
     my $loader = Bio::Root::Root->new();
     # load and instantiate each one, then concatenate

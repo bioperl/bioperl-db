@@ -417,7 +417,7 @@ sub add_association{
     # execute
     my $rv = $sth->execute();
     # report unexpected error, also the bind values if not reported before
-    if(! ($rv || ($sth->errstr =~ /unique/i))) {
+    if(! ($rv || ($sth->errstr =~ /unique|duplicate entry/i))) {
 	my $msg = substr(ref($self),rindex(ref($self),"::")+2).
 	    "::add_assoc: unexpected failure of statement execution: ".
 	    $sth->errstr."\n\tname: $cache_key";

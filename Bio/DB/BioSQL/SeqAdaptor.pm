@@ -801,4 +801,73 @@ sub get_description_by_accession{
    return $desc;
 }
 
+
+=head2 get_all_available
+
+ Title   : get_all_available
+ Usage   : $SeqAd->get_all_available($molecule_type)
+ Function:  to retrieve the names of all sequences of $type
+ Example :  $SeqAd->get_all_available("dna");
+ Returns : list of scalars; all valid sequence names
+ Args    : molecule type (optional restriction)
+
+
+=cut
+
+
+sub get_all_available {
+	my ($self, $type) = @_;
+	my $query = "select be.display_id ".
+		"from bioentry be, ".
+		"biosequence bs ".
+		"where be.bioentry_id = bs.bioentry_id ";
+	if ($type){$query .= "and bs.molecule = '$type'"};
+ 
+	my $sth = $self->prepare($query);
+	$sth->execute();
+	my @available;
+	while (my ($seqname) = $sth->fetchrow_array){
+		push @available, $seqname;
+	}
+	return @available;	
+}
+
+
+
+=head2 get_seq_lengths
+
+ Title   : get_seq_lengths
+ Usage   : $SeqAd->get_seq_lengths(@seqnames)
+ Function: retrieve lenghts of all/selected sequences
+ Example : $SeqAd->get_seq_lengths("At15GH6", "ABC44S");
+ Returns : hashref of {seqname} = length for any valid names
+ Args    : optional list of desired sequences, returns all by default
+
+
+=cut
+
+sub get_seq_lengths {
+	my ($self, @seqs) = @_;
+	my $query = "select be.display_id, length(bs.biosequence_str) ".
+		"from bioentry be, ".
+		"biosequence bs ".
+		"where be.bioentry_id = bs.bioentry_id ";
+	if ($seqs[0]){
+		my $seqlist = join ",", map {qq("$_")} @seqs;
+		#print "\nSEQLIST $seqlist\n";
+		$query .= "and be.display_id in ($seqlist)"
+	}
+
+	my $sth = $self->prepare($query);
+	$sth->execute();
+	
+	my %result;
+	while (my ($id, $length) = $sth->fetchrow_array){
+		$result{$id} = $length;
+	}
+	return \%result;
+}
+
+
+
 1;

@@ -198,3 +198,29 @@ sub fetch_by_dbID {
    
 }
 
+=head2 fetch_all_organisms
+
+ Title   : fetch_all_organisms
+ Usage   :  $species_adaptor->fetch_all_organisms
+ Function:  to retrieve all organisms from the database
+ Example : 
+ Returns :  hashref of {database_id} = Bio::Species object
+ Args    :  none
+
+
+=cut
+
+sub fetch_all_organisms {
+	my ($self)  = @_;
+   my $sth = $self->prepare("select taxa_id, full_lineage, common_name, ncbi_taxa_id from taxa");
+   $sth->execute;
+	my %results;
+	while (my ($id, $lin, $name) = $sth->fetchrow_array()){
+		my @classification = split(/:/,$lin);
+		my $out = Bio::Species->new(-classification => \@classification);
+		$out->common_name($name);
+		$results{$id} = $out;
+	}
+   return \%results;
+}
+

@@ -321,13 +321,20 @@ sub setup_pipeline{
     my @pipemods = ();
 
     # split into modules
-    my @mods = split(/[,;\|\s]+/, $pipeline);
+    my @mods = split(/[\|\s]+/, $pipeline);
     # instantiate a module 'loader'
     my $loader = Bio::Root::Root->new();
     # load and instantiate each one, then concatenate
     foreach my $mod (@mods) {
-	$loader->_load_module($mod);
-	my $proc = $mod->new();
+	# separate module name from potential arguments
+	my $modname = $mod;
+	my @modargs = ();
+	if($modname =~ /^(.+)[\(<](.*)[>\)]$/) {
+	    $modname = $1;
+	    @modargs = split(/,/, $2);
+	}
+	$loader->_load_module($modname);
+	my $proc = $mod->new(@modargs);
 	if(! $proc->isa("Bio::Factory::SequenceProcessorI")) {
 	    die "Pipeline processing module $mod does not implement ".
 		"Bio::Factory::SequenceProcessorI. Bummer.\n";

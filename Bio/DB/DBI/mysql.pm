@@ -185,6 +185,6 @@ sub last_id_value{
 
 =cut
 
-*ifnull_sqlfunc = sub { 'IFNULL'; }
+*ifnull_sqlfunc = sub { 'IFNULL'; };
 
 1;

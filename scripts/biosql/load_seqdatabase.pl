@@ -437,7 +437,7 @@ foreach $file ( @files ) {
 		# create a persistent object out of the seq if it's
 		# not one already (merge_objs may have touched it)
 		$pseq = $db->create_persistent($seq)
-		    unless $pseq->isa("Bio::DB::PersistentObjectI");
+		    unless $seq->isa("Bio::DB::PersistentObjectI");
 		# store the primary key of what we found by lookup (this
 		# is going to be an udate then)
 		if($lseq && $lseq->primary_key) {

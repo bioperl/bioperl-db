@@ -13,12 +13,15 @@ See TODO list for status of modules & project.
 ------------------------------------------------------------------
 You will need
 1) a mysql db server 
+
 2) an account on the server
+
 3) 2 databases on the server
    - one for the basic sequence db ( I called mine seqdb )
    - one to be your ensembl-lite db ( I called mine ensdev )
   You can call them whatever you want, but you may need to
   tweak the test scripts a little if you do.
+
 4) copy PWD.basic PWD
    edit it so that all the information is listed.
    The default db is what is listed in PWD, you will

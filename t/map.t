@@ -29,7 +29,7 @@ my $mapadaptor = $db->get_MapAdaptor();
 
 ok ($mapadaptor);
 
-my $map = $mapadaptor->get_Map('-name' => 'marshfield');
+my $map = $mapadaptor->get('-name' => 'marshfield');
 
 ok ($map);
 ok ($map->name, 'marshfield');

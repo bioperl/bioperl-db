@@ -165,7 +165,7 @@ sub store_if_needed{
 
    my $authors=$reference->authors;
    my $location=$reference->location;
-   my $title=$reference->title;
+   my $title=$reference->title || "";
 #   $title or $self->throw("$reference has no title"); no title is allowed
 
    #Hack, put zero for records that have no medline id

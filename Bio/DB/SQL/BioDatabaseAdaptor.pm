@@ -123,12 +123,9 @@ sub fetch_by_name_store_if_needed{
    my ($self,$name) = @_;
 
    my $id;
-   eval {
-       $id = $self->fetch_by_name($name);
-   };
+   $id = $self->fetch_by_name($name);
 
-   #if( !defined $id || $id eq '' ) {
-   if ($@) {
+   if( ! $id) {
        $id = $self->store($name);
    }
 
@@ -157,9 +154,9 @@ sub fetch_by_name{
 
    my ($id) = $sth->fetchrow_array();
 	
-   if (! defined $id) {
-	$self->throw("Could not find db for name $name");
-   }	
+#   if (! defined $id) {
+#	$self->throw("Could not find db for name $name");
+#   }	
 
    return $id;
 }

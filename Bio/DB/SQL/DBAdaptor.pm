@@ -75,6 +75,7 @@ sub new {
         $user,
         $password,
         $port,
+        $dbh,
 	    ) = $self->_rearrange([qw(
             DBNAME
 	    HOST
@@ -82,8 +83,12 @@ sub new {
 	    USER
 	    PASS
 	    PORT
-	    
+	    DBH
 	    )],@args);
+  if ($dbh) {
+      $self->_db_handle($dbh);
+      return $self;
+  }
     $db   || $self->throw("Database object must have a database name");
     $user || $self->throw("Database object must have a user");
     if( ! $driver ) {
@@ -108,8 +113,6 @@ sub new {
   else {
       $self->throw("unknown driver:$driver\n");
   }
-  my $dbh;
-  print STDERR "dsn=$dsn; user=$user\n" if $ENV{SQL_TRACE};
   eval {
       $dbh = DBI->connect("$dsn","$user",$password, {RaiseError => 1});
   };

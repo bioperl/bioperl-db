@@ -171,7 +171,43 @@ sub fetch_by_db_and_accession{
        # this is not well optimised. We could share common object building code here.
        return $self->fetch_by_dbID($enid);
    } else {
-       $self->throw("Unable to retrieve sequence with $db and $accession");
+       return;
+#       $self->throw("Unable to retrieve sequence with $db and $accession");
+   }
+   
+}
+
+=head2 fetch_by_accession
+
+ Title   : fetch_by_accession
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub fetch_by_accession {
+   my ($self,$accession) = @_;
+
+   my $dbh = $self->db->_db_handle;
+   my $w = "";
+   if ($accession =~ /(\S+)\.(\d+)/) {
+       $accession = $1;
+       $w = " AND entry_version = '$2'";
+   }
+   my $enids = $dbh->selectcol_arrayref("select en.bioentry_id from bioentry en WHERE en.accession = '$accession' $w");
+
+   if (@$enids > 1) {
+       $self->throw("multiple entries with acc $accession");
+   }
+   elsif (@$enids < 1) {
+       $self->throw("no entries with acc $accession");
+   }
+   else {
+       return $self->fetch_by_dbID($enids->[0]);
    }
    
 }
@@ -508,7 +544,7 @@ sub store{
    if ( defined $seq->desc && $seq->desc ne '' ) {
        my $TERM_ID =
 	   $self->db->get_OntologyTermAdaptor->DESCRIPTION_ID;
-       $self->insert("bioentry_qualifier_value",
+       $self->insert_nopk("bioentry_qualifier_value",
 		     {bioentry_id=>$id,
 		      qualifier_value=>$seq->desc,
 		      ontology_term_id=>$TERM_ID});
@@ -518,14 +554,14 @@ sub store{
        my $TERM_ID =
 	   $self->db->get_OntologyTermAdaptor->DATES_ID;
        foreach my $date ($seq->get_dates) {
-	   $self->insert("bioentry_qualifier_value",
+	   $self->insert_nopk("bioentry_qualifier_value",
 			 {bioentry_id=>$id,
 			  qualifier_value=>$date,
 			  ontology_term_id=>$TERM_ID});
        }
        if (my $kw = $seq->keywords) {
 	   my $TERM_ID = $self->db->get_OntologyTermAdaptor->KEYWORDS_ID;
-	   $self->insert("bioentry_qualifier_value",
+	   $self->insert_nopk("bioentry_qualifier_value",
 			 {bioentry_id=>$id,
 			  qualifier_value=>$kw,
 			  ontology_term_id=>$TERM_ID});

@@ -248,6 +248,8 @@ sub store{
        }
    } elsif( $location->isa('Bio::Location::Simple') ) {
        $self->_store_component($location,$seqfeature_id,1);
+   } elsif( $location->isa('Bio::Location::FuzzyLocationI') ) {
+       $self->_store_component($location,$seqfeature_id,1);
    } else {
        $self->throw("Not a simple location nor a split. Yikes");
    }
@@ -334,7 +336,7 @@ sub _store_qual {
 	$intslot = 0;
     }
 
-    $self->insert("location_qualifier_value",
+    $self->insert_nopk("location_qualifier_value",
                   {ontology_term_id=>$qual_id,
                    seqfeature_location_id=>$loc_id,
                    qualifier_value=>$slot,

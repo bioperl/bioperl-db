@@ -212,13 +212,20 @@ sub store{
    my $keyid = $self->db->get_OntologyTermAdaptor->get_id($feature->primary_tag);
    my $sourceid = $self->db->get_SeqFeatureSourceAdaptor->store_if_needed($feature->source_tag);
 
+   
+   my $sth = $self->prepare("insert into seqfeature (bioentry_id,seqfeature_key_id,seqfeature_source_id,seqfeature_rank) VALUES ($bioentryid,$keyid,$sourceid,$rank)");
+   
+   $sth->execute();
+   my $last_id = $self->get_last_id;
 
-      my $sth = $self->prepare("insert into seqfeature (bioentry_id,seqfeature_key_id,seqfeature_source_id,seqfeature_rank) VALUES ($bioentryid,$keyid,$sourceid,$rank)");
-
-      $sth->execute();
-      my $last_id = $self->get_last_id;
-
-      $self->db->get_SeqLocationAdaptor->store($feature->location,$last_id);
+   eval {
+       $self->db->get_SeqLocationAdaptor->store($feature->location,$last_id);
+   };
+   if ($@) {
+       use Data::Dumper;
+       print Dumper $feature;
+       $self->throw($@);
+   }
 
       my $adp = $self->db->get_OntologyTermAdaptor();
 
@@ -249,7 +256,7 @@ sub store{
           # placeholder would be more efficient here
          my $rank = 1;
          foreach my $value ( $feature->each_tag_value($tag) ) {
-            $value = $self->quote($value);
+             $value = $self->quote($value);
             my $sth= $self->prepare("INSERT into seqfeature_qualifier_value (seqfeature_id,ontology_term_id,qualifier_value,qualifier_rank) VALUES ($last_id,$qid,$value,$rank)");
             $sth->execute;
             $rank++;

@@ -408,13 +408,26 @@ sub store{
    # simple store at the moment - 
    my $did       = $seq->id;
    my $accession = $seq->accession;
-   my $version   = $seq->seq_version;
+   
+   my $version; 
+   
+   if ($seq->isa("Bio::DB::Seq")) {
+   	   $version = $seq->version;
+   }
+   else {
+   	   $version = $seq->seq_version; 
+   }
+   
+   
    my $division = 'UNK';
 
    
    if ( $seq->isa('Bio::Seq::RichSeqI')  && defined $seq->division) {
        $division  = $seq->division;
    }
+   
+   
+   
    if( !defined $version ) {
        $version = 0;
    }

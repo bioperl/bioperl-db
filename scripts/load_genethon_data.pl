@@ -33,6 +33,8 @@ my $dbpass = 'undef';
 my $module = 'Bio::DB::Map::SQL::DBAdaptor';
 
 &GetOptions( 
+	     'online'          => \$ONLINE,
+	     'debug'           => \$DEBUG,
 	     'host:s'          => \$host,
 	     'port:n'          => \$port,
 	     'db|dbname:s'     => \$dbname,
@@ -61,7 +63,7 @@ foreach my $chrom ( 1..23 ) {
     my ($DATA) = &get_genethon_data($chrom);
     
     while(<$DATA>) {
-	
+	s/\*//g;
 	my ($probe,$sexavg,$female,$male,$locus,$genbank,
 	    $allelect,$heterozygosity,$fwd,$rev,$genotype,$minmax);
 	if( $chrom < 23 ) {
@@ -105,18 +107,11 @@ foreach my $marker ( values %markers ) {
 	$count++;
     }
     if( ! $markeradaptor->write($marker) ) {
-	my ( $markercopy ) = $markeradaptor->get('-pcrprimers' => [ $marker->pcrfwd,
-							     $marker->pcrrev ] );
 	$duplicate++;
-	if( $markercopy ) {
-	    $marker->id($markercopy->id);
-	    $markeradaptor->write($marker);
-	} else { 
-	    print "unable to find marker for primers ", $marker->pcrfwd, 
-	    ", ", $marker->pcrrev, "\n";
-	}
-    }
+	$markeradaptor->add_duplicate_marker($marker);	
+    }    
 }
+
 print "No primers for $count, $duplicate duplicates, out of $total\n";
 
 sub get_genethon_data {

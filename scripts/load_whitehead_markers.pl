@@ -41,6 +41,8 @@ my $dbpass = 'undef';
 my $module = 'Bio::DB::Map::SQL::DBAdaptor';
 
 &GetOptions( 
+	     'online'          => \$ONLINE,
+	     'debug'           => \$DEBUG,
 	     'host:s'          => \$host,
 	     'port:n'          => \$port,
 	     'db|dbname:s'     => \$dbname,
@@ -81,7 +83,6 @@ while(<$STS>) {
 	
 	next;
     }
-
     my $marker = new Bio::DB::Map::Marker ( -probe => $assay,
 					    -locus => $locus,
 					    -chrom => $chrom,
@@ -189,24 +190,20 @@ foreach my $marker ( values %markers ) {
 	$count++;
 	next;	    
     } 
-    
+
     if( ! $markeradaptor->write($$marker) ) {
 	$duplicate++;
-	my ( $markercopy ) = $markeradaptor->get('-pcrprimers' => [ $$marker->pcrfwd,
-							     $$marker->pcrrev ] );
-	if( $markercopy ) {
-	    $$marker->id($markercopy->id);
-	    $markeradaptor->write($$marker);
-	}
-    }
+	$markeradaptor->add_duplicate_marker($$marker);	
+    }    
 }
 print "skipped $count, $duplicate duplicates out of $total\n";
 
 sub get_data_for_chrom {
     my ($chrom) = @_;
+    $chrom =~ s/23/X/;
     my $fh;
     if( $ONLINE ) {
-	my $url = sprintf('%s/Chr%d.rh', $WHITEHEADRHMAP,$chrom);
+	my $url = sprintf('%s/Chr%s.rh', $WHITEHEADRHMAP,$chrom);
 	my $request = GET $url;
 	my $response = $ua->request($request);
 	if( $response->is_success ) {
@@ -218,7 +215,7 @@ sub get_data_for_chrom {
 	    $fh = undef;
 	}
     } else {
-	my $file = sprintf('< %s/Chr%d.rh', $WHITEHEADRHMAPDIR,
+	my $file = sprintf('< %s/Chr%s.rh', $WHITEHEADRHMAPDIR,
 			   $chrom);
 	$fh = new IO::File($file) or do { 
 	    warn("cannot open $file");

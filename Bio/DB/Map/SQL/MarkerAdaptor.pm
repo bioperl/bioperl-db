@@ -224,7 +224,6 @@ sub write {
 	foreach my $alias ( $marker->each_alias ) {
 	    my $src = $marker->get_source_for_alias($alias);
 	    eval { 
-
 		if( ! $markercopy->is_alias($alias) ) {
 		    $sth->execute($alias,$marker->id, $src);
 		} elsif( $markercopy->get_source_for_alias($alias) ne 
@@ -232,9 +231,13 @@ sub write {
 		    $sthupdate->execute($src, $marker->id, $alias);
 		}
 	    };
-	    if( $@) {
-		$self->warn($@);
-		$rc = -1 unless ( $@ =~ /Duplicate/ );
+	    if( $@) {		
+		if ( $@ =~ /Duplicate entry/ ) {
+		    $self->warn($@) if( $self->verbose >= 1);
+		} else {
+		    $rc = -1;
+		    $self->warn($@);
+		}
 	    }
 	}
 	$sth->finish();

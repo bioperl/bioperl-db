@@ -36,6 +36,8 @@ my $dbpass = 'undef';
 my $module = 'Bio::DB::Map::SQL::DBAdaptor';
 
 &GetOptions( 
+	     'online'          => \$ONLINE,
+	     'debug'           => \$DEBUG,
 	     'host:s'          => \$host,
 	     'port:n'          => \$port,
 	     'db|dbname:s'     => \$dbname,
@@ -184,17 +186,12 @@ foreach my $marker ( values %markers ) {
 				 $marker->to_string);
 	}
 	$count++;
-    }
+	next;
+    }    
     if( ! $markeradaptor->write($marker) ) {
-	my ( $markercopy ) = $markeradaptor->get('-pcrprimers' => [ $marker->pcrfwd,
-							     $marker->pcrrev ] );
 	$duplicate++;
-	if( $markercopy ) {
-	    $marker->id($markercopy->id);
-	    $markeradaptor->write($marker);
-	} else { 
-	    print "unable to find marker for primers ", $marker->pcrfwd, 
-	    ", ", $marker->pcrrev, "\n";
+	if( ! $markeradaptor->add_duplicate_marker($marker) ) {
+	    print STDERR "no duplicate marker found for ", $marker->to_string(), "\n";
 	}
     }
 }

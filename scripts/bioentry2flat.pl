@@ -1,3 +1,5 @@
+#!/usr/local/bin/perl
+
 use Bio::DB::SQL::DBAdaptor;
 use Bio::SeqIO;
 use Getopt::Long;
@@ -16,7 +18,7 @@ my $file;
 	     'sqldb:s'  => \$sqlname,
 	     'dbuser:s' => \$dbuser,
 	     'dbpass:s' => \$dbpass,
-	     'dbname:s' => \$format,
+	     'dbname:s' => \$dbname,
 	     'accession:s' => \$acc,
 	     'format:s' => \$format,
 	     'file:s' => \$file
@@ -28,7 +30,7 @@ $db = Bio::DB::SQL::DBAdaptor->new( -host => $host,
 				    -pass => $dbpass
 				    );
 my $seqadaptor = $db->get_SeqAdaptor;
-my $dbseq = $seqadaptor->fetch_by_db_and_accession("embl",$acc);
+my $dbseq = $seqadaptor->fetch_by_db_and_accession($dbname,$acc);
 
 my $seqio;			
 

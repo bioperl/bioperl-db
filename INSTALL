@@ -1,3 +1,4 @@
+# $Id$
 bioperl-db INSTALLATION
 
 
@@ -20,11 +21,19 @@ your download:
 INSTALL BIOSQL
 
 The bioperl-db package is designed to work with the BioSQL database.
-Install the BioSQL package first by following the instructions in 
-its INSTALL file. You can obtain the BioSQL package at www.open-bio.org.
+Install the BioSQL package by following the instructions in its
+INSTALL file. You can obtain the BioSQL package at www.open-bio.org. 
+BioSQL requires a relational database, either Mysql or Oracle or 
+Postgres.
 
 
 MAKE
+
+Download the bioperl-db archive, then extract its contents. Example:
+
+  >gunzip bioperl-db-0.1.tar.gz
+  >tar xvf bioperl-db-0.1.tar
+  >cd bioperl-db
 
 Copy or rename t/DBHarness.conf.example to t/DBHarness.biosql.conf and 
 edit the file as needed. Then issue the following commands from within 
@@ -41,8 +50,8 @@ The 'make install' step may require that you have root privileges.
 LOAD THE NCBI TAXONOMY
 
 It is advisable to pre-load the NCBI taxonomy database using the
-load_taxonomy.pl script in the BioSQL package. Otherwise you'll see 
-errors from mis-parsed organisms. 
+load_taxonomy.pl script in the BioSQL package. Otherwise you may see 
+errors from mis-parsed organisms when you attempt to load sequences.
 
 
 LOAD SEQUENCE DATA

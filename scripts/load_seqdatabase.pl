@@ -146,7 +146,8 @@ my @files = @ARGV || \*STDIN;
 #
 # determine input format and type
 #
-my ($objio,$format) = split(/:/, $format);
+my $objio;
+($objio,$format) = split(/:/, $format);
 if(! $format) {
     $format = $objio;
     # default is SeqIO
@@ -190,8 +191,8 @@ foreach $file ( @files ) {
     # establish filter if provided
     if($condition) {
 	if(! $seqin->can('sequence_builder')) {
-	    $self->throw("object IO parser ".ref($seqin).
-			 " does not support control by ObjectBuilderIs");
+	    $seqin->throw("object IO parser ".ref($seqin).
+			  " does not support control by ObjectBuilderIs");
 	}
 	$seqin->sequence_builder->add_object_condition($condition);
     }

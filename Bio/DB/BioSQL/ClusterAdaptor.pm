@@ -629,16 +629,16 @@ sub _object_slot{
 =head2 _ontology_term
 
  Title   : _ontology_term
- Usage   : $term = $obj->_ontology_term($name,$category)
+ Usage   : $term = $obj->_ontology_term($name,$ontology)
  Function: Obtain the persistent ontology term with the given name
-           and category.
+           and ontology.
 
            This is an internal method.
 
  Example : 
  Returns : A persistent Bio::Ontology::TermI object
  Args    : The name for the term.
-           The category name for the term.
+           The ontology name for the term.
            Whether or not to find the term.
 
 
@@ -654,7 +654,7 @@ sub _ontology_term{
 
     if(! exists($self->{'_ontology_terms'}->{$name})) {
 	$term = Bio::Ontology::Term->new(-name => $name,
-					 -category => $cat);
+					 -ontology => $cat);
 	$self->{'_ontology_terms'}->{$name} = $term;
     } else {
 	$term = $self->{'_ontology_terms'}->{$name};

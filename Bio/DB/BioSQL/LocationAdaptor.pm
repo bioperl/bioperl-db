@@ -142,7 +142,7 @@ sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
     my @vals = ($obj->start(),
 		$obj->end(),
-		$obj->strand(),
+		defined($obj->strand) ? $obj->strand : 0,
 		$obj->can('rank') ? $obj->rank() : undef
 		);
     return \@vals;

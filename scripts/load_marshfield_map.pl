@@ -14,13 +14,14 @@ use HTTP::Request::Common;
 
 BEGIN { 
     use vars qw($MARKERDATA $MARSHFIELDURL $NCBIDATAURL $STSDATA 
-		$NCBI_STSURL $ONLINE);
+		$NCBI_STSURL $ONLINE $DEBUG);
     $MARSHFIELDURL = 'http://marshfieldclinic.org/research/genetics/Map_Markers/data';
-    $MARKERDATA = '/home/markers';
-    $STSDATA = '/home/data/sts/human.sts';
+    $MARKERDATA = '/tmp/markers/marshfield';
+    $STSDATA = '/tmp/sts/human.sts';
     
     $NCBI_STSURL = 'ftp://ftp.ncbi.nlm.nih.gov/repository/dbSTS/human.sts';
-    $ONLINE = 1;
+    $ONLINE = 0;
+    $DEBUG = 1;
 }
 #set proxy stuff here where applicable
 my $ua = new LWP::UserAgent();
@@ -64,10 +65,34 @@ foreach my $name ( @mapnames ) {
     $maps{$name} = $mapadaptor->get('-name' => $name);
 }
 
+my %sts;
+my $STS = &get_sts_data();
+exit if( ! $STS );    
+# build STS
+while(<$STS>) {
+    my ($id,$fwd,$rev,$len,$locus,$chrom,$genbank) = split;
+
+    my $probe = '';
+    $locus =~ s/CHLC\.//;
+    
+    $sts{$locus} = [ $fwd,$rev,$len ];
+    if( $genbank eq '-' ) {
+	# do nothing
+    } elsif( $genbank =~ /;/ ) {
+	foreach my $g ( split(/;/,$genbank) ) {	    
+	    $sts{$g} = [ $fwd,$rev,$len ];
+	}
+    } else {
+	$sts{$genbank} = [ $fwd,$rev,$len ];
+    }
+}
+close($STS);
+
 # read in the maps
 my %markers;
 foreach my $chrom ( 1..23 ) {
     my $MAP = &get_map_data_for_chrom($chrom);
+    last if ( ! $MAP);
     # skip the 1st 2 header lines
     <$MAP>; <$MAP>;
     while(<$MAP>) {
@@ -96,91 +121,74 @@ foreach my $chrom ( 1..23 ) {
     
     my %info;
     my $INFO = &get_info_data_for_chrom($chrom);
+    last if ( ! $INFO);
     <$INFO>; <$INFO>;
     my (@requests,@requests_probes);
     while(<$INFO>) {
 	s/^\*//;
 	s/^x//;
-
+	
 	my ($probe,$locus,$genbank) = split;
-	my $struct = { 'probe' => $probe,
-		       'locus' => $locus,
-		       'genbank' => $genbank };
 
-	if( $genbank !~ /Unknown/i  ) {
-	    $info{$genbank} =  $struct; 
+	if( $locus =~ /Unknown/i  ) {
+	    $locus = $probe;
 	}
-	# I checked an one locus appears twice
+	
+	if( $genbank =~ /Unknown/i  ) {
+	    $genbank = $locus;
+	}
+	
+        # I checked an one locus appears twice
 	# and these are actually the same marker
 	# M758B6-1/M758B621
-
-	$info{$locus} = $struct;
-    }
-    close($INFO);
-
-    my $STS = &get_sts_data();
-    
-    while(<$STS>) {
-	my ($id,$fwd,$rev,$len,$locus,$chrom,$genbank) = split;
-	my $probe = '';
-
-	if( $genbank =~ /-/i ) { $genbank = $locus; } 
-	else { 
-	    foreach my $g ( split(/;/,$genbank) ) {
-		if( $info{$g} ) { 
-		    $probe = $info{$g}->{'probe'};
-		    last;
-		}
-	    }
+	my $stsval = undef;
+	my $marker = undef;
+	if( $sts{$genbank} ) {	    
+	    $stsval = $sts{$genbank};	    
+	} elsif( $sts{$locus} ) {
+	    $stsval = $sts{$locus};
+	} elsif( $sts{$probe} ) {
+	    $stsval = $sts{$probe};
 	}
-	if( ! $probe ) {
-	    $probe = $info{$locus}->{'probe'};
-	} 
-	if( ! $probe) {
-#	    print "skipping $locus $genbank\n";
+
+	if( ! $stsval ) { 
+	    print "could not find stsval for $probe $locus $genbank\n" if($DEBUG);
+	    next; }
+	
+	if( $markers{$probe} ) {
+	    $marker = $markers{$probe};	    
+	} elsif( $markers{$locus} ) {
+	    $marker = $markers{$locus};
+	} elsif( $markers{$genbank} ) {
+	    $marker = $markers{$genbank};
+	}
+	if( ! $marker ) {
+	    print "unable to find marker for $probe $locus $genbank\n" if($DEBUG);
 	    next;
 	}
-
-	if( $markers{$probe} ) { 
-	    if( ! $markers{$probe}->locus) {$markers{$probe}->locus($locus) ;}
-	    elsif( $markers{$probe}->locus ne $locus  ) {
-		print "marker $probe, locus $locus, did not match ", 
-		$markers{$probe}->locus, "\n";		
-	    }
-	    $markers{$probe}->pcrfwd($fwd);
-	    $markers{$probe}->pcrrev($rev);
-	    $markers{$probe}->length($len);
-
-	} else {
- 	    # won't have a map position
-	    # but we can still load it for
-	    # future markers
-
-# skip doing this for now since we are really just loading marshfield markers
-#	    $markers{$probe} = new Bio::DB::Map::Marker
-#		( '-probe' => $probe,
-#		  '-locus' => $locus,
-#		  '-pcrfwd'=> $fwd,
-#		  '-pcrrev'=> $rev,
-#		  '-length'=> $length);	    
-	}	
+	
+	$marker->pcrfwd($stsval->[0]);
+	$marker->pcrrev($stsval->[1]);
+	$marker->length($stsval->[2]);	    
+	$markers{$marker->probe} = $marker;
     }
-    close($STS);
+    close($INFO);
 }
 
 my ($count,$total) = (0,0);
 foreach my $marker ( values %markers ) {
     $total++;
     if( ! $marker->pcrfwd ) { 
+	if( $DEBUG ) {
 	    $markeradaptor->warn("no pcr info, skipping \n". 
 				 $marker->to_string);
-	    $count++;
-	    next;	    
-	} 
+	}
+	$count++;
+    }
     $markeradaptor->write($marker);
     $total++;
 }
-print "skipped $count out of $total\n";
+print "No primers for $count out of $total\n";
 
 sub get_map_data_for_chrom {
     my ($chrom) = @_;
@@ -245,7 +253,7 @@ sub get_sts_data {
 	    $fh = undef;
 	}
     } else {
-	$fh = IO::File("< $STSDATA") or do { 
+	$fh = new IO::File("< $STSDATA") or do { 
 	    warn("cannot open $STSDATA");
 	    $fh = undef;
 	}

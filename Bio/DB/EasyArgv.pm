@@ -51,16 +51,16 @@ Juguang XIAO, juguang@tll.org.sg
 
 package Bio::DB::EasyArgv;
 use strict;
-use vars qw(@ISA @EXPORT);
 use Exporter ();
-@ISA = qw(Exporter);
-@EXPORT = qw(get_biosql_db_from_argv);
+our @ISA = qw(Exporter);
+our @EXPORT = qw(get_biosql_db_from_argv);
 use Bio::DB::SimpleDBContext;
 use Bio::DB::BioDB;
 use Getopt::Long;
 
 sub get_biosql_db_from_argv {
-    my ($db_file, $host, $user, $pass, $dbname, $driver);
+    my ($db_file, $host, $user, $pass, $dbname, $driver)=
+        (undef, 'localhost', 'root', undef, '', 'mysql');
     
     Getopt::Long::config('pass_through');
     &GetOptions(
@@ -68,17 +68,18 @@ sub get_biosql_db_from_argv {
         'host|dbhost=s' => \$host,
         'user|dbuser=s' => \$user,
         'pass|dbpass=s' => \$pass,
-        'driver|dbdriver=s' => \$driver
+        'driver|dbdriver=s' => \$driver,
+        'dbname=s' => \$dbname
     );
     my $db;
     if(defined $db_file){
         -e $db_file or die "$db_file is defined but does not exist\n";
         eval{$db=do($db_file)};
-        $@ and die "$db_file is not a perlobj  file\n";
+        $@ and die "$db_file is not a perlobj file\n";
        
-    }elsif(defined $host && defined $user && defined $dbname){
+    }elsif(defined $host and defined $user and defined $dbname){
         $db = Bio::DB::BioDB->new(
-            -database => 'mysql',
+            -database => 'biosql',
             -dbcontext => Bio::DB::SimpleDBContext->new(
                 -driver => $driver,
                 -dbname => $dbname,

@@ -256,7 +256,7 @@ sub get_dates{
     
     if( !defined $self->{'_date_array'} ) {
 	my @dates = $self->adaptor->get_dates($self->primary_id);
-	if( defined @dates ) {
+	if( @dates ) {
 	    $self->{'_date_array'}=\@dates;
 	} else {
 	    return undef;

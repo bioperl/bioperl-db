@@ -147,6 +147,14 @@ CREATE TABLE bioentry_description (
 );
 
 
+# separate keyword table
+
+CREATE TABLE bioentry_keywords (
+  bioentry_id   int(10) unsigned NOT NULL,
+  keywords      varchar(255) NOT NULL,
+  PRIMARY KEY(bioentry_id)
+);
+
 # feature table. We cleanly handle
 #   - simple locations
 #   - split locations

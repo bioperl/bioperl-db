@@ -188,6 +188,12 @@ sub store{
        $sth->execute;
    }
 
+   if (my $kw = $seq->keywords) {
+       $sth= $self->prepare("insert into bioentry_keywords(bioentry_id,keywords) VALUES ($id,'$kw')");
+       $sth->execute;
+   }
+
+
    foreach my $date ($seq->get_dates) {
        $sth = $self->prepare("insert into bioentry_date (bioentry_id,date) VALUES ($id,'$date')");
        $sth->execute;
@@ -289,3 +295,25 @@ sub get_taxa_id{
    return $taxa;
 }
 
+=head2 get_keywords
+
+ Title   : get_keywords
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_keywords{
+   my ($self,$id) = @_;
+
+   my $sth = $self->prepare("select keywords from bioentry_keywords where bioentry_id = $id");
+   $sth->execute;
+
+   my ($desc) = $sth->fetchrow_array;
+
+   return $desc;
+}

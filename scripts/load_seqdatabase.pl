@@ -28,7 +28,7 @@ use Bio::SeqIO;
 
 
 my $host = "localhost";
-my $sqlname = "external_dbs";
+my $sqlname = "new_ext_db";
 my $dbuser = "root";
 my $dbpass = undef;
 my $format = 'embl';

@@ -474,6 +474,35 @@ sub adaptor{
 
 }
 
+
+=head2 keywords
+
+ Title   : keywords
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub keywords{
+   my ($self,@args) = @_;
+
+   if( defined $self->{'_keywords_cache'} ) {
+       return $self->{'_keywords_cache'};
+   }
+
+   my $d = $self->adaptor->get_keywords($self->primary_id);
+
+   if( !defined $d ) { $d = ""; }
+
+   $self->{'_keywords_cache'} = $d;
+
+   return $d;
+}
+
 =head2 length
 
  Title   : length

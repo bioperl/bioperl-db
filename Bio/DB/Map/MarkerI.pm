@@ -66,6 +66,17 @@ use Carp;
 @ISA = qw(Bio::Root::RootI);
 
 
+sub to_string {
+    my ($self) = @_;
+    
+    return join("\n", (sprintf("LOCUS: %s", $self->locus || ''),
+			     sprintf("PROBE: %s", $self->probe || ''),
+			     sprintf("FWDP : %s", $self->pcrfwd || ''),
+			     sprintf("REVP : %s", $self->pcrrev || '' ),
+			     sprintf("LEN  : %s", $self->length || '?') )
+		      );
+}
+
 =head2 add_alias
 
  Title   : add_alias

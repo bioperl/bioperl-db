@@ -911,7 +911,7 @@ sub find_by_unique_key{
 =cut
 
 sub _find_by_unique_key{
-    my ($self,$obj,$query_h,$fkobjs,$fact) = @_;
+    my ($self,$obj,$query_h,$fkobjs,$fact,$flatonly) = @_;
 
     # matching object cached? 
     my $obj_key = join("|", %$query_h);
@@ -976,9 +976,10 @@ sub _find_by_unique_key{
 	# populate the object with what we found
 	$obj = $self->_build_object(-obj => $obj,
 				    -num_fks => scalar(@$fkobjs),
-				    -row => $rows->[0]);
-	# cache it 
-	$self->obj_cache($obj_key, $obj);
+				    -row => $rows->[0],
+                                    -flat_only => $flatonly);
+	# cache it unless it was obtained flat
+	$self->obj_cache($obj_key, $obj) unless $flatonly;
 	# and return the result
 	return $obj;
     }

@@ -424,10 +424,14 @@ sub store{
    my $version; 
    
    if ($seq->isa("Bio::DB::Seq")) {
-   	   $version = $seq->version;
+       $version = $seq->version;
+   }
+   elsif ($seq->isa("Bio::Seq::RichSeqI")) {
+       $version = $seq->seq_version; 
    }
    else {
-   	   $version = $seq->seq_version; 
+       $accession=$did;
+       $version =0;
    }
    
    
@@ -446,118 +450,117 @@ sub store{
        $self->throw("no display id ($did) or no accession ($accession). Cannot process");
    }
 
-       my $sth;
-       my $uniqueh =
-         {biodatabase_id=>$dbid,
-          accession=>$accession,
-          entry_version=>$version,
-#          division=>$division,
-         };
-       # enforce this constraint:UNIQUE (biodatabase_id,accession,entry_version,division)
-       my $id = $self->select_colval("bioentry",
-                                     $uniqueh,
-                                     "bioentry_id");
-
-       # NOTE:
-       # what are the semantics of the store() method?
+   my $sth;
+   my $uniqueh =
+      {biodatabase_id=>$dbid,
+      accession=>$accession,
+      entry_version=>$version,
+#     division=>$division,
+      };
+   # enforce this constraint:UNIQUE (biodatabase_id,accession,entry_version,division)
+   my $id = $self->select_colval("bioentry",
+				 $uniqueh,
+				 "bioentry_id");
+   
+   # NOTE:
+   # what are the semantics of the store() method?
        # if the entry already exists, should we
-       # update or should we delete and add a new one?
-       # the former may be useful, but could be
-       # dangerous with MySQL
-       my $STORE_SEMANTICS = "replace";
-       if ($id && $STORE_SEMANTICS eq "replace") {
-           $self->remove_by_dbID($id);
-           $id = undef;
+   # update or should we delete and add a new one?
+   # the former may be useful, but could be
+   # dangerous with MySQL
+   my $STORE_SEMANTICS = "replace";
+   if ($id && $STORE_SEMANTICS eq "replace") {
+       $self->remove_by_dbID($id);
+       $id = undef;
+   }
+   if (!$id) {
+       $sth = $self->prepare("insert into bioentry (biodatabase_id,display_id,accession,entry_version,division) values ($dbid,'$did','$accession',$version,'$division')");
+       $sth->execute;
+       $id = $self->get_last_id("bioentry");
+   }
+   
+   $self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
+   
+   if ( defined $seq->desc && $seq->desc ne '' ) {
+       my $TERM_ID =
+	   $self->db->get_OntologyTermAdaptor->DESCRIPTION_ID;
+       $self->insert("bioentry_qualifier_value",
+		     {bioentry_id=>$id,
+		      qualifier_value=>$seq->desc,
+		      ontology_term_id=>$TERM_ID});
+   }
+   
+   if ( $seq->isa('Bio::Seq::RichSeqI') ) {
+       my $TERM_ID =
+	   $self->db->get_OntologyTermAdaptor->DATES_ID;
+       foreach my $date ($seq->get_dates) {
+	   $self->insert("bioentry_qualifier_value",
+			 {bioentry_id=>$id,
+			  qualifier_value=>$date,
+			  ontology_term_id=>$TERM_ID});
        }
-       if (!$id) {
-           $sth = $self->prepare("insert into bioentry (biodatabase_id,display_id,accession,entry_version,division) values ($dbid,'$did','$accession',$version,'$division')");
-           $sth->execute;
-           $id = $self->get_last_id("bioentry");
+       if (my $kw = $seq->keywords) {
+	   my $TERM_ID = $self->db->get_OntologyTermAdaptor->KEYWORDS_ID;
+	   $self->insert("bioentry_qualifier_value",
+			 {bioentry_id=>$id,
+			  qualifier_value=>$kw,
+			  ontology_term_id=>$TERM_ID});
        }
-
-       $self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
-
-       if ( defined $seq->desc && $seq->desc ne '' ) {
-           my $TERM_ID =
-             $self->db->get_OntologyTermAdaptor->DESCRIPTION_ID;
-           $self->insert("bioentry_qualifier_value",
-                         {bioentry_id=>$id,
-                          qualifier_value=>$seq->desc,
-                          ontology_term_id=>$TERM_ID});
+   }
+   
+   
+   my $species = $seq->species;
+   
+   if ( defined $species ) {
+       my $species_id = $self->db->get_SpeciesAdaptor->store_if_needed($species);
+       $sth = $self->prepare("insert into bioentry_taxa (bioentry_id,taxa_id) VALUES ($id,$species_id)");
+       $sth->execute;
+   }   
+   
+   my $rank = 1;
+   my $adp  = $self->db->get_SeqFeatureAdaptor();
+   
+   foreach my $sf ( $seq->top_SeqFeatures ) {
+       $adp->store($sf,$rank,$id);
+       $rank++; 
+   }
+   
+   $rank = 1;
+   $adp = $self->db->get_CommentAdaptor();
+   
+   foreach my $comment ( $seq->annotation->get_Annotations('comment') ) {
+       $adp->store($comment,$rank,$id);
+       $rank++;
+   }
+   
+   $rank = 1;
+   my $rdp = $self->db->get_ReferenceAdaptor();
+   foreach my $ref ( $seq->annotation->get_Annotations('reference') ) {
+       my $rid = $rdp->store_if_needed($ref);
+       
+       my $start='NULL';  
+       my $end='NULL';    
+       if ($ref->start) {
+	   $start=$ref->start;
        }
-
-       if ( $seq->isa('Bio::Seq::RichSeqI') ) {
-           my $TERM_ID =
-             $self->db->get_OntologyTermAdaptor->DATES_ID;
-           foreach my $date ($seq->get_dates) {
-               $self->insert("bioentry_qualifier_value",
-                             {bioentry_id=>$id,
-                              qualifier_value=>$date,
-                              ontology_term_id=>$TERM_ID});
-           }
-           if (my $kw = $seq->keywords) {
-               my $TERM_ID =
-                 $self->db->get_OntologyTermAdaptor->KEYWORDS_ID;
-               $self->insert("bioentry_qualifier_value",
-                             {bioentry_id=>$id,
-                              qualifier_value=>$kw,
-                              ontology_term_id=>$TERM_ID});
-           }
+       if ($ref->end) {
+	   $end=$ref->end;
        }
-
-
-       my $species = $seq->species;
-
-       if ( defined $species ) {
-           my $species_id = $self->db->get_SpeciesAdaptor->store_if_needed($species);
-           $sth = $self->prepare("insert into bioentry_taxa (bioentry_id,taxa_id) VALUES ($id,$species_id)");
-           $sth->execute;
-       }   
-
-       my $rank = 1;
-       my $adp  = $self->db->get_SeqFeatureAdaptor();
-
-       foreach my $sf ( $seq->top_SeqFeatures ) {
-           $adp->store($sf,$rank,$id);
-           $rank++; 
-       }
-
-       $rank = 1;
-       $adp = $self->db->get_CommentAdaptor();
-
-       foreach my $comment ( $seq->annotation->get_Annotations('comment') ) {
-           $adp->store($comment,$rank,$id);
-           $rank++;
-       }
-		
-       $rank = 1;
-       my $rdp = $self->db->get_ReferenceAdaptor();
-       foreach my $ref ( $seq->annotation->get_Annotations('reference') ) {
-           my $rid = $rdp->store_if_needed($ref);
-
-           my $start='NULL';  
-           my $end='NULL';    
-           if ($ref->start) {
-               $start=$ref->start;
-           }
-           if ($ref->end) {
-               $end=$ref->end;
-           }
-           $sth = $self->prepare("insert into bioentry_reference(bioentry_id,reference_id,reference_start,reference_end,reference_rank) values($id,$rid,$start,$end,$rank)");
-           #print STDERR "insert into bioentry_reference(bioentry_id,reference_id,reference_rank) values($id,$rid,$rank)\n";
-           $sth->execute;
-           $rank++;
-       }
-
-
-       $adp = $self->db->get_DBLinkAdaptor();
-       foreach my $dblink ( $seq->annotation->get_Annotations('dblink') ) {
+       $sth = $self->prepare("insert into bioentry_reference(bioentry_id,reference_id,reference_start,reference_end,reference_rank) values($id,$rid,$start,$end,$rank)");
+       #print STDERR "insert into bioentry_reference(bioentry_id,reference_id,reference_rank) values($id,$rid,$rank)\n";
+       $sth->execute;
+       $rank++;
+   }
+   
+   
+   $adp = $self->db->get_DBLinkAdaptor();
+   foreach my $dblink ( $seq->annotation->get_Annotations('dblink') ) {
            $adp->store($dblink,$id);
        }
-
-		
-       return $id;
-
+   
+   
+   return $id;
+   
 }
 
 

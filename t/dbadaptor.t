@@ -13,7 +13,7 @@ BEGIN {
 }
 
 use BioSQLBase;
-use Bio::DB::SQL::DBAdaptor;
+use Bio::DB::BioSQL::DBAdaptor;
 
 
 $biosql = BioSQLBase->new();

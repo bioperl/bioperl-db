@@ -1,11 +1,11 @@
 
 =head1 NAME
 
-Bio::DB::SQL::SqlQuery - Object representing an SQL Query
+Bio::DB::BioSQL::SqlQuery - Object representing an SQL Query
 
 =head1 SYNOPSIS
 
-  $q = Bio::DB::SQL::SqlQuery->new(-datacollections=>\@tables,
+  $q = Bio::DB::BioSQL::SqlQuery->new(-datacollections=>\@tables,
                                    -select=>\@selectcols);
   $q->flags("distinct", 1);
   $q->where("or", "colA=x", "colB=y", "colC=y");
@@ -13,7 +13,7 @@ Bio::DB::SQL::SqlQuery - Object representing an SQL Query
 
 =head1 DESCRIPTION
 
-This class inherits from Bio::DB::SQL::AbstractQuery
+This class inherits from Bio::DB::BioSQL::AbstractQuery
 
 =head1 CONTACT
 
@@ -29,13 +29,13 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::SQL::SqlQuery;
+package Bio::DB::BioSQL::SqlQuery;
 
 use vars qw(@ISA);
 use strict;
-use Bio::DB::SQL::AbstractQuery;
+use Bio::DB::BioSQL::AbstractQuery;
 
-@ISA = qw(Bio::DB::SQL::AbstractQuery);
+@ISA = qw(Bio::DB::BioSQL::AbstractQuery);
 
 =head2 new
 

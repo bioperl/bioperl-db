@@ -14,7 +14,7 @@ BEGIN {
 #END { unlink( 't/ensembl_test.gb') }
 
 use BioSQLBase;
-use Bio::DB::SQL::DBAdaptor;
+use Bio::DB::BioSQL::DBAdaptor;
 use Bio::SeqIO;
 use Bio::Root::IO;
 

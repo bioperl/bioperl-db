@@ -3,7 +3,7 @@
 use Bio::CorbaServer::BioEnv;
 use Bio::CorbaClient::SeqDB;
 use Bio::DB::CacheServer::SeqDB;
-use Bio::DB::SQL::DBAdaptor;
+use Bio::DB::BioSQL::DBAdaptor;
 
 
 use CORBA::ORBit idl => [ 'biocorba.idl' ];
@@ -56,7 +56,7 @@ my $read = Bio::CorbaClient::SeqDB->new( -corbaref => $corba_ref);
 
 # connect to our local database. This will throw on inability to connect
 
-$dbadaptor = Bio::DB::SQL::DBAdaptor->new( -host => $host,
+$dbadaptor = Bio::DB::BioSQL::DBAdaptor->new( -host => $host,
 					   -dbname => $sqlname,
 					   -user => $dbuser,
 					   -pass => $dbpass

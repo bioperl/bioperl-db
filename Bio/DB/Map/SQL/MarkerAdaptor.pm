@@ -62,10 +62,10 @@ package Bio::DB::Map::SQL::MarkerAdaptor;
 use vars qw(@ISA);
 use strict;
 
-use Bio::DB::SQL::BaseAdaptor;
+use Bio::DB::BioSQL::BaseAdaptor;
 use Bio::DB::Map::Marker;
 
-@ISA = qw(Bio::DB::SQL::BaseAdaptor);
+@ISA = qw(Bio::DB::BioSQL::BaseAdaptor);
 
 sub new {
     my($class,@args) = @_;

@@ -1,11 +1,11 @@
 
 =head1 NAME
 
-Bio::DB::SQL::BioQuery - Object representing a query on a bioperldb
+Bio::DB::BioSQL::BioQuery - Object representing a query on a bioperldb
 
 =head1 SYNOPSIS
 
-  $q = Bio::DB::SQL::BioQuery->new;
+  $q = Bio::DB::BioSQL::BioQuery->new;
   $q->where(["AND", "attA=x", "attB=y", "attC=y"]);
   $adaptor->fetch_by_query($q);
 
@@ -58,13 +58,13 @@ The rest of the documentation details each of the object methods. Internal metho
 
 # Let the code begin...
 
-package Bio::DB::SQL::BioQuery;
+package Bio::DB::BioSQL::BioQuery;
 
 use vars qw(@ISA);
 use strict;
-use Bio::DB::SQL::AbstractQuery;
+use Bio::DB::BioSQL::AbstractQuery;
 
-@ISA = qw(Bio::DB::SQL::AbstractQuery);
+@ISA = qw(Bio::DB::BioSQL::AbstractQuery);
 
 =head2 new
 

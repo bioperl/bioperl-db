@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::SQL::SeqFeatureSourceAdaptor.pm
+# BioPerl module for Bio::DB::BioSQL::SeqFeatureSourceAdaptor.pm
 #
 # Cared for by Ewan Birney <birney@ebi.ac.uk>
 #
@@ -12,7 +12,7 @@
 
 =head1 NAME
 
-Bio::DB::SQL::SeqFeatureSourceAdaptor.pm - DESCRIPTION of Object
+Bio::DB::BioSQL::SeqFeatureSourceAdaptor.pm - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -58,14 +58,14 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::SQL::SeqFeatureSourceAdaptor;
+package Bio::DB::BioSQL::SeqFeatureSourceAdaptor;
 
 use vars qw(@ISA);
 use strict;
 
-use Bio::DB::SQL::BaseAdaptor;
+use Bio::DB::BioSQL::BaseAdaptor;
 
-@ISA = qw(Bio::DB::SQL::BaseAdaptor);
+@ISA = qw(Bio::DB::BioSQL::BaseAdaptor);
 
 sub _table {"seqfeature_source"}
 

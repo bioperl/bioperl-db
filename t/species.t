@@ -14,7 +14,7 @@ BEGIN {
 
 use BioSQLBase;
 use DBTestHarness;
-use Bio::DB::SQL::DBAdaptor;
+use Bio::DB::BioSQL::DBAdaptor;
 
 $biosql = BioSQLBase->new();
 ok $biosql;

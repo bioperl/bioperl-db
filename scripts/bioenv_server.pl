@@ -2,7 +2,7 @@
 
 use Bio::CorbaServer::BioEnv;
 use CORBA::ORBit idl => [ 'biocorba.idl' ];
-use Bio::DB::SQL::DBAdaptor;
+use Bio::DB::BioSQL::DBAdaptor;
 use Getopt::Long;
 
 my $host = "localhost";
@@ -18,7 +18,7 @@ my $format = 'fasta';
 	     'format:s' => \$format,
 	     );
 
-$dbadaptor = Bio::DB::SQL::DBAdaptor->new( -host => $host,
+$dbadaptor = Bio::DB::BioSQL::DBAdaptor->new( -host => $host,
 					   -dbname => $sqlname,
 					   -user => $dbuser,
 					   -pass => $dbpass

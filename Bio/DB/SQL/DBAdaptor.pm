@@ -4,11 +4,11 @@
 
 =head1 NAME
 
-Bio::DB::SQL::DBAdapter - Object representing an instance of a bioperl database
+Bio::DB::BioSQL::DBAdapter - Object representing an instance of a bioperl database
 
 =head1 SYNOPSIS
 
-    $db = Bio::DB::SQL::DBAdaptor->new(
+    $db = Bio::DB::BioSQL::DBAdaptor->new(
         -user   => 'root',
         -dbname => 'pog',
         -host   => 'caldy',
@@ -37,25 +37,25 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::SQL::DBAdaptor;
+package Bio::DB::BioSQL::DBAdaptor;
 
 use vars qw(@ISA);
 use strict;
 
 use Bio::Root::Root;
-use Bio::DB::SQL::SeqAdaptor;
-use Bio::DB::SQL::PrimarySeqAdaptor;
-use Bio::DB::SQL::BioDatabaseAdaptor;
-use Bio::DB::SQL::SeqFeatureKeyAdaptor;
-use Bio::DB::SQL::OntologyTermAdaptor;
-use Bio::DB::SQL::SeqFeatureSourceAdaptor;
-use Bio::DB::SQL::SeqLocationAdaptor;
-use Bio::DB::SQL::SeqFeatureAdaptor;
-use Bio::DB::SQL::CommentAdaptor;
-use Bio::DB::SQL::DBLinkAdaptor;
-use Bio::DB::SQL::DBXrefAdaptor;
-use Bio::DB::SQL::SpeciesAdaptor;
-use Bio::DB::SQL::ReferenceAdaptor;
+use Bio::DB::BioSQL::SeqAdaptor;
+use Bio::DB::BioSQL::PrimarySeqAdaptor;
+use Bio::DB::BioSQL::BioDatabaseAdaptor;
+use Bio::DB::BioSQL::SeqFeatureKeyAdaptor;
+use Bio::DB::BioSQL::OntologyTermAdaptor;
+use Bio::DB::BioSQL::SeqFeatureSourceAdaptor;
+use Bio::DB::BioSQL::SeqLocationAdaptor;
+use Bio::DB::BioSQL::SeqFeatureAdaptor;
+use Bio::DB::BioSQL::CommentAdaptor;
+use Bio::DB::BioSQL::DBLinkAdaptor;
+use Bio::DB::BioSQL::DBXrefAdaptor;
+use Bio::DB::BioSQL::SpeciesAdaptor;
+use Bio::DB::BioSQL::ReferenceAdaptor;
 
 use DBI;
 use FileHandle;
@@ -200,7 +200,7 @@ sub get_PrimarySeqAdaptor{
    my ($self) = @_;
 
    if( !defined $self->{'_primaryseqadaptor'} ) {
-       $self->{'_primaryseqadaptor'} = Bio::DB::SQL::PrimarySeqAdaptor->new($self);
+       $self->{'_primaryseqadaptor'} = Bio::DB::BioSQL::PrimarySeqAdaptor->new($self);
    }
 
    return $self->{'_primaryseqadaptor'}
@@ -222,7 +222,7 @@ sub get_SeqAdaptor{
    my ($self,@args) = @_;
 
    if( !defined $self->{'_seqadaptor'} ) {
-       $self->{'_seqadaptor'} = Bio::DB::SQL::SeqAdaptor->new($self);
+       $self->{'_seqadaptor'} = Bio::DB::BioSQL::SeqAdaptor->new($self);
    }
 
    return $self->{'_seqadaptor'}
@@ -246,7 +246,7 @@ sub get_BioDatabaseAdaptor{
 
 
    if( !defined $self->{'_biodbadaptor'} ) {
-       $self->{'_biodbadaptor'} = Bio::DB::SQL::BioDatabaseAdaptor->new($self);
+       $self->{'_biodbadaptor'} = Bio::DB::BioSQL::BioDatabaseAdaptor->new($self);
    }
 
    return $self->{'_biodbadaptor'}
@@ -269,7 +269,7 @@ sub get_SeqFeatureKeyAdaptor{
    my ($self) = @_;
 
    if( !defined $self->{'_seqkeydbadaptor'} ) {
-       $self->{'_seqkeydbadaptor'} = Bio::DB::SQL::SeqFeatureKeyAdaptor->new($self);
+       $self->{'_seqkeydbadaptor'} = Bio::DB::BioSQL::SeqFeatureKeyAdaptor->new($self);
    }
 
    return $self->{'_seqkeydbadaptor'}
@@ -293,7 +293,7 @@ sub get_OntologyTermAdaptor{
    my ($self) = @_;
 
    if( !defined $self->{'_ontology_term_adaptor'} ) {
-       $self->{'_ontology_term_adaptor'} = Bio::DB::SQL::OntologyTermAdaptor->new($self);
+       $self->{'_ontology_term_adaptor'} = Bio::DB::BioSQL::OntologyTermAdaptor->new($self);
    }
 
    return $self->{'_ontology_term_adaptor'}
@@ -315,7 +315,7 @@ sub get_SeqFeatureSourceAdaptor{
    my ($self) = @_;
 
    if( !defined $self->{'_seq_source_adaptor'} ) {
-       $self->{'_seq_source_adaptor'} = Bio::DB::SQL::SeqFeatureSourceAdaptor->new($self);
+       $self->{'_seq_source_adaptor'} = Bio::DB::BioSQL::SeqFeatureSourceAdaptor->new($self);
    }
 
    return $self->{'_seq_source_adaptor'}
@@ -339,7 +339,7 @@ sub get_SeqLocationAdaptor{
    my ($self) = @_;
 
    if( !defined $self->{'_seq_location_adaptor'} ) {
-       $self->{'_seq_location_adaptor'} = Bio::DB::SQL::SeqLocationAdaptor->new($self);
+       $self->{'_seq_location_adaptor'} = Bio::DB::BioSQL::SeqLocationAdaptor->new($self);
    }
 
    return $self->{'_seq_location_adaptor'}
@@ -364,7 +364,7 @@ sub get_SeqFeatureAdaptor{
    my ($self) = @_;
 
    if( !defined $self->{'_seq_feature_adaptor'} ) {
-       $self->{'_seq_feature_adaptor'} = Bio::DB::SQL::SeqFeatureAdaptor->new($self);
+       $self->{'_seq_feature_adaptor'} = Bio::DB::BioSQL::SeqFeatureAdaptor->new($self);
    }
 
    return $self->{'_seq_feature_adaptor'}
@@ -388,7 +388,7 @@ sub get_CommentAdaptor{
    my ($self) = @_;
 
    if( !defined $self->{'_comment_adaptor'} ) {
-       $self->{'_comment_adaptor'} = Bio::DB::SQL::CommentAdaptor->new($self);
+       $self->{'_comment_adaptor'} = Bio::DB::BioSQL::CommentAdaptor->new($self);
    }
 
    return $self->{'_comment_adaptor'}
@@ -411,7 +411,7 @@ sub get_ReferenceAdaptor{
    my ($self) = @_;
 
    if( !defined $self->{'_reference_adaptor'} ) {
-       $self->{'_reference_adaptor'} = Bio::DB::SQL::ReferenceAdaptor->new($self);
+       $self->{'_reference_adaptor'} = Bio::DB::BioSQL::ReferenceAdaptor->new($self);
    }
 
    return $self->{'_reference_adaptor'}
@@ -435,7 +435,7 @@ sub get_DBLinkAdaptor{
    my ($self) = @_;
 
    if( !defined $self->{'_dblink_adaptor'} ) {
-       $self->{'_dblink_adaptor'} = Bio::DB::SQL::DBLinkAdaptor->new($self);
+       $self->{'_dblink_adaptor'} = Bio::DB::BioSQL::DBLinkAdaptor->new($self);
    }
 
    return $self->{'_dblink_adaptor'}
@@ -458,7 +458,7 @@ sub get_DBXrefAdaptor{
    my ($self) = @_;
 
    if( !defined $self->{'_dbxref_adaptor'} ) {
-       $self->{'_dbxref_adaptor'} = Bio::DB::SQL::DBXrefAdaptor->new($self);
+       $self->{'_dbxref_adaptor'} = Bio::DB::BioSQL::DBXrefAdaptor->new($self);
    }
 
    return $self->{'_dbxref_adaptor'}
@@ -482,7 +482,7 @@ sub get_SpeciesAdaptor{
    my ($self) = @_;
 
    if( !defined $self->{'_species_adaptor'} ) {
-       $self->{'_species_adaptor'} = Bio::DB::SQL::SpeciesAdaptor->new($self);
+       $self->{'_species_adaptor'} = Bio::DB::BioSQL::SpeciesAdaptor->new($self);
    }
 
    return $self->{'_species_adaptor'}

@@ -1,7 +1,7 @@
 # $Id$
 
 #
-# BioPerl module for Bio::DB::SQL::SeqAdaptor
+# BioPerl module for Bio::DB::BioSQL::SeqAdaptor
 #
 # Cared for by Ewan Birney <birney@ebi.ac.uk>
 #
@@ -13,7 +13,7 @@
 
 =head1 NAME
 
-Bio::DB::SQL::SeqAdaptor - DESCRIPTION of Object
+Bio::DB::BioSQL::SeqAdaptor - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -59,19 +59,19 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::SQL::SeqAdaptor;
+package Bio::DB::BioSQL::SeqAdaptor;
 use vars qw(@ISA);
 use strict;
 
 
 use Bio::DB::Seq;
-use Bio::DB::SQL::BaseAdaptor;
-use Bio::DB::SQL::SqlQuery;
+use Bio::DB::BioSQL::BaseAdaptor;
+use Bio::DB::BioSQL::SqlQuery;
 
 
-@ISA = qw(Bio::DB::SQL::BaseAdaptor);
+@ISA = qw(Bio::DB::BioSQL::BaseAdaptor);
 
-# new is from Bio::DB::SQL::Adaptor
+# new is from Bio::DB::BioSQL::Adaptor
 
 =head2 fetch_by_dbID
 
@@ -171,7 +171,7 @@ sub fetch_by_db_and_accession{
  Returns : list of Bio::Seq objects
  Args    : BioQuery object OR hash reference
 
-Takes a Bio::DB::SQL::BioQuery object, or arguments that can be used
+Takes a Bio::DB::BioSQL::BioQuery object, or arguments that can be used
 to construct one. Right now only the constraints/where part is
 respected.
 
@@ -215,8 +215,8 @@ than exact matches.
 
 eg to query by species
 
-    $bioquery = Bio::DB::SQL::BioQuery->new();
-    $qc = Bio::DB::SQL::QueryConstraint->new(-name=>"species",
+    $bioquery = Bio::DB::BioSQL::BioQuery->new();
+    $qc = Bio::DB::BioSQL::QueryConstraint->new(-name=>"species",
 					     -value=>$species);
     $bioquery->where($qc);
     @seqs=$seqadp->fetch_by_query($bioquery);
@@ -250,7 +250,7 @@ sub fetch_by_query {
     
     my $select_list = $query->{"select_list"};
     my $sqlq = 
-      Bio::DB::SQL::SqlQuery->new;
+      Bio::DB::BioSQL::SqlQuery->new;
     
     $sqlq->flag("distinct", 1);
     $sqlq->datacollections(qw(bioentry biodatabase));

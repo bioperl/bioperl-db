@@ -1,39 +1,39 @@
 
 =head1 NAME
 
-Bio::DB::SQL::QueryConstraint - a constraint on a variable value in a query
+Bio::DB::BioSQL::QueryConstraint - a constraint on a variable value in a query
 
 =head1 SYNOPSIS
 
   # create a constraint that says "species not like drosophila*"
   my $qc = 
-    Bio::DB::SQL::QueryConstraint->new(-name=>"species",
+    Bio::DB::BioSQL::QueryConstraint->new(-name=>"species",
 				       -op=>"like",
 				       -value=>"drosophila*",
 				       -neg=>1);
 
   # alternate way of writing same thing
   my $qc = 
-    Bio::DB::SQL::QueryConstraint->new("species like drosophila*");
+    Bio::DB::BioSQL::QueryConstraint->new("species like drosophila*");
   $qc->neg(1);
 
   # use lisp-style operand-first way of specifying composites
   # species taxa id is 7227 or 7228
   my $qc = 
-    Bio::DB::SQL::QueryConstraint->new("or", 
+    Bio::DB::BioSQL::QueryConstraint->new("or", 
 				       "species=7227", 
 				       "species=7228",
 				       "species=7229");
 
   # composite queries can also be built this way:
   my $qc = 
-    Bio::DB::SQL::QueryConstraint->new(-op=>"or", 
+    Bio::DB::BioSQL::QueryConstraint->new(-op=>"or", 
 				       value=>[$subqc1, $subqc2, $subqc3]);
   $qc->is_composite(1);
 
   # we can have nested constraints like this:
   my $qc = 
-    Bio::DB::SQL::QueryConstraint->new("or", 
+    Bio::DB::BioSQL::QueryConstraint->new("or", 
 				       ["and", 
 					      "species=Human", 
                                               "keywords=foo*"
@@ -70,7 +70,7 @@ The rest of the documentation details each of the object methods. Internal metho
 
 # Let the code begin...
 
-package Bio::DB::SQL::QueryConstraint;
+package Bio::DB::BioSQL::QueryConstraint;
 
 use vars qw(@ISA);
 use strict;
@@ -104,7 +104,7 @@ sub set {
 	if (ref($arg) eq "HASH") {
 	    foreach my $k (keys %$arg) {
 		my $subqc = 
-		  Bio::DB::SQL::QueryConstraint->new(-name=>$k, -value=>$arg->{$k});
+		  Bio::DB::BioSQL::QueryConstraint->new(-name=>$k, -value=>$arg->{$k});
 		push(@subqcs, $subqc);
 	    }
 	}
@@ -116,17 +116,17 @@ sub set {
 		if (ref($el) &&
 		    ref($el) eq "ARRAY") {
 		    my $subqc = 
-		      Bio::DB::SQL::QueryConstraint->new($el);
+		      Bio::DB::BioSQL::QueryConstraint->new($el);
 		    push(@subqcs, $subqc);
 		}
 		elsif (ref($el) &&
 		    ref($el) ne "HASH" &&
-		    $el->isa("Bio::DB::SQL::QueryConstraint")) {
+		    $el->isa("Bio::DB::BioSQL::QueryConstraint")) {
 		    push(@subqcs, $el);
 		}
 		elsif ($el =~ / *(.*) *(=|like) *(.*) */) {
 		    my $subqc = 
-		      Bio::DB::SQL::QueryConstraint->new(-name=>$1, 
+		      Bio::DB::BioSQL::QueryConstraint->new(-name=>$1, 
 							 -op=>$2,
 							 -value=>$3);
 		    push(@subqcs, $subqc);

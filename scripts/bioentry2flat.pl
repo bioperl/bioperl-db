@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-use Bio::DB::SQL::DBAdaptor;
+use Bio::DB::BioSQL::DBAdaptor;
 use Bio::SeqIO;
 use Getopt::Long;
 
@@ -31,7 +31,7 @@ my $driver = 'mysql';
 $dbname = shift @ARGV unless $dbname;
 $acc    = shift @ARGV unless $acc;
 
-$db = Bio::DB::SQL::DBAdaptor->new( -host => $host,
+$db = Bio::DB::BioSQL::DBAdaptor->new( -host => $host,
                                     -driver => $driver,
 				    -dbname => $sqlname,
 				    -user => $dbuser,

@@ -1,6 +1,6 @@
 
 #
-# BioPerl module for Bio::DB::SQL::CommentAdaptor
+# BioPerl module for Bio::DB::BioSQL::CommentAdaptor
 #
 # Cared for by Ewan Birney <birney@ebi.ac.uk>
 #
@@ -12,7 +12,7 @@
 
 =head1 NAME
 
-Bio::DB::SQL::CommentAdaptor - DESCRIPTION of Object
+Bio::DB::BioSQL::CommentAdaptor - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -58,14 +58,14 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::SQL::CommentAdaptor;
+package Bio::DB::BioSQL::CommentAdaptor;
 use vars qw(@ISA);
 use strict;
 use Bio::Annotation::Comment;
 
-use Bio::DB::SQL::BaseAdaptor;
+use Bio::DB::BioSQL::BaseAdaptor;
 
-@ISA = qw(Bio::DB::SQL::BaseAdaptor);
+@ISA = qw(Bio::DB::BioSQL::BaseAdaptor);
 
 =head2 fetch_by_dbID
 

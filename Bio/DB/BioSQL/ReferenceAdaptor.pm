@@ -1,6 +1,6 @@
 
 #
-# BioPerl module for Bio::DB::SQL::ReferenceAdaptor
+# BioPerl module for Bio::DB::BioSQL::ReferenceAdaptor
 #
 # Cared for by Elia Stupka <elia@ebi.ac.uk>
 #
@@ -12,7 +12,7 @@
 
 =head1 NAME
 
-Bio::DB::SQL::ReferenceAdaptor - DESCRIPTION of Object
+Bio::DB::BioSQL::ReferenceAdaptor - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -57,14 +57,14 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::SQL::ReferenceAdaptor;
+package Bio::DB::BioSQL::ReferenceAdaptor;
 use vars qw(@ISA);
 use strict;
 use Bio::Annotation::Reference;
 
-use Bio::DB::SQL::BaseAdaptor;
+use Bio::DB::BioSQL::BaseAdaptor;
 
-@ISA = qw(Bio::DB::SQL::BaseAdaptor);
+@ISA = qw(Bio::DB::BioSQL::BaseAdaptor);
 
 sub _table {"reference"}
 

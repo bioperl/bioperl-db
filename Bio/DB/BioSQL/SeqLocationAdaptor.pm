@@ -1,6 +1,6 @@
 
 #
-# BioPerl module for Bio::DB::SQL::SeqLocationAdaptor
+# BioPerl module for Bio::DB::BioSQL::SeqLocationAdaptor
 #
 # Cared for by Ewan Birney <birney@ebi.ac.uk>
 #
@@ -12,7 +12,7 @@
 
 =head1 NAME
 
-Bio::DB::SQL::SeqLocationAdaptor - An adaptor for retrieving sequence locations for a db.
+Bio::DB::BioSQL::SeqLocationAdaptor - An adaptor for retrieving sequence locations for a db.
 
 =head1 SYNOPSIS
 
@@ -58,19 +58,19 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::SQL::SeqLocationAdaptor;
+package Bio::DB::BioSQL::SeqLocationAdaptor;
 use vars qw(@ISA);
 use strict;
 
 # Object preamble - inherits from Bio::Root::RootI
 
-use Bio::DB::SQL::BaseAdaptor;
+use Bio::DB::BioSQL::BaseAdaptor;
 
 use Bio::Location::Split;
 use Bio::Location::Fuzzy;
 use Bio::Location::Simple;
 
-@ISA = qw(Bio::DB::SQL::BaseAdaptor);
+@ISA = qw(Bio::DB::BioSQL::BaseAdaptor);
 
 sub _table {"seqfeature_location"}
 

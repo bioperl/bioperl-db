@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-Bio::DB::SQL::AbstractQuery - Abstract Query class
+Bio::DB::BioSQL::AbstractQuery - Abstract Query class
 
 =head1 SYNOPSIS
 
@@ -43,12 +43,12 @@ The rest of the documentation details each of the object methods. Internal metho
 
 # Let the code begin...
 
-package Bio::DB::SQL::AbstractQuery;
+package Bio::DB::BioSQL::AbstractQuery;
 
 use vars qw(@ISA);
 use strict;
 use Bio::Root::Root;
-use Bio::DB::SQL::QueryConstraint;
+use Bio::DB::BioSQL::QueryConstraint;
 
 @ISA = qw(Bio::Root::RootI);
 
@@ -125,11 +125,11 @@ sub add_datacollection {
  
       OR   $qc = $query->where();  # getting
 
- of type Bio::DB::SQL::QueryConstraint
+ of type Bio::DB::BioSQL::QueryConstraint
 
 this method is liberal in what it accepts. 
 
-see the new() method of Bio::DB::SQL::QueryConstraint
+see the new() method of Bio::DB::BioSQL::QueryConstraint
 
 it will turn hashes into an ANDed query constraint composite, with
 each component being a name=value pair. it will turn arrays into an
@@ -137,7 +137,7 @@ ANDed constraint composite, breaking up each element around the =
 symbol. if the first element of the array is a valid composite operand
 (e.g. "or") it will combine the array elements using this.
 
-Or you can just feed it a Bio::DB::SQL::QueryConstraint object
+Or you can just feed it a Bio::DB::BioSQL::QueryConstraint object
 
 =cut
 
@@ -151,7 +151,7 @@ sub where {
 	else {
 	    $arg = shift;
 	}
-	my $qc = Bio::DB::SQL::QueryConstraint->new($arg);
+	my $qc = Bio::DB::BioSQL::QueryConstraint->new($arg);
 	$self->{_where} = $qc;
     }
 

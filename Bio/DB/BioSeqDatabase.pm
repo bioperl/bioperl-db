@@ -12,7 +12,7 @@
 
 =head1 NAME
 
-Bio::DB::BioSeqDatabase - Database mediator between Bio::DB::SeqI interfaces and Bio::DB::SQL implementation
+Bio::DB::BioSeqDatabase - Database mediator between Bio::DB::SeqI interfaces and Bio::DB::BioSQL implementation
 
 =head1 SYNOPSIS
 
@@ -20,7 +20,7 @@ Give standard usage here
 
 =head1 DESCRIPTION
 
-Database mediator between Bio::DB::SeqI interfaces and Bio::DB::SQL
+Database mediator between Bio::DB::SeqI interfaces and Bio::DB::BioSQL
 implementation
 
 =head1 FEEDBACK

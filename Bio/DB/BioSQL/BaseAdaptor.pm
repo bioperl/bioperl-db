@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-Bio::DB::SQL::BaseAdaptor - Base Adaptor for DB::SQL::adaptors
+Bio::DB::BioSQL::BaseAdaptor - Base Adaptor for DB::SQL::adaptors
 
 =head1 SYNOPSIS
 
@@ -20,7 +20,7 @@ Bio::DB::SQL::BaseAdaptor - Base Adaptor for DB::SQL::adaptors
 
 =head1 DESCRIPTION
 
-This is a true base class for Adaptors in the Bio::DB::SQL
+This is a true base class for Adaptors in the Bio::DB::BioSQL
 system. Original idea from Arne Stabenau (stabenau@ebi.ac.uk)
 
 =head1 CONTACT
@@ -37,12 +37,12 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::SQL::BaseAdaptor;
+package Bio::DB::BioSQL::BaseAdaptor;
 
 use vars qw(@ISA);
 use strict;
 use Bio::Root::Root;
-use Bio::DB::SQL::BioQuery;
+use Bio::DB::BioSQL::BioQuery;
 
 @ISA = qw(Bio::Root::Root);
 
@@ -368,7 +368,7 @@ sub _get_bioquery {
     my ($self, $q) = @_;
     if (ref($q)) {
 	if (ref($q) eq "HASH") {
-	    $q = Bio::DB::SQL::BioQuery->new(-where=>$q->{"constraints"});
+	    $q = Bio::DB::BioSQL::BioQuery->new(-where=>$q->{"constraints"});
 	}
 	return $q;
     }
@@ -407,7 +407,7 @@ sub resolve_constraint {
 
     my @curwhere = ();    # where clause for this 
 
-#    my $sqlqc = Bio::DB::SQL::QueryConstraint->new;
+#    my $sqlqc = Bio::DB::BioSQL::QueryConstraint->new;
 
     # a query constraint can either be a leaf node
     # (eg species=Human), or it can be composite

@@ -71,7 +71,7 @@ use Bio::DB::SeqI;
 
 # although we expect to be handed one of this, using
 # this ensures someone runs this component
-use Bio::DB::SQL::DBAdaptor;
+use Bio::DB::BioSQL::DBAdaptor;
 @ISA = qw(Bio::DB::SeqI Bio::Root::RootI);
 # new() can be inherited from Bio::Root::RootI
 
@@ -91,8 +91,8 @@ sub new {
     }
 
     if( !defined $write_dbadaptor || !ref $write_dbadaptor || 
-	!$write_dbadaptor->isa('Bio::DB::SQL::DBAdaptor')) {
-	$self->throw("No write dbadaptor or write database [$write_dbadaptor] is not a Bio::DB::SQL::DBAdaptor\n");
+	!$write_dbadaptor->isa('Bio::DB::BioSQL::DBAdaptor')) {
+	$self->throw("No write dbadaptor or write database [$write_dbadaptor] is not a Bio::DB::BioSQL::DBAdaptor\n");
     }
 
     if( !defined $dbname ) {

@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::SQL::DBXrefAdaptor
+# BioPerl module for Bio::DB::BioSQL::DBXrefAdaptor
 #
 # Cared for by Ewan Birney <birney@ebi.ac.uk>
 #
@@ -12,7 +12,7 @@
 
 =head1 NAME
 
-Bio::DB::SQL::DBXrefAdaptor - DBXref Adaptor
+Bio::DB::BioSQL::DBXrefAdaptor - DBXref Adaptor
 
 =head1 SYNOPSIS
 
@@ -58,13 +58,13 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::SQL::DBXrefAdaptor;
+package Bio::DB::BioSQL::DBXrefAdaptor;
 use vars qw(@ISA);
 use strict;
 use Bio::Annotation::DBLink;
-use Bio::DB::SQL::BaseAdaptor;
+use Bio::DB::BioSQL::BaseAdaptor;
 
-@ISA = qw(Bio::DB::SQL::BaseAdaptor);
+@ISA = qw(Bio::DB::BioSQL::BaseAdaptor);
 
 sub _table {"dbxref"}
 

@@ -42,7 +42,7 @@ in the -format flag.
 
 
 use Getopt::Long;
-use Bio::DB::SQL::DBAdaptor;
+use Bio::DB::BioSQL::DBAdaptor;
 use Bio::SeqIO;
 
 
@@ -74,7 +74,7 @@ if( !defined $dbname || scalar(@files) == 0 ) {
     exit(0);
 }
 
-$dbadaptor = Bio::DB::SQL::DBAdaptor->new( -host => $host,
+$dbadaptor = Bio::DB::BioSQL::DBAdaptor->new( -host => $host,
 					   -dbname => $sqlname,
                                            -driver=> $driver,
 					   -user => $dbuser,

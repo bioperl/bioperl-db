@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::SQL::BioDatabaseAdaptor
+# BioPerl module for Bio::DB::BioSQL::BioDatabaseAdaptor
 #
 # Cared for by Ewan Birney <birney@ebi.ac.uk>
 #
@@ -12,7 +12,7 @@
 
 =head1 NAME
 
-Bio::DB::SQL::BioDatabaseAdaptor - Adaptor for BioDatabase table
+Bio::DB::BioSQL::BioDatabaseAdaptor - Adaptor for BioDatabase table
 
 =head1 SYNOPSIS
 
@@ -58,15 +58,15 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::SQL::BioDatabaseAdaptor;
+package Bio::DB::BioSQL::BioDatabaseAdaptor;
 use vars qw(@ISA);
 use strict;
 
-use Bio::DB::SQL::BaseAdaptor;
+use Bio::DB::BioSQL::BaseAdaptor;
 use Bio::DB::BioSeqDatabase;
-use Bio::DB::SQL::DBAdaptor;
+use Bio::DB::BioSQL::DBAdaptor;
 
-@ISA = qw(Bio::DB::SQL::BaseAdaptor);
+@ISA = qw(Bio::DB::BioSQL::BaseAdaptor);
 
 # metadata
 sub _table { "biodatabase" }
@@ -88,7 +88,7 @@ sub _table { "biodatabase" }
 sub new_from_registry{
    my ($class, %conf) = @_;
 
-   my $db = Bio::DB::SQL::DBAdaptor->new(
+   my $db = Bio::DB::BioSQL::DBAdaptor->new(
 						-DBNAME=>$conf{'dbname'},
 						-HOST=>$conf{'location'},
 						-DRIVER=>$conf{'driver'},

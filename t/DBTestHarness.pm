@@ -49,7 +49,7 @@ my $dflt = {
     'port'          => undef,
     'password'      => undef,
     'schema_sql'    => ['../biosql-schema/sql/biosqldb-mysql.sql'],
-    'module'        => 'Bio::DB::SQL::DBAdaptor'
+    'module'        => 'Bio::DB::BioSQL::DBAdaptor'
     };
 
 {

@@ -20,7 +20,7 @@ BEGIN {
 # -----------------------------------------------
 
 use BioSQLBase;
-use Bio::DB::SQL::DBAdaptor;
+use Bio::DB::BioSQL::DBAdaptor;
 use Bio::SeqIO;
 
 $biosql = BioSQLBase->new();

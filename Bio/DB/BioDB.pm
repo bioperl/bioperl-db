@@ -129,7 +129,9 @@ sub new {
 		     "{" . join(",", @DBC_MODULES) . "} all failed to load");
     }
     my $mydbc = $dbc || Bio::DB::SimpleDBContext->new(@args);
-    my $dbadp = $dbadp_class->new(-dbcontext => $mydbc, -printerror => $prerr);
+    my $dbadp = $dbadp_class->new(-dbcontext  => $mydbc, 
+                                  -printerror => $prerr,
+                                  -verbose    => $self->verbose);
     # store the adaptor in the context
     $mydbc->dbadaptor($dbadp);
     # success - we hope

@@ -117,7 +117,7 @@ our %slot_cat_map = ("primary_tag" => "SeqFeature Keys",
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("display_id","rank");
+    return ("display_name","rank");
 }
 
 =head2 get_persistent_slot_values
@@ -148,7 +148,7 @@ sub get_persistent_slots{
 
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
-    my @vals = ($obj->display_id(),
+    my @vals = ($obj->display_name(),
 		$obj->can('rank') ? $obj->rank() : undef
 		);
     return \@vals;

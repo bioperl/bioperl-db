@@ -222,7 +222,7 @@ our %association_entity_map;
 	     "rank"           => undef,
 	 },
 	 "seqfeature"         => {
-	     "display_id"     => undef,
+	     "display_name"   => undef,
 	     "rank"           => "seqfeature_rank",
 	     "primary_tag"    => "ontology_term_id",
 	     "source_tag"     => "seqfeature_source_id",

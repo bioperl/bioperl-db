@@ -431,7 +431,7 @@ sub store{
    }
    else {
        $accession=$did;
-       $version ='\N';
+       $version =0;
    }
    
    

@@ -543,7 +543,7 @@ sub adaptor{
 
 sub keywords{
    my ($self,@args) = @_;
-
+   $self->{'_keywords_cache'} = shift @args if @args;
    if( defined $self->{'_keywords_cache'} ) {
        return $self->{'_keywords_cache'};
    }

@@ -357,15 +357,18 @@ sub remove_by_dbID{
    	my ($self) = shift;
 	
 	my ($dbID) = join (",",@_); 
-	
+	return unless $dbID;
         my $loc_ids =
           join(", ",
                $self->select_colvals("seqfeature_location",
                                      "seqfeature_id in ($dbID)",
                                      "seqfeature_location_id")
               );
-	my $sth = $self->prepare("DELETE FROM location_qualifier_value WHERE seqfeature_location_id IN($loc_ids)");
-	$sth->execute();
+        my $sth;
+        if ($loc_ids) {
+            $sth = $self->prepare("DELETE FROM location_qualifier_value WHERE seqfeature_location_id IN($loc_ids)");
+            $sth->execute();
+        }
 	$sth = $self->prepare("DELETE FROM seqfeature_location WHERE seqfeature_id IN($dbID)");
 	$sth->execute();
 	

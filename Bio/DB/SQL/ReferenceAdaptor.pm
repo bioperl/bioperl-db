@@ -122,7 +122,7 @@ sub fetch_by_bioentry_id{
    # do the sorting here; mysql uses a filesort for some reason
    my @rows = ();
    while( my $arrayref = $sth->fetchrow_arrayref )  {
-       push(@rows, $arrayref);
+       push(@rows, [@$arrayref]);
    }
    my @by_rank =
      sort { $a->[-1] <=> $b->[-1] } @rows;

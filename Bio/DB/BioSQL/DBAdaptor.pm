@@ -538,7 +538,10 @@ sub _db_handle{
 
 }
 
-
+sub begin_work { shift->_db_handle->begin_work }
+sub commit { shift->_db_handle->commit }
+sub rollback { shift->_db_handle->rollback }
+sub disconnect { shift->_db_handle->disconnect }
 
 =head2 DESTROY
 

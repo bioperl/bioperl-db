@@ -242,13 +242,42 @@ sub make_sql {
  Title   : insert
  Usage   : $ad->insert("mytable", {col1=>$x, col2=>$y});
  Function:
- Returns :
+ Returns : primary key value
  Args    : table [string], hashref
 
 
 =cut
 
 sub insert {
+    my ($self, $table, $valh) = @_;
+    $self->insert_nopk($table, $valh);
+    my $id;
+    eval {
+        $id = $self->get_last_id($table);
+    };
+    return $id;
+}
+
+=head2 insert_nopk
+
+ Title   : insert
+ Usage   : $ad->insert_nopk("mytable", {col1=>$x, col2=>$y});
+ Function:
+ Returns : undef
+ Args    : table [string], hashref
+
+Just the same as $base->insert() except no primary key is returned
+
+If you are inserting in a table with no primary key, you should use
+this method in preference to insert()
+
+You can still use insert(), but it will be less efficient, as it will
+do a redundant check for the last id, and causes annoying warning
+messages with postgres
+
+=cut
+
+sub insert_nopk {
     my ($self, $table, $valh) = @_;
     my @cols = keys %$valh;
     my $sql =
@@ -263,11 +292,6 @@ sub insert {
              );
 #    my $sth = $self->execute($sql, map {$valh->{$_}} @cols);
     my $sth = $self->execute($sql);
-    my $id;
-    eval {
-        $id = $self->get_last_id($table);
-    };
-    return $id;
 }
 
 =head2 deleterows
@@ -345,7 +369,7 @@ sub get_last_id{
            $self->throw("no table") unless $self->can('_table');
            $table = $self->_table;
        }
-       my $seqn  = $table."_pkey_seq";
+       my $seqn  = $table."_pk_seq";
        my $sth = $self->prepare("select currval('$seqn') AS curr");
        my $rv;
        $rv = $sth->execute;

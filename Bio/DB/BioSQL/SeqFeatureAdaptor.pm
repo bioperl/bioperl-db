@@ -225,6 +225,27 @@ sub store{
       foreach my $tag ( $feature->all_tags() ) {
          my $qid = $adp->get_id($tag);
 
+         # cjm: store dbxrefs for seqfeatures too
+         # redundant with seqfeature_qualifier_value
+         if ($tag eq "db_xref") {
+             foreach my $value ( $feature->each_tag_value($tag) ) {
+                 my $dbxref = Bio::Annotation::DBLink->new();
+                 $value =~ /(\w+):(.*)/;
+                 if ($2) {
+                     $dbxref->database($1);
+                     $dbxref->primary_id($2);
+                 }
+                 else {
+                     $dbxref->database("");
+                     $dbxref->primary_id($value);
+                 }
+                 my $xid = $self->db->get_DBXrefAdaptor()->store($dbxref);
+                 $self->insert_nopk("seqfeature_dbxref",
+                                    {dbxref_id=>$xid,
+                                     seqfeature_id=>$last_id});
+             }
+         }
+
           # placeholder would be more efficient here
          my $rank = 1;
          foreach my $value ( $feature->each_tag_value($tag) ) {
@@ -311,6 +332,7 @@ sub remove_by_bioentry_id{
 sub remove_by_dbID{
 	my ($self) = shift; 
 	my ($sf) = join (",", @_); 
+        return unless $sf;
 	
 	my $sth;
 	
@@ -321,6 +343,9 @@ sub remove_by_dbID{
  
 	
 	$sth = $self->prepare("DELETE FROM seqfeature_qualifier_value WHERE seqfeature_id IN($sf)");
+	$sth->execute();
+
+	$sth = $self->prepare("DELETE FROM seqfeature_dbxref WHERE seqfeature_id IN ($sf)");
 	$sth->execute();
 
 	$sth = $self->prepare("DELETE FROM seqfeature WHERE seqfeature_id IN($sf)");

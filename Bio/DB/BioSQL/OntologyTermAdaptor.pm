@@ -116,10 +116,35 @@ sub fetch_by_dbID{
    $sth->execute;
 
    my ($term_name) = $sth->fetchrow_array();
+   return $term_name;
+}
+
+=head2 fetch_hash_by_dbID
+
+ Title   : fetch_hash_by_dbID
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub fetch_hash_by_dbID{
+   my ($self,$dbid) = @_;
+
+   my $q = " in (".join(",", @$dbid).")";
+   my $sth = $self->prepare("select ontology_term_id, term_name from ontology_term where ontology_term_id $q");
+   $sth->execute;
 
    # we should be consistent and return an object
    # but we don't have the right class in bioperl yet
-   return $term_name;
+   my %names= ();
+   while( my ($id,$n) = $sth->fetchrow_array )  {
+       $names{$id} = $n
+   }
+   return \%names;
 }
 
 sub get_id {

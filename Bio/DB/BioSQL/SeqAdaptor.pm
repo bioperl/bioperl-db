@@ -86,7 +86,7 @@ use Bio::DB::SQL::SqlQuery;
 =cut
 
 sub fetch_by_dbID{
-   my ($self,$id) = @_;
+   my ($self,$id,$pragma) = @_;
 
    if( !defined $id || $id !~ /^\d+$/) {
        $self->throw("Must have an id to fetch by id! (and it must be a number not [$id])");
@@ -94,12 +94,17 @@ sub fetch_by_dbID{
 
    #print STDERR "select en.display_id,en.accession,en.entry_version,length(bs.biosequence_str),bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id\n";
 
-   my $sth = $self->prepare("select en.display_id,en.accession,en.entry_version,bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
+   my $sth = $self->prepare("select en.display_id,en.accession,en.entry_version,bs.molecule,bs.seq_length, en.division, bqv.ontology_term_id, bqv.qualifier_value from bioentry en,biosequence bs, bioentry_qualifier_value bqv where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id and bqv.bioentry_id = en.bioentry_id");
 
    $sth->execute;
 
-   my ($display,$acc,$version,$mol,$div) = $sth->fetchrow_array;
-
+   my ($display,$acc,$version,$mol,$len,$div);
+   my @qvs = ();
+   while( my $arrayref = $sth->fetchrow_arrayref )  {
+       my ($term_id, $qv);
+       ($display,$acc,$version,$mol,$len,$div, $term_id, $qv) = @$arrayref;
+       push(@qvs, [$term_id, $qv]);
+   }
    if( !defined $display ) {
        $self->throw("Bioentry id $id does not have a biosequence or bioentry ");
    }
@@ -111,14 +116,32 @@ sub fetch_by_dbID{
                                 '-alphabet'   => $mol,
                                 '-division'   => $div,
                                 '-adaptor'    => $self);
+   if ($len) {
+       $seq->length($seq);
+   }
+   my $oh =
+     $self->db->get_OntologyTermAdaptor->fetch_hash_by_dbID([map {$_->[0]} @qvs]);
    my $DESC_ID =
      $self->db->get_OntologyTermAdaptor->DESCRIPTION_ID;
-   my $desc =
-     $self->select_colval(["bioentry_qualifier_value"],
-                          ["bioentry_id = $id",
-                           "ontology_term_id = $DESC_ID"],
-                          "qualifier_value");
-   $seq->desc($desc);
+   my $KEYWORDS_ID =
+     $self->db->get_OntologyTermAdaptor->KEYWORDS_ID;
+   my $DATES_ID =
+     $self->db->get_OntologyTermAdaptor->DATES_ID;
+   foreach my $qv (@qvs) {
+       my ($tid, $v) = @$qv;
+       if ($tid == $DESC_ID) {
+           $seq->desc($v);
+       }
+       elsif ($tid == $KEYWORDS_ID) {
+           $seq->keywords($v);
+       }
+       elsif ($tid == $DATES_ID) {
+           $seq->get_dates($v);
+       }
+       else {
+           $self->throw("Don't know what to do with term $tid");
+       }
+   }
    return $seq;
 }
 
@@ -477,6 +500,7 @@ sub store{
        $sth = $self->prepare("insert into bioentry (biodatabase_id,display_id,accession,entry_version,division) values ($dbid,'$did','$accession',$version,'$division')");
        $sth->execute;
        $id = $self->get_last_id("bioentry");
+       print STDERR "bioentry ID = $id\n";
    }
    
    $self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);

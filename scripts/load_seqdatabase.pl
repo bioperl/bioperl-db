@@ -53,6 +53,7 @@ my $driver = 'mysql';
 my $dbpass = undef;
 my $format = 'genbank';
 my $removeflag = '';
+my $transactional = 0;
 #If safe is turned on, the script doesn't die because of one bad entry..
 my $safe = 0;
 
@@ -64,10 +65,21 @@ my $safe = 0;
 	     'format:s' => \$format,
 	     'safe'     => \$safe,
 	     'remove'     => \$remove,
+             'transactional' => \$transactional,
 	     );
 
 my $dbname = shift;
 my @files = @ARGV;
+
+if ($safe && $transactional) {
+    print <<EOM;
+-safe and -transactional invalid combination
+
+the reason is that the adaptor code caches data/ids; if a transaction fails
+then the whole application must fail, otherwise we risk the cache and the
+database being out of sync, which could have very bad consequences
+EOM
+}
 
 if( !defined $dbname || scalar(@files) == 0 ) {
     system("perldoc $0");
@@ -90,6 +102,7 @@ foreach $file ( @files ) {
     my $seqio = Bio::SeqIO->new(-file => $file,-format => $format);
 
     while( $seq = $seqio->next_seq ) {
+        $dbadaptor->begin_work if $transactional;
         if ($removeflag) {
             my $oldseq =
               $seqadp->remove_by_db_and_accession($dbname, $seq->accession);
@@ -105,10 +118,11 @@ foreach $file ( @files ) {
 	else {
 	    $seqadp->store($dbid,$seq);
 	}
+        $dbadaptor->commit if $transactional;
     }
 }
 
-
+$dbadaptor->disconnect;
 
 
 

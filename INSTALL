@@ -1,6 +1,6 @@
 # $Id$
-bioperl-db INSTALLATION
 
+bioperl-db INSTALLATION
 
 GET THE RIGHT BIOPERL
 
@@ -23,7 +23,7 @@ INSTALL BIOSQL
 The bioperl-db package is designed to work with the BioSQL database.
 Install the BioSQL package by following the instructions in its
 INSTALL file. You can obtain the BioSQL package at www.open-bio.org. 
-BioSQL requires a relational database, either Mysql or Oracle or 
+BioSQL requires a relational database, either Mysql, Oracle, or 
 Postgres.
 
 

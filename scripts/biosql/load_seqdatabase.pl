@@ -521,7 +521,7 @@ foreach $file ( @files ) {
             my $elapsed = time() - $time;
             printf STDERR 
                 "\t... loaded $n_entries entries "
-                . "(in %.2d:%.2d:%.2d, %4.1f entries/s)\n",
+                . "(in %.2d:%.2d:%.2d, %5.2f entries/s)\n",
                 $elapsed/3600, ($elapsed % 3600)/60, $elapsed % 60,
                 $logchunk / $elapsed;
             $time = time();
@@ -535,7 +535,7 @@ if (($logchunk > 0) && (($n_entries % $logchunk) != 0)) {
     my $elapsed = time() - $time;
     printf STDERR 
                 "\t... loaded $n_entries entries "
-                . "(in %.2d:%.2d:%.2d, %4.1f entries/s)\n",
+                . "(in %.2d:%.2d:%.2d, %5.2f entries/s)\n",
                 $elapsed/3600, ($elapsed % 3600)/60, $elapsed % 60,
                 ($n_entries % $logchunk) / $elapsed;
 }

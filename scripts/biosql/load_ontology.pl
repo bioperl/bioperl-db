@@ -2,25 +2,51 @@
 #
 # $Id$
 #
+# Cared for by Hilmar Lapp <hlapp at gmx.net>
+#
+# Copyright Hilmar Lapp
+#
+# You may distribute this module under the same terms as perl itself
+
+#
+# (c) Hilmar Lapp, hlapp at gmx.net, 2003.
+# (c) GNF, Genomics Institute of the Novartis Research Foundation, 2003.
+#
+# You may distribute this module under the same terms as perl itself.
+# Refer to the Perl Artistic License (see the license accompanying this
+# software package, or see http://www.perl.com/language/misc/Artistic.html)
+# for the terms under which you may use, modify, and redistribute this module.
+# 
+# THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
+# MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+#
 
 =head1 NAME 
 
-load_seqdatabase.pl
+load_ontology.pl
 
 =head1 SYNOPSIS
 
-   load_seqdatabase.pl --host somewhere.edu --dbname biosql \
-                       --namespace bioperl --format swiss \
-                       swiss_sptrembl swiss.dat primate.dat
+  # for loading the Gene Ontology:
+  load_ontology.pl --host somewhere.edu --dbname biosql \
+                   --namespace "Gene Ontology" --format goflat \
+                   --fmtargs "-defs_file,GO.defs" \
+                   function.ontology process.ontology component.ontology
+
+  # for loading the SOFA part of the sequence ontology (currently
+  # there is no term definition file for SOFA):
+  load_ontology.pl --host somewhere.edu --dbname biosql \
+                   --namespace "SOFA" --format soflat sofa.ontology
 
 =head1 DESCRIPTION
 
-This script loads a bioperl-db with sequences. There are a number of
+This script loads a bioperl-db with an ontology. There are a number of
 options to do with where the bioperl-db database is (ie, hostname,
 user for database, password, database name) followed by the database
-name you wish to load this into and then any number of files. The
-files are assumed formatted identically with the format given in the
---format flag.
+name you wish to load this into and then any number of files that make
+up the ontology. The files are assumed formatted identically with the
+format given in the --format flag.
 
 There are more options than the ones shown above. See below.
 
@@ -55,23 +81,32 @@ the DBI driver name for the RDBMS e.g., mysql, Pg, or Oracle [mysql]
 
 =item --namespace $namesp 
 
-The namespace under which the sequences in the input files are to be
-created in the database [bioperl]. Note that the namespace will be
-left untouched if the object to be submitted has it set already.
+The namespace (name of the ontology) under which the terms and
+relationships in the input files are to be created in the database
+[bioperl ontology]. Note that the namespace will be left untouched if the
+object(s) to be submitted has it set already.
+
+Note that the DAG-edit flat file parser from more recent (1.2.2 and
+later) bioperl releases can auto-discover the ontology name.
 
 =item --lookup
 
-flag to look-up by unique key first, converting the insert into an
-update if the object is found
+Flag to look-up by unique key first, converting the insert into an
+update if the object is found. This pertains to terms only, as there
+is nothing to update about relationships if they are found by unique
+key (the unique key comprises of all columns).
 
 =item --noupdate
 
-don't update if object is found (with --lookup)
+Don't update if object is found (with --lookup). Again, this only
+pertains to terms.
 
 =item --remove
 
-flag to remove sequences before actually adding them (this
-necessitates a prior lookup)
+Flag to remove terms before actually adding them (this necessitates a
+prior lookup). Note that this is not relevant for relationships (if
+one is found by lookup, removing and re-adding has essentially the
+same result as leaving it untouched).
 
 =item --safe
 
@@ -84,22 +119,14 @@ don't commit anything, rollback at the end
 
 =item --format
 
-This may theoretically be any IO subsytem and the format understood by
-that subsystem to parse the input file(s). IO subsytem and format must
-be separated by a double colon. See below for which subsystems are
-currently supported.
-
-The default IO subsystem is SeqIO. 'Bio::' will automatically be
-prepended if not already present. As of presently, the other supported
-subsystem is ClusterIO. All input files must have the same format.
+This may theoretically be any OntologyIO format understood by
+bioperl. All input files must have the same format.
 
 Examples: 
     # this is the default
-    --format genbank  
-    # SeqIO format EMBL
-    --format embl     
-    # Bio::ClusterIO stream with -format => 'unigene'
-    --format ClusterIO::unigene 
+    --format goflat
+    # Simple ASCII hierarchy
+    --format simplehierarchy
 
 =item --fmtargs
 
@@ -117,53 +144,9 @@ Examples:
     # verbose parser with an additional path argument
     --fmtargs "-verbose,1,-indexpath,/home/luke/warp"
 
-=item --pipeline
-
-This is a sequence of Bio::Factory::SeqProcessorI (see
-L<Bio::Factory::SeqProcessorI>) implementing objects that will be
-instantiated and chained in exactly this order. This allows you to
-write re-usable modules for custom post-processing of objects after
-the stream parser returns them. Cf. L<Bio::Seq::BaseSeqProcessor> for
-a base implementation for such modules.
-
-Modules are separated by the pipe character '|'. In addition, you can
-specify initialization parameters for each of the modules by enclosing
-a comma-separated list of alternating parameter name and value pairs
-in parentheses or angle brackets directly after the module.
-
-Examples: 
-    # one module
-    --pipeline "My::SeqProc" 
-    # two modules in the specified order
-    --pipeline "My::SeqProc|My::SecondSeqProc" 
-    # two modules, the first of which has two initialization parameters
-    --pipeline "My::SeqProc(-maxlength,1500,-minlength,300)|My::SecondProc"
-
-=item --seqfilter
-
-This is either a string or a file defining a closure to be used as
-sequence filter. The value is interpreted as a file if it refers to a
-readable file, and a string otherwise. Cf. add_condition() in
-L<Bio::Seq::SeqBuilder> for more information about what the code will
-be used for. The closure will be passed a hash reference with an
-accumulated list of initialization paramaters for the prospective
-object. It returns TRUE if the object is to be built and FALSE
-otherwise.
-
-Note that this closure operates at the stream parser level. Objects it
-rejects will be skipped by the parser. Objects it accepts can still be
-intercepted at a later stage (options --remove, --update, --noupdate,
---mergeobjs).
-
-Note that not necessarily all stream parsers support a
-Bio::Factory::ObjectBuilderI (see L<Bio::Factory::ObjectBuilderI>)
-object. Email bioperl-l@bioperl.org to find out which ones do. In
-fact, at the time of writing this, only Bio::SeqIO::genbank supports
-it.
-
 =item --mergeobjs
 
-This is also a string or a file defining a closure. If provided, the
+This is a string or a file defining a closure. If provided, the
 closure is called if a look-up for the unique key of the new object
 was successful (hence, it will never be called without supplying
 --lookup, but not --noupdate, at the same time).
@@ -199,23 +182,16 @@ standard input.
 
 =head1 Authors
 
-Ewan Birney E<lt>birney at ebi.ac.ukE<gt>
-Mark Wilkinson E<lt>mwilkinson at gene.pbi.nrc.caE<gt>
 Hilmar Lapp E<lt>hlapp at gmx.netE<gt>
-Chris Mungall E<lt>cjm at fruitfly.orgE<gt>
-Elia Stupka E<lt>elia at tll.org.sgE<gt>
 
 =cut
 
 
 use Getopt::Long;
-use Carp (qw:cluck confess:);
 use Symbol;
-use Bio::Root::Root;
+use Carp (qw:cluck confess:);
 use Bio::DB::BioDB;
-use Bio::Annotation::SimpleValue;
-use Bio::SeqIO;
-use Bio::ClusterIO;
+use Bio::OntologyIO;
 
 ####################################################################
 # Defaults for options changeable through command line
@@ -225,12 +201,10 @@ my $dbname = "biosql";
 my $dbuser = "root";
 my $driver = 'mysql';
 my $dbpass;
-my $format = 'genbank';
+my $format = 'goflat';
 my $fmtargs = '';
-my $namespace = "bioperl";
-my $seqfilter;           # see conditions in Bio::Seq::SeqBuilder
+my $namespace = "bioperl ontology";
 my $mergefunc;           # if and how to merge old (found) and new objects
-my $pipeline;            # see Bio::Factory::SequenceProcessorI
 # flags
 my $remove_flag = 0;     # remove object before creating?
 my $lookup_flag = 0;     # look up object before creating, update if found?
@@ -246,9 +220,12 @@ my $safe_flag = 0;       # tolerate exceptions on create?
 #
 # map of I/O type to the next_XXXX method name
 #
+# Right now there is only a single IO subsystem we support here, so we
+# could do well without. We leave it in here to easily be able to adapt
+# in the future should it become necessary.
+#
 my %nextobj_map = (
-		   'Bio::SeqIO'     => 'next_seq',
-		   'Bio::ClusterIO' => 'next_cluster',
+		   'Bio::OntologyIO' => 'next_ontology',
 		   );
 
 ####################################################################
@@ -265,9 +242,7 @@ my $ok = GetOptions( 'host:s'      => \$host,
 		     'dbpass:s'    => \$dbpass,
 		     'format:s'    => \$format,
 		     'fmtargs=s'   => \$fmtargs,
-		     'seqfilter:s' => \$seqfilter,
 		     'namespace:s' => \$namespace,
-		     'pipeline:s'  => \$pipeline,
 		     'mergeobjs:s' => \$mergefunc,
 		     'safe'        => \$safe_flag,
 		     'remove'      => \$remove_flag,
@@ -295,11 +270,6 @@ my $throw = $safe_flag ?
     ($debug > 0 ? \&cluck : \&carp) : ($debug > 0 ? \&confess : \&croak);
 
 #
-# load and/or parse condition if supplied
-#
-my $condition = parse_code($seqfilter) if $seqfilter;
-
-#
 # load and/or parse object merge function if supplied
 #
 my $merge_objs = parse_code($mergefunc) if $mergefunc;
@@ -310,7 +280,9 @@ my $merge_objs = parse_code($mergefunc) if $mergefunc;
 my @files = @ARGV ? @ARGV : (\*STDIN);
 
 #
-# determine input format and type
+# determine input format and type. Having copy-and-pasted it from
+# load_seqdatabase.pl, we support more sophistication than we currently
+# need or disclose.
 #
 my $objio;
 my @fmtelems = split(/::/, $format);
@@ -318,26 +290,13 @@ if(@fmtelems > 1) {
     $format = pop(@fmtelems);
     $objio = join('::', @fmtelems);
 } else {
-    # default is SeqIO
-    $objio = "SeqIO";
+    # default is OntologyIO
+    $objio = "OntologyIO";
 }
 $objio = "Bio::".$objio if $objio !~ /^Bio::/;
-my $nextobj = $nextobj_map{$objio} || "next_seq"; # next_seq is the default
+my $nextobj = $nextobj_map{$objio}||"next_ontology"; 
 # the format might come with argument specifications
 my @fmtargs = split(/\s*,\s*/,$fmtargs);
-
-#
-# setup the pipeline if desired
-#
-my @pipemods = ();
-if($pipeline) {
-    if($objio ne "Bio::SeqIO") {
-	die "pipelining sequence processors not supported for non-SeqIOs\n";
-    }
-    @pipemods = setup_pipeline($pipeline);
-    warn "you specified -pipeline, but no processor modules resulted\n"
-	unless @pipemods;
-}
 
 #
 # create the DBAdaptorI for our database
@@ -352,101 +311,106 @@ my $db = Bio::DB::BioDB->new(-database => "biosql",
 $db->verbose($debug) if $debug > 0;
 
 # declarations
-my ($pseq, $adp);
+my ($pterm, $adp);
 
 #
-# loop over every input file and load its content
+# Open the ontology parser on all files supplied. Unlike other IO parsers,
+# ontologies may easily involve more than 1 input file to extract the
+# entire ontology.
 #
-foreach $file ( @files ) {
-    
-    my $fh = $file;
-    my $seqin;
 
+# open depending on whether it's a stream or a bunch of files
+my $ontin;
+my @parserargs = $format ? (-format => $format) : ();
+push(@parserargs, @fmtargs);
+
+if(@files == 1) {
+    my $fh = $files[0];
     # create a handle if it's not one already
     if(! ref($fh)) {
 	$fh = gensym;
-	if(! open($fh, "<$file")) {
-	    warn "unable to open $file for reading, skipping: $!\n";
-	    next;
-	}
-	print STDERR "Loading $file ...\n";
+	open($fh, "<".$files[0]) or
+	    die "unable to open ",$files[0]," for reading: $!\n";
     }
-    # create stream
-    $seqin = $objio->new(-fh => $fh,
-			 $format ? (-format => $format) : (),
-			 @fmtargs);
+    $ontin = $objio->new(-fh => $fh, @parserargs);
+} else {
+    $ontin = $objio->new(-files => \@files, @parserargs);
+}
 
-    # establish filter if provided
-    if($condition) {
-	if(! $seqin->can('sequence_builder')) {
-	    $seqin->throw("object IO parser ".ref($seqin).
-			  " does not support control by ObjectBuilderIs");
-	}
-	$seqin->sequence_builder->add_object_condition($condition);
-    }
+# loop over the input stream(s)
+while( my $ont = $ontin->$nextobj ) {
+    # don't forget to add namespace if the parser doesn't supply one
+    $ont->name($namespace) unless $ont->name();
 
-    # chain to pipeline if pipelining is requested
-    if(@pipemods) {
-	$pipemods[0]->source_stream($seqin);
-	$seqin = $pipemods[$#pipemods];
-    }
-
-    # loop over the stream
-    while( my $seq = $seqin->$nextobj ) {
-	# we can't store the structure for structured values yet, so
-	# flatten them
-	if($seq->isa("Bio::AnnotatableI")) {
-	    flatten_annotations($seq->annotation);
-	}
-	# don't forget to add namespace if the parser doesn't supply one
-	$seq->namespace($namespace) unless $seq->namespace();
+    # in order to allow callbacks to the user and generally a better ability
+    # to interfere with and customize the upload process, we load all terms
+    # first here instead of simply going for the relationships
+    foreach my $term ($ont->get_all_terms()) {
 	# look up or delete first?
-	my $lseq;
+	my ($lterm);
 	if($lookup_flag || $remove_flag) {
 	    # look up
-	    $adp = $db->get_object_adaptor($seq);
-	    $lseq = $adp->find_by_unique_key($seq,
-					     -obj_factory =>
-					     $seqin->object_factory());
+	    $adp = $db->get_object_adaptor($term);
+	    $lterm = $adp->find_by_unique_key($term,
+					      -obj_factory =>
+					      $ontin->term_factory());
 	    # found?
-	    if($lseq) {
+	    if($lterm) {
 		# merge old and new if a function for this is provided
-		$seq = &$merge_objs($lseq, $seq, $db) if $merge_objs;
+		$term = &$merge_objs($lterm, $term, $db) if $merge_objs;
 		# the return value may indicate to skip to the next
-		next unless $seq;
+		next unless $term;
 	    }
 	}
 	# try to serialize
 	eval {
-	    # set the adaptor variable before any operation which may throw
-	    # us out of the eval block
-	    $adp = $lseq->adaptor() if $lseq;
+	    $adp = $lterm->adaptor() if $lterm;
 	    # delete if requested
-	    $lseq->remove() if $remove_flag && $lseq;
+	    $lterm->remove() if $remove_flag && $lterm;
 	    # on update, skip the rest if we are not supposed to update
-	    if(! ($lseq && $no_update_flag)) {
-		# create a persistent object out of the seq
-		$pseq = $db->create_persistent($seq);
-		$adp = $pseq->adaptor();
+	    if(! ($lterm && $no_update_flag)) {
+		# create a persistent object out of the term
+		$pterm = $db->create_persistent($term);
+		$adp = $pterm->adaptor();
 		# store the primary key of what we found by lookup (this
 		# is going to be an udate then)
-		if($lseq && $lseq->primary_key) {
-		    $pseq->primary_key($lseq->primary_key);
+		if($lterm && $lterm->primary_key) {
+		    $pterm->primary_key($lterm->primary_key);
 		}
-		$pseq->store();
+		$pterm->store();
 	    }
 	    $adp->commit() unless $testonly_flag;
 	};
 	if ($@) {
-	    my $msg = "Could not store ".$seq->object_id().": $@\n";
+	    my $msg = "Could not store ".$term->object_id().
+		" (".$term->name()."): $@\n";
 	    $adp->rollback();
 	    &$throw($msg);
 	}
     }
-    $seqin->close();
+
+    # after all terms have been processed, we run through the relationships
+    # more or less non-interactively (i.e., without invoking a callback)
+    foreach my $rel ($ont->get_relationships()) {
+	my $prel = $db->create_persistent($rel);
+	eval {
+	    $prel->create(); 
+	    $prel->commit() unless $testonly_flag;
+	};
+	if ($@) {
+	    my $msg = "Could not store term relationship (".
+		join(",",
+		     $rel->subject_term->name(),
+		     $rel->predicate_term->name(), $rel->object_term()).
+		"): $@\n";
+	    $prel->rollback();
+	    &$throw($msg);
+	}
+    }
 }
 
 $adp->rollback() if $adp && $testonly_flag;
+$ontin->close();
 
 # done!
 
@@ -474,46 +438,3 @@ sub parse_code{
     return $code;
 }
 
-sub setup_pipeline{
-    my $pipeline = shift;
-    my @pipemods = ();
-
-    # split into modules
-    my @mods = split(/\|/, $pipeline);
-    # instantiate a module 'loader'
-    my $loader = Bio::Root::Root->new();
-    # load and instantiate each one, then concatenate
-    foreach my $mod (@mods) {
-	# separate module name from potential arguments
-	my $modname = $mod;
-	my @modargs = ();
-	if($modname =~ /^(.+)[\(<](.*)[>\)]$/) {
-	    $modname = $1;
-	    @modargs = split(/,/, $2);
-	}
-	$loader->_load_module($modname);
-	my $proc = $modname->new(@modargs);
-	if(! $proc->isa("Bio::Factory::SequenceProcessorI")) {
-	    die "Pipeline processing module $modname does not implement ".
-		"Bio::Factory::SequenceProcessorI. Bummer.\n";
-	}
-	$proc->source_stream($pipemods[$#pipemods]) if @pipemods;
-	push(@pipemods, $proc);
-    }
-    return @pipemods;
-}
-
-sub flatten_annotations {
-    my $anncoll = shift;
-    foreach my $ann ($anncoll->remove_Annotations()) {
-	if($ann->isa("Bio::Annotation::StructuredValue")) {
-	    foreach my $val ($ann->get_all_values()) {
-		$anncoll->add_Annotation(Bio::Annotation::SimpleValue->new(
-					   -value => $val,
-					   -tagname => $ann->tagname()));
-	    }
-	} else {
-	    $anncoll->add_Annotation($ann);
-	}
-    }
-}

@@ -470,10 +470,8 @@ sub store{
 
        $self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
 
-       my $desc = $seq->desc;
-       $desc =~ s/\'/\\\'/g;
        if ( defined $seq->desc && $seq->desc ne '' ) {
-           $desc = $self->quote($desc);
+           my $desc = $self->quote($seq->desc);
            $sth = $self->prepare("insert into bioentry_description (bioentry_id,description) VALUES ($id,$desc)");
            $sth->execute;
        }
@@ -574,8 +572,7 @@ sub _storeText {
 
 	$self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
         
-	my $desc = $seq->desc;
-	$desc =~ s/\'/\\\\'/g;
+	my $desc = self->quote($seq->desc);
 
         #' emacs hack
 

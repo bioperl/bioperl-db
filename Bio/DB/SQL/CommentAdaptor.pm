@@ -143,16 +143,14 @@ sub store{
    if( !defined $bioentry_id ) {
        $self->throw("Must store comemnts with bioentry_id");
    }
-   my $text = $comment->text;
-   $text =~ s/\'/\\\'/g;
+   my $text = $self->quote($comment->text);
   
    if ($self->db->bulk_import){
       my $fh = $self->db->{"__comment"};
       print $fh "NULL\t$bioentry_id\t$text\t$rank\n";
       return;
    } else {
-      #$text =~ s/\'/\\\'/g;
-      my $sth = $self->prepare("insert into comment (bioentry_id,comment_text,comment_rank) values ($bioentry_id,'$text',$rank)");
+      my $sth = $self->prepare("insert into comment (bioentry_id,comment_text,comment_rank) values ($bioentry_id,$text,$rank)");
       $sth->execute();
    }
 }

@@ -230,8 +230,8 @@ sub store{
           # placeholder would be more efficient here
          my $rank = 1;
          foreach my $value ( $feature->each_tag_value($tag) ) {
-            $value =~ s/\'/\\\'/g;
-            my $sth= $self->prepare("INSERT into seqfeature_qualifier_value (seqfeature_id,seqfeature_qualifier_id,qualifier_value,seqfeature_qualifier_rank) VALUES ($last_id,$qid,'$value',$rank)");
+            $value = $self->quote($value);
+            my $sth= $self->prepare("INSERT into seqfeature_qualifier_value (seqfeature_id,seqfeature_qualifier_id,qualifier_value,seqfeature_qualifier_rank) VALUES ($last_id,$qid,$value,$rank)");
             $sth->execute;
             $rank++;
          }
@@ -255,7 +255,7 @@ sub _storeText {
        # placeholder would be more efficient here
       my $rank = 1;
       foreach my $value ( $feature->each_tag_value($tag) ) {
-         $value =~ s/\'/\\\'/g;
+         $value = $self->quote($value);
          my $fh = $self->db->{"__seqfeature_qualifier_value"};
          print $fh "$last_id\t$qid\t$rank\t$value\n";
          $rank++;

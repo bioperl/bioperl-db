@@ -237,6 +237,17 @@ sub make_sql {
     return $sql;
 }
 
+=head2 insert
+
+ Title   : insert
+ Usage   : $ad->insert("mytable", {col1=>$x, col2=>$y});
+ Function:
+ Returns :
+ Args    : table [string], hashref
+
+
+=cut
+
 sub insert {
     my ($self, $table, $valh) = @_;
     my @cols = keys %$valh;
@@ -245,7 +256,10 @@ sub insert {
               $table,
               join(", ", @cols),
 #              join(", ", map {'?'} @cols),
-              join(", ", map {$self->quote($valh->{$_})} @cols),
+              join(", ",
+                   map {
+                       defined($_) ? $self->quote($valh->{$_}) : 'NULL'
+                   } @cols),
              );
 #    my $sth = $self->execute($sql, map {$valh->{$_}} @cols);
     my $sth = $self->execute($sql);

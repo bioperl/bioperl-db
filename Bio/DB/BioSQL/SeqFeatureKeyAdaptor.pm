@@ -128,7 +128,7 @@ sub store_if_needed{
    # could be in database 
    my $sth = $self->prepare("select seqfeature_key_id from seqfeature_key where key_name = '$name'");
    
-   $name =~ s/\'/\\\'/g;
+   $name = $self->quote($name);
  
    if ($self->db->bulk_import){
 		my $id = $self->_nextid;
@@ -138,7 +138,7 @@ sub store_if_needed{
       return $id;
    } else {
       # could be in database
-      my $sth = $self->prepare("select seqfeature_key_id from seqfeature_key where key_name = '$name'");
+      my $sth = $self->prepare("select seqfeature_key_id from seqfeature_key where key_name = $name");
       
       $sth->execute;
       my ($dbid) = $sth->fetchrow_array();
@@ -148,7 +148,7 @@ sub store_if_needed{
       }
       
       # nope - insert
-      $sth = $self->prepare("insert into seqfeature_key (key_name) VALUES ('$name')");
+      $sth = $self->prepare("insert into seqfeature_key (key_name) VALUES ($name)");
       $sth->execute;
       $dbid = $self->get_last_id;
       if( defined $dbid ) {

@@ -124,9 +124,9 @@ sub store_if_needed{
    if( exists $self->{'_linneage_hash'}->{$str} ) {
        return $self->{'_linneage_hash'}->{$str};
    }
-   $str =~ s/\'/\\\'/g;
+   $str = $self->quote($str);
    unless ($self->db->bulk_import){
-      my $sth = $self->prepare("select taxa_id from taxa where full_lineage = '$str'");
+      my $sth = $self->prepare("select taxa_id from taxa where full_lineage = $str");
       $sth->execute();
 
       my ($taxa) = $sth->fetchrow_array();
@@ -143,7 +143,7 @@ sub store_if_needed{
        $common_name = "";
    }
    
-   $common_name =~ s/\'/\\\'/g; 
+   $common_name = $self->quote($common_name);
 
    if ($self->db->bulk_import){
 		my $id = $self->_nextid;
@@ -153,7 +153,7 @@ sub store_if_needed{
       return $id;
    } else {
 
-      my $sth = $self->prepare("insert into taxa (full_lineage,common_name) values ('$str','$common_name')");
+      my $sth = $self->prepare("insert into taxa (full_lineage,common_name) values ($str,$common_name)");
       $sth->execute;
 
       my $id = $self->get_last_id;

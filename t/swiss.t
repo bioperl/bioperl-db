@@ -9,63 +9,103 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;
-    plan tests => 17;
+    plan tests => 37;
 }
 
-use BioSQLBase;
-use Bio::DB::BioSQL::DBAdaptor;
+use DBTestHarness;
 use Bio::SeqIO;
+use Bio::Root::IO;
+use Bio::Seq::SeqFactory;
 
-$biosql = BioSQLBase->new();
-ok $biosql;
+$biosql = DBTestHarness->new("biosql");
+$db = $biosql->get_DBAdaptor();
+ok $db;
+$db->verbose(1) if $ENV{HARNESS_VERBOSE};
 
-$seq = $biosql->store_seq(Bio::SeqIO->new('-format' => 'swiss',
-					  '-file' => Bio::Root::IO->catfile(
-						      't','data','swiss.dat')),
-			  "mytestnamespace");
-
+my $seqio = Bio::SeqIO->new('-format' => 'swiss',
+			    '-file' => Bio::Root::IO->catfile(
+						      't','data','swiss.dat'));
+my $seq = $seqio->next_seq();
 ok $seq;
-ok $seq->primary_id();
+
+my $pseq = $db->create_persistent($seq);
+ok $pseq;
+ok $pseq->isa("Bio::DB::PersistentObjectI");
+ok $pseq->isa("Bio::SeqI");
+
+$pseq->namespace("mytestnamespace");
+$pseq->store();
+my $dbid = $pseq->primary_key();
+ok $dbid;
+
+my $adp = $db->get_object_adaptor($seq);
+ok $adp;
+ok $adp->isa("Bio::DB::PersistenceAdaptorI");
+
+my $seqfact = Bio::Seq::SeqFactory->new(-type => "Bio::Seq::RichSeq");
+ok $seqfact;
+ok $seqfact->isa("Bio::Factory::ObjectFactoryI");
 
 # try/finally
 eval {
-    $seqadaptor = $biosql->db()->get_SeqAdaptor;
-    ok $seqadaptor;
-
-    $dbseq = $seqadaptor->fetch_by_dbID($seq->primary_id());
+    $dbseq = $adp->find_by_primary_key($dbid, $seqfact);
     ok $dbseq;
 
     ok ($dbseq->display_id, $seq->display_id);
-    ok ($dbseq->accession, $seq->accession);
-    ok ($dbseq->seq, $seq->seq);
+    ok ($dbseq->primary_id, $seq->primary_id);
+    ok ($dbseq->accession_number, $seq->accession_number);
+    ok ($dbseq->species->binomial, $seq->species->binomial);
     ok ($dbseq->subseq(3,10), $seq->subseq(3,10) );
-    ok ($dbseq->subseq(1,15), $seq->subseq(1,15) );
+    ok ($dbseq->seq, $seq->seq);
     ok ($dbseq->length, $seq->length);
     ok ($dbseq->length, length($dbseq->seq));
 
-    my $test_desc = $seq->desc;
-    $test_desc =~ s/\s+$//g;
-    
-    printf "CHECKING %s vs $test_desc\n", $dbseq->desc;
-    ok ($dbseq->desc, $test_desc);
+    ok ($dbseq->desc, $seq->desc);
 
-    @dblinks = $dbseq->annotation->get_Annotations('dblink');
-    @stdlinks = $seq->annotation->get_Annotations('dblink');
+    my @dbarr = $dbseq->annotation->get_Annotations('dblink');
+    my @arr = $seq->annotation->get_Annotations('dblink');
+    ok (scalar(@dbarr), scalar(@arr));
 
-    ok (scalar(@dblinks), scalar(@stdlinks));
+    @dbarr = sort { $a->primary_id cmp $b->primary_id } @dbarr;
+    @arr = sort { $a->primary_id cmp $b->primary_id } @arr;
+    ok ( $dbarr[0]->primary_id, $arr[0]->primary_id);
 
-    @dblinks = sort { $a->primary_id cmp $b->primary_id } @dblinks;
-    @stdlinks = sort { $a->primary_id cmp $b->primary_id } @stdlinks;
+    @dbarr = $dbseq->annotation->get_Annotations('reference');
+    @arr = $seq->annotation->get_Annotations('reference');
+    ok (scalar(@dbarr), scalar(@arr));
 
-    $dl1 = shift @dblinks;
-    $std1 = shift @stdlinks;
-    ok ( $dl1->primary_id, $std1->primary_id);
+    @dbarr = sort { $a->primary_id cmp $b->primary_id } @dbarr;
+    @arr = sort { $a->primary_id cmp $b->primary_id } @arr;
+    ok ( $dbarr[0]->primary_id, $arr[0]->primary_id);
+
+    ok (scalar(grep { $_->start() && $_->end(); } @dbarr),
+	scalar(grep { $_->start() && $_->end(); } @arr));
+
+    @dbarr = $dbseq->annotation->get_Annotations('gene_name');
+    @arr = $seq->annotation->get_Annotations('gene_name');
+    ok (scalar(@dbarr), scalar(@arr));
+    @dbarr = sort { $a->value() cmp $b->value() } @dbarr;
+    @arr = sort { $a->value() cmp $b->value() } @arr;
+    for(my $i = 0; $i < @dbarr; $i++) {
+	ok ($dbarr[$i]->value(), $arr[$i]->value());
+    }
+
+    @dbarr = $dbseq->top_SeqFeatures();
+    @arr = $seq->top_SeqFeatures();
+    ok (scalar(@dbarr), scalar(@arr));
+    @dbarr = sort { $a->primary_tag() cmp $b->primary_tag() } @dbarr;
+    @arr = sort { $a->primary_tag() cmp $b->primary_tag() } @arr;
+    for(my $i = 0; $i < @dbarr; $i++) {
+	ok ($dbarr[$i]->primary_tag(), $arr[$i]->primary_tag());
+    }
+
 };
 
 print STDERR $@ if $@;
 
 # delete seq
-ok ($biosql->delete_seq($seq), 1);
-ok ($biosql->delete_biodatabase("mytestnamespace"), 1);
-
-
+ok ($pseq->remove(), 1);
+my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pseq);
+ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);
+ok $ns->primary_key();
+ok ($ns->remove(), 1);

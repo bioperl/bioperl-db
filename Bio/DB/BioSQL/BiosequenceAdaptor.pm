@@ -1,17 +1,14 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::SpeciesAdaptor
+# BioPerl module for Bio::DB::BioSQL::BiosequenceAdaptor
 #
-# Cared for by Ewan Birney <birney@ebi.ac.uk>
+# Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
-# Copyright Ewan Birney
+# Copyright Hilmar Lapp
 #
 # You may distribute this module under the same terms as perl itself
 
 # 
-# Completely rewritten by Hilmar Lapp, hlapp at gmx.net
-#
-# Version 1.13 and beyond is also
 # (c) Hilmar Lapp, hlapp at gmx.net, 2002.
 # (c) GNF, Genomics Institute of the Novartis Research Foundation, 2002.
 #
@@ -29,7 +26,7 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::SpeciesAdaptor - DESCRIPTION of Object
+Bio::DB::BioSQL::BiosequenceAdaptor - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -37,7 +34,7 @@ Give standard usage here
 
 =head1 DESCRIPTION
 
-Species DB adaptor 
+Describe the object here
 
 =head1 FEEDBACK
 
@@ -59,9 +56,8 @@ Report bugs to the Bioperl bug tracking system to help us keep track
   bioperl-bugs@bio.perl.org
   http://bio.perl.org/bioperl-bugs/
 
-=head1 AUTHOR - Ewan Birney, Hilmar Lapp
+=head1 AUTHOR - Hilmar Lapp
 
-Email birney@ebi.ac.uk
 Email hlapp at gmx.net
 
 Describe contact details here
@@ -76,41 +72,18 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::SpeciesAdaptor;
+package Bio::DB::BioSQL::BiosequenceAdaptor;
 use vars qw(@ISA);
 use strict;
 
-# Object preamble 
-
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
-use Bio::DB::PersistentObjectI;
-use Bio::Species;
+use Bio::PrimarySeq;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
-
-=head2 new
-
- Title   : new
- Usage   :
- Function: Instantiates the persistence adaptor.
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub new{
-   my ($class,@args) = @_;
-
-   # we want to enable object caching
-   push(@args, "-cache_objects", 1) unless grep { /cache_objects/i; } @args;
-   my $self = $class->SUPER::new(@args);
-
-   return $self;
-}
-
+# new inherited from base adaptor.
+#
+# if we wanted caching we'd have to override new here
 
 =head2 get_persistent_slots
 
@@ -133,7 +106,7 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("common_name", "classification", "ncbi_taxid", "binomial");
+    return ("seq_version", "length", "alphabet", "seq");
 }
 
 =head2 get_persistent_slot_values
@@ -164,12 +137,42 @@ sub get_persistent_slots{
 
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
-    my @vals = ($obj->common_name(),
-		join(":", $obj->classification()),
-		$obj->ncbi_taxid(),
-		$obj->binomial('full')
-		);
+    my @vals = ($obj->isa("Bio::Seq::RichSeqI") ? $obj->seq_version() : undef,
+		$obj->length(),
+		$obj->alphabet(),
+		$obj->seq_has_changed() ? $obj->seq() : undef);
     return \@vals;
+}
+
+=head2 get_foreign_key_objects
+
+ Title   : get_foreign_key_objects
+ Usage   :
+ Function: Gets the objects referenced by this object, and which therefore need
+           to be referenced as foreign keys in the datastore.
+
+           A Bio::PrimarySeqI references a namespace with authority.
+ Example :
+ Returns : an array of Bio::DB::PersistentObjectI implementing objects
+ Args    : The object about to be inserted or updated, or undef if the call
+           is for a SELECT query. In the latter case return class or interface
+           names that are mapped to the foreign key tables.
+
+
+=cut
+
+sub get_foreign_key_objects{
+    my ($self,$obj) = @_;
+    my @fks = ();
+
+    # we only support FK objects for INSERT/UPDATEs, not SELECTs (i.e., you're
+    # not supposed to build an object from biosequence, it's rather a property)
+    if($obj) {
+	# if the object is-a IdentifiableI, then it is its own foreign key
+	# object
+	push(@fks, $obj) if $obj->isa("Bio::IdentifiableI");
+    }
+    return @fks;
 }
 
 =head2 instantiate_from_row
@@ -179,7 +182,7 @@ sub get_persistent_slot_values {
  Function: Instantiates the class this object is an adaptor for, and populates
            it with values from columns of the row.
 
-           This implementation call populate_from_row() to do the real job.
+           This implementation calls populate_from_row() to do the real job.
  Example :
  Returns : An object, or undef, if the row contains no values
  Args    : A reference to an array of column values. The first column is the
@@ -200,7 +203,7 @@ sub instantiate_from_row{
 	if($fact) {
 	    $obj = $fact->create_object();
 	} else {
-	    $obj = Bio::Species->new();
+	    $obj = Bio::PrimarySeq->new();
 	}
 	$self->populate_from_row($obj, $row);
     }
@@ -220,7 +223,7 @@ sub instantiate_from_row{
            This method MUST be overridden by a derived object.
  Example :
  Returns : An object, or undef, if the row contains no values
- Args    : The object to be populated.
+ Args    : The object to be populated, or the class to be instantiated.
            A reference to an array of column values. The first column is the
            primary key, the other columns are expected to be in the order 
            returned by get_persistent_slots().
@@ -232,13 +235,17 @@ sub populate_from_row{
     my ($self,$obj,$rows) = @_;
 
     if(! ref($obj)) {
-	$self->throw("\"$obj\" is not an object. Probably internal error.");
+	$obj = $obj->new();
     }
     if($rows && @$rows) {
-	$obj->common_name($rows->[1]) if $rows->[1];
-	$obj->classification(split(/:/,$rows->[2])) if $rows->[2];
-	$obj->ncbi_taxid($rows->[3]) if $rows->[3];
-	if($obj->isa("Bio::DB::PersistentObjectI")) {
+	if($rows->[1] && $obj->isa("Bio::Seq::RichSeqI")) {
+	    $obj->seq_version($rows->[1]);
+	}
+	$obj->length($rows->[2]) if $rows->[2];
+	$obj->alphabet($rows->[3]) if $rows->[3];
+	$obj->seq($rows->[4]) if $rows->[4];
+	if($obj->isa("Bio::DB::PersistentObjectI") &&
+	   (! $obj->isa("Bio::PrimarySeqI"))) {
 	    $obj->primary_key($rows->[0]);
 	}
 	return $obj;
@@ -254,6 +261,9 @@ sub populate_from_row{
            attribute values of the given object and the additional foreign
            key objects, in case foreign keys participate in a UK. 
 
+           This method MUST be overridden by a derived class. Alternatively,
+           a derived class may choose to override find_by_unique_key() instead,
+           as that one calls this method.
  Example :
  Returns : A reference to a hash with the names of the object''s slots in the
            unique key as keys and their values as values.
@@ -269,19 +279,67 @@ sub populate_from_row{
 sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
     my $uk_h = {};
+    my $fk;
 
-    # UKs for species are common_name, full binomial, and ncbi_taxid
-    if($obj->ncbi_taxid()) {
-	$uk_h->{'ncbi_taxid'} = $obj->ncbi_taxid();
-    } elsif($obj->binomial()) {
-	$uk_h->{'binomial'} = $obj->binomial('full');
-    } elsif($obj->common_name()) {
-	$uk_h->{'common_name'} = $obj->common_name();
-    } elsif($obj->classification()) {
-	$uk_h->{'classification'} = join(":", $obj->classification());
+    # UK for biosequence is the bioentry FK
+    foreach (($obj, $fkobjs ? @$fkobjs : ())) {
+	if($_->isa("Bio::PrimarySeqI") &&
+	   $_->isa("Bio::DB::PersistentObjectI")) {
+	    $fk = $_->primary_key();
+	    last;
+	}
     }
-    
+    if($fk) {
+	$uk_h->{'primary_seq'} = $fk;
+    }
+
     return $uk_h;
+}
+
+=head2 attach_foreign_key_objects
+
+ Title   : attach_foreign_key_objects
+ Usage   :
+ Function: Attaches foreign key objects to the given object as far as
+           necessary.
+
+           This method is called after find_by_XXX() queries, not for INSERTs
+           or UPDATEs.
+
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The object to which to attach foreign key objects.
+           A reference to an array of foreign key values, in the order of
+           foreign keys returned by get_foreign_key_objects().
+
+
+=cut
+
+sub attach_foreign_key_objects{
+    return 1;
+}
+
+=head2 get_biosequence
+
+ Title   : get_biosequence
+ Usage   :
+ Function: Returns the actual sequence for a bioentry, or a substring of it.
+ Example :
+ Returns : A string (the sequence or subsequence)
+ Args    : The primary key of the bioentry for which to obtain the sequence.
+           Optionally, start and end position if only a subsequence is to be
+           returned (for long sequences, obtaining the subsequence from the
+           database may be much faster than obtaining it from the complete
+           in-memory string, because the latter has to be retrieved first).
+
+
+=cut
+
+sub get_biosequence{
+    my ($self,@args) = @_;
+
+    # since this is driver-specific, we delegate to the driver-specific peer
+    return $self->dbd()->get_biosequence($self,@args);
 }
 
 1;

@@ -18,11 +18,11 @@
 
 =head1 NAME
 
-Bio::DB::BioDB - class providing the context for a particular database
+Bio::DB::BioDB - class providing the base adaptor for a particular database
 
 =head1 SYNOPSIS
 
-    $dbc = Bio::DB::BioDB->new(
+    $dbadp = Bio::DB::BioDB->new(
 			-database => 'biosql'
                         -user     => 'root',
                         -dbname   => 'pog',
@@ -36,7 +36,7 @@ Bio::DB::BioDB - class providing the context for a particular database
 
 This object represents a database that is implemented somehow (you
 shouldn\'t care much as long as you can get the object). From the
-object you can pull out other adapters, such as the BioSeqAdapter,
+object you can pull out other adapters, such as the BioSeqAdapter etc.
 
 
 =head1 CONTACT
@@ -61,15 +61,16 @@ use strict;
 
 use Bio::Root::Root;
 use Bio::Root::IO;
+use Bio::DB::SimpleDBContext;
 
 @ISA = qw(Bio::Root::Root);
 
-my %dbcontext_map = ("biosql" => "Bio::DB::BioSQL",
-		     "map"    => "Bio::DB::Map");
+my %db_map = ("biosql" => "Bio::DB::BioSQL::",
+	      "map"    => "Bio::DB::Map::");
 
-my $default_prefix = "Bio::DB";
+my $default_prefix = "Bio::DB::";
 
-my @DBC_MODULES = ("DBContext", "dbcontext", "DBAdaptor", "dbadaptor");
+my @DBC_MODULES = ("DBAdaptor", "dbadaptor");
 
 BEGIN {
     %LOADED = ();
@@ -80,21 +81,30 @@ sub new {
     
     my $self = $pkg->SUPER::new(@args);
 
-    my ($biodb) = $self->_rearrange([qw(DATABASE)], @args);
-    if(exists($dbcontext_map{lc($biodb)})) {
-	$biodb = $dbcontext_map{lc($biodb)};
+    my ($biodb, $dbc) = $self->_rearrange([qw(DATABASE DBCONTEXT)], @args);
+    if(exists($db_map{lc($biodb)})) {
+	$biodb = $db_map{lc($biodb)};
     } else {
-	$biodb = $default_prefix;
+	$biodb = $default_prefix . $biodb . "::";
     }
-    my $dbc_module = $self->_load_dbcontext($biodb);
-    return $dbc_module->new(@args);
+    my $dbadp_class = $self->_load_dbadaptor($biodb);
+    if(! $dbadp_class) {
+	$self->throw("fatal: unable to load DBAdaptor for database: $biodb".
+		     "{" . join(",", @DBC_MODULES) . "} all failed to load");
+    }
+    my $mydbc = $dbc || Bio::DB::SimpleDBContext->new(@args);
+    my $dbadp = $dbadp_class->new(-dbcontext => $mydbc);
+    # store the adaptor in the context if we created it ourselve, and the
+    # adaptor hasn't set it itself 
+    $mydbc->dbadaptor($dbadp) if (! $dbc) && (! $mydbc->adaptor()); 
+    return $dbadp;
 }
 
-=head2 _load_dbcontext
+=head2 _load_dbadaptor
 
- Title   : _load_dbcontext
- Usage   : $self->_load_dbcontext("Bio::DB::BioSQL");
- Function: Loads up (like use) the DBContextI implementing module for a
+ Title   : _load_dbadaptor
+ Usage   : $self->_load_dbadaptor("Bio::DB::BioSQL::");
+ Function: Loads up (like use) the DBAdaptorI implementing module for a
            database at run time on demand.
  Example : 
  Returns : TRUE on success
@@ -102,61 +112,27 @@ sub new {
 
 =cut
 
-sub _load_dbcontext {
+sub _load_dbadaptor {
     my ($self, $db) = @_;
     my @msgs = ();
 
     # check if it's successfully been loaded already before
     return $LOADED{$db} if(exists($LOADED{$db}));
     # try all possibilities
-    foreach my $dbc_name (@DBC_MODULES) {
+    foreach my $dbadp_name (@DBC_MODULES) {
 	eval {
-	    $self->_load_module($db . "::" . $dbc_name);
+	    $self->_load_module($db . $dbadp_name);
 	};
 	if($@) {
 	    push(@msgs, $@);
 	} else {
-	    $LOADED{$db} = $db . "::" . $dbc_name;
+	    $LOADED{$db} = $db . $dbadp_name;
 	    last;
 	}
     }
-    if(! exists($LOADED{$db})) {
-	$self->throw("fatal: unable to load DBContext for database $db, ".
-		     "(" . join(",", @DBC_MODULES) . ") all failed to load: ".
-		     join("\n", @msgs));
-    }
+    $self->warn("failed to load dbadaptor: " . join("\n", @msgs))
+	if ! $LOADED{$db};
     return $LOADED{$db};
-}
-
-=head2 _load_module
-
- Title   : _load_module
- Usage   : $self->_load_module("Bio::DB::BioSQL::DBContext");
- Function: Loads up (like use) the DBContextI implementing module for a
-           database at run time on demand.
- Example : 
- Returns : TRUE on success
- Args    : The name of the module to load.
-
-=cut
-
-sub _load_module {
-    my ($self, $name) = @_;
-    my ($module, $load, $m);
-    $module = "_<$name.pm";
-    return 1 if $main::{$module};
-    $load = "$name.pm";
-
-    my $io = Bio::Root::IO->new();
-    # catfile comes from IO
-    $load = $io->catfile((split(/::/,$load)));
-    eval {
-        require $load;
-    };
-    if ( $@ ) {
-        $self->throw("Failed to load module $name. ".$@);
-    }
-    return 1;
 }
 
 

@@ -142,7 +142,7 @@ sub dbharness {
 	$self->{'_dbharness'} = $dbharness;
     }
     if(! exists($self->{'_dbharness'})) {
-	$self->{'_dbharness'} = DBTestHarness->new();
+	$self->{'_dbharness'} = DBTestHarness->new("biosql");
     }
     return $self->{'_dbharness'};
 }

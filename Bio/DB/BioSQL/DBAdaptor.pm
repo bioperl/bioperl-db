@@ -43,506 +43,246 @@ use vars qw(@ISA);
 use strict;
 
 use Bio::Root::Root;
-use Bio::DB::BioSQL::SeqAdaptor;
-use Bio::DB::BioSQL::PrimarySeqAdaptor;
-use Bio::DB::BioSQL::BioDatabaseAdaptor;
-use Bio::DB::BioSQL::SeqFeatureKeyAdaptor;
-use Bio::DB::BioSQL::OntologyTermAdaptor;
-use Bio::DB::BioSQL::SeqFeatureSourceAdaptor;
-use Bio::DB::BioSQL::SeqLocationAdaptor;
-use Bio::DB::BioSQL::SeqFeatureAdaptor;
-use Bio::DB::BioSQL::CommentAdaptor;
-use Bio::DB::BioSQL::DBLinkAdaptor;
-use Bio::DB::BioSQL::DBXrefAdaptor;
-use Bio::DB::BioSQL::SpeciesAdaptor;
-use Bio::DB::BioSQL::ReferenceAdaptor;
+use Bio::DB::DBAdaptorI;
+use Bio::DB::PersistenceAdaptorI;
+use Bio::DB::Persistent::PersistentObject;
 
 use DBI;
 use FileHandle;
 
-@ISA = qw(Bio::Root::Root);
+@ISA = qw(Bio::Root::Root Bio::DB::DBAdaptorI);
 
 sub new {
-  my($pkg, @args) = @_;
+    my($pkg, @args) = @_;
 
-  my $self = $pkg->SUPER::new(@args);
-  #bless {}, $pkg;
+    my $self = $pkg->SUPER::new(@args);
 
-    my (
-        $db,
-        $host,
-        $driver,
-        $user,
-        $password,
-        $port,
-	    ) = $self->_rearrange([qw(
-            DBNAME
-	    HOST
-	    DRIVER
-	    USER
-	    PASS
-	    PORT
-	    
-	    )],@args);
-    $db   || $self->throw("Database object must have a database name");
-    $user || $self->throw("Database object must have a user");
-    if( ! $driver ) {
-        $driver = 'mysql';
-    }
-    if( ! $host ) {
-        $host = 'localhost';
-    }
-    if ( ! $port ) {
-        $port = '';
-    }
+    my ($dbc) = $self->_rearrange([qw(DBCONTEXT)],@args);
+    $self->dbcontext($dbc) if $dbc;
+    $self->{'_failed_objadp'} = {};
+    $self->{'_objadp_cache'} = {};
+    $self->{'_objadp_instances'} = {};
+
+    return $self; # success - we hope!
+}
+
+=head2 get_object_adaptor
+
+ Title   : get_object_adaptor
+ Usage   : $objadp = $adaptor->get_object_adaptor("Bio::SeqI");
+ Function: Obtain an PersistenceAdaptorI compliant object for the given class
+           or object.
+ Example :
+ Returns : The appropriate object adaptor, a Bio::DB::PersistenceAdaptorI
+           implementing object.
+ Args    : The class (a string) or object for which the adaptor is to be
+           obtained. Optionally, a DBContextI implementing object to initialize
+           the adaptor with. 
+
+
+=cut
+
+sub get_object_adaptor{
+    my ($self,$class,$dbc) = @_;
+    my ($adp, $adpclass);
     
-
-  my $dsn;
-  if( $driver eq 'mysql' ) { 
-      $dsn = "DBI:$driver:database=$db;host=$host;port=$port";
-  }
-  elsif( $driver eq 'Pg' ) {
-      $dsn = "DBI:$driver:dbname=$db;host=$host";
-      $dsn .= ";port=$port" if $port;
-  }
-  else {
-      $self->throw("unknown driver:$driver\n");
-  }
-  my $dbh;
-  print STDERR "dsn=$dsn; user=$user\n" if $ENV{SQL_TRACE};
-  eval {
-      $dbh = DBI->connect("$dsn","$user",$password, {RaiseError => 1});
-  };
-  if ($@) {
-      $self->throw("connection err:$@");
-  }
-  $dbh->{ChopBlanks} = 1;
-  $dbh || $self->throw("Could not connect to database $db user $user using [$dsn] as a locator Die is $@, DBI error".$DBI::errstr);
-  
-  $self->_db_handle($dbh);
-  $self->username( $user );
-  $self->driver( $driver );
-  $self->host( $host );
-  $self->dbname( $db );
- 
-  
-  return $self; # success - we hope!
-}
-
-#Simple getsets for the dbhandle parameters, in case they need to be called
-
-sub dbname {
-  my ($self, $arg ) = @_;
-  ( defined $arg ) &&
-    ( $self->{_dbname} = $arg );
-  $self->{_dbname};
-}
-
-sub driver {
-  my ($self, $arg ) = @_;
-  ( defined $arg ) &&
-    ( $self->{_driver} = $arg );
-  $self->{_driver};
-}
-
-sub username {
-  my ($self, $arg ) = @_;
-  ( defined $arg ) &&
-    ( $self->{_username} = $arg );
-  $self->{_username};
-}
-
-sub host {
-  my ($self, $arg ) = @_;
-  ( defined $arg ) &&
-    ( $self->{_host} = $arg );
-  $self->{_host};
-}
-
-=head2 prepare
-
- Title   : prepare
- Usage   : $sth = $dbobj->prepare("select seq_start,seq_end from feature where analysis = \" \" ");
- Function: prepares a SQL statement on the DBI handle
- Example :
- Returns : A DBI statement handle object
- Args    : a SQL string
-
-
-=cut
-
-sub prepare {
-   my ($self,$string) = @_;
-
-   if( ! $string ) {
-       $self->throw("Attempting to prepare an empty SQL query!");
-   }
-   if( !defined $self->_db_handle ) {
-      $self->throw("Database object has lost its database handle! getting otta here!");
-   }
-   return $self->_db_handle->prepare($string);
-}
-
-
-=head2 get_PrimarySeqAdaptor
-
- Title   : get_PrimarySeqAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_PrimarySeqAdaptor{
-   my ($self) = @_;
-
-   if( !defined $self->{'_primaryseqadaptor'} ) {
-       $self->{'_primaryseqadaptor'} = Bio::DB::BioSQL::PrimarySeqAdaptor->new($self);
-   }
-
-   return $self->{'_primaryseqadaptor'}
-}
-
-=head2 get_SeqAdaptor
-
- Title   : get_SeqAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_SeqAdaptor{
-   my ($self,@args) = @_;
-
-   if( !defined $self->{'_seqadaptor'} ) {
-       $self->{'_seqadaptor'} = Bio::DB::BioSQL::SeqAdaptor->new($self);
-   }
-
-   return $self->{'_seqadaptor'}
-}
-
-=head2 get_BioDatabaseAdaptor
-
- Title   : get_BioDatabaseAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_BioDatabaseAdaptor{
-   my ($self) = @_;
-
-
-
-   if( !defined $self->{'_biodbadaptor'} ) {
-       $self->{'_biodbadaptor'} = Bio::DB::BioSQL::BioDatabaseAdaptor->new($self);
-   }
-
-   return $self->{'_biodbadaptor'}
-
-}
-
-=head2 get_SeqFeatureKeyAdaptor
-
- Title   : get_SeqFeatureKeyAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_SeqFeatureKeyAdaptor{
-   my ($self) = @_;
-
-   if( !defined $self->{'_seqkeydbadaptor'} ) {
-       $self->{'_seqkeydbadaptor'} = Bio::DB::BioSQL::SeqFeatureKeyAdaptor->new($self);
-   }
-
-   return $self->{'_seqkeydbadaptor'}
-
-}
-
-
-=head2 get_OntologyTermAdaptor
-
- Title   : get_OntologyTermAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_OntologyTermAdaptor{
-   my ($self) = @_;
-
-   if( !defined $self->{'_ontology_term_adaptor'} ) {
-       $self->{'_ontology_term_adaptor'} = Bio::DB::BioSQL::OntologyTermAdaptor->new($self);
-   }
-
-   return $self->{'_ontology_term_adaptor'}
-}
-
-=head2 get_SeqFeatureSourceAdaptor
-
- Title   : get_SeqFeatureSourceAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_SeqFeatureSourceAdaptor{
-   my ($self) = @_;
-
-   if( !defined $self->{'_seq_source_adaptor'} ) {
-       $self->{'_seq_source_adaptor'} = Bio::DB::BioSQL::SeqFeatureSourceAdaptor->new($self);
-   }
-
-   return $self->{'_seq_source_adaptor'}
-
-}
-
-
-=head2 get_SeqLocationAdaptor
-
- Title   : get_SeqLocationAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_SeqLocationAdaptor{
-   my ($self) = @_;
-
-   if( !defined $self->{'_seq_location_adaptor'} ) {
-       $self->{'_seq_location_adaptor'} = Bio::DB::BioSQL::SeqLocationAdaptor->new($self);
-   }
-
-   return $self->{'_seq_location_adaptor'}
-
-}
-
-
-
-=head2 get_SeqLocationAdaptor
-
- Title   : get_SeqLocationAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_SeqFeatureAdaptor{
-   my ($self) = @_;
-
-   if( !defined $self->{'_seq_feature_adaptor'} ) {
-       $self->{'_seq_feature_adaptor'} = Bio::DB::BioSQL::SeqFeatureAdaptor->new($self);
-   }
-
-   return $self->{'_seq_feature_adaptor'}
-
-}
-
-
-=head2 get_CommentAdaptor
-
- Title   : get_CommentAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_CommentAdaptor{
-   my ($self) = @_;
-
-   if( !defined $self->{'_comment_adaptor'} ) {
-       $self->{'_comment_adaptor'} = Bio::DB::BioSQL::CommentAdaptor->new($self);
-   }
-
-   return $self->{'_comment_adaptor'}
-
-}
-
-=head2 get_ReferenceAdaptor
-
- Title   : get_ReferenceAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_ReferenceAdaptor{
-   my ($self) = @_;
-
-   if( !defined $self->{'_reference_adaptor'} ) {
-       $self->{'_reference_adaptor'} = Bio::DB::BioSQL::ReferenceAdaptor->new($self);
-   }
-
-   return $self->{'_reference_adaptor'}
-
-}
-
-
-=head2 get_DBLinkAdaptor
-
- Title   : get_DBLinkAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_DBLinkAdaptor{
-   my ($self) = @_;
-
-   if( !defined $self->{'_dblink_adaptor'} ) {
-       $self->{'_dblink_adaptor'} = Bio::DB::BioSQL::DBLinkAdaptor->new($self);
-   }
-
-   return $self->{'_dblink_adaptor'}
-
-}
-
-=head2 get_DBXrefAdaptor
-
- Title   : get_DBXrefAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_DBXrefAdaptor{
-   my ($self) = @_;
-
-   if( !defined $self->{'_dbxref_adaptor'} ) {
-       $self->{'_dbxref_adaptor'} = Bio::DB::BioSQL::DBXrefAdaptor->new($self);
-   }
-
-   return $self->{'_dbxref_adaptor'}
-
-}
-
-
-=head2 get_SpeciesAdaptor
-
- Title   : get_SpeciesAdaptor
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
-
-
-=cut
-
-sub get_SpeciesAdaptor{
-   my ($self) = @_;
-
-   if( !defined $self->{'_species_adaptor'} ) {
-       $self->{'_species_adaptor'} = Bio::DB::BioSQL::SpeciesAdaptor->new($self);
-   }
-
-   return $self->{'_species_adaptor'}
-
-}
-
-
-=head2 get_dbNames
-
- Title   : get_dbNames
- Usage   : $obj->get_dbNames()
- Function: find all possible biodatabase.names available
- Example : 
- Returns : list of biodatabase.name fields
- Args    : none
-
-
-=cut
-
-sub get_dbNames{
-   my ($self) = @_;
-   my $dbh =  $self->{'_db_handle'};
-   return undef unless $dbh;
-
-	my $sth = $dbh->prepare('select name from biodatabase');
-	$sth->execute;
-	my @namelist;
-	while (my ($dbn) = $sth->fetchrow_array){
-		push @namelist, $dbn;
-	}
-    return @namelist;
-
-}
-
-=head2 _db_handle
-
- Title   : _db_handle
- Usage   : $obj->_db_handle($newval)
- Function: 
- Example : 
- Returns : value of _db_handle
- Args    : newvalue (optional)
-
-
-=cut
-
-sub _db_handle{
-   my ($self,$value) = @_;
-   if( defined $value) {
-      $self->{'_db_handle'} = $value;
+    # adaptor classes are cached under the class name, not the hash ref
+    $class = ref($class) if ref($class);
+    # obtain adaptor class (throws an exception upon failure)
+    $adpclass = $self->_get_object_adaptor_class($class);
+    # need to instantiate if instance from cache not available
+    if(exists($self->{'_objadp_instances'}->{$adpclass})) {
+	# instance is cached
+	$adp = $self->{'_objadp_instances'}->{$adpclass};
+    } else {
+	# no, not cached
+	# get dbcontext as we'll need it for instantiation
+	$dbc = $self->dbcontext() unless $dbc;
+	# instantiate, and propagate the verbosity level
+	$self->debug("instantiating adaptor class $adpclass\n");
+	$adp = $adpclass->new(-dbcontext => $dbc,
+			      -verbose   => $self->verbose());
+	# cache
+	$self->set_object_adaptor($class, $adp);
     }
-    return $self->{'_db_handle'};
+    # return the object
+    return $adp;
+}
 
+=head2 _get_object_adaptor_class
+
+ Title   : _get_object_adaptor_class
+ Usage   : $objadpclass = $adaptor->_get_object_adaptor_class("Bio::SeqI");
+ Function: Obtains and loads the PersistenceAdaptorI compliant class for the
+           given class or object.
+ Example :
+ Returns : The appropriate object adaptor class, a Bio::DB::PersistenceAdaptorI
+           implementing class, or an instantiation of it, if one has been
+           cached.
+ Args    : The class (a string) for which the adaptor class is to be obtained. 
+
+
+=cut
+
+sub _get_object_adaptor_class{
+    my ($self,$class) = @_;
+    my ($adpclass);
+
+    # is it cached directly, as success or failure?
+    if(exists($self->{'_objadp_cache'}->{$class})) {
+	return $self->{'_objadp_cache'}->{$class};
+    } elsif(exists($self->{'_failed_objadp'}->{$class})) {
+	$self->throw("failed to load adaptor for class $class");
+    }
+    # no, not cached.
+    #
+    # can we load it directly?
+    eval {
+	$self->debug("attempting to load adaptor class for $class\n");
+	$adpclass = $self->_load_object_adaptor($class);
+    };
+    # return if success
+    if($adpclass) {
+	return $adpclass;
+    }
+    #
+    # otherwise recursively and depth-first traverse inheritance tree
+    #
+    # we need to bring in this class here in order to have access to @ISA.
+    eval {
+	$self->_load_module($class);
+    };
+    if($@) {
+	$self->throw("weird: got object of class $class, ".
+		     "but cannot load class: ".$@);
+    }
+    my $aryname = "${class}::ISA"; # this is a soft reference
+    # hence, allow soft refs
+    no strict "refs";
+    my @ancestors = @$aryname;
+    # and disallow again
+    use strict "refs";
+    # loop; this is depth first traversal
+    # note that this may need tuning as to e.g. traverse interfaces first
+    foreach my $ancestor (@ancestors) {
+	# did this fail once already?
+	next if $self->{'_failed_objadp'}->{$ancestor};
+	# no, first attempt
+	eval {
+	    $adpclass = $self->_get_object_adaptor_class($ancestor);
+	};
+	if($adpclass) {
+	    # cache right here, calling function doesn't know what we traversed
+	    $self->set_object_adaptor($ancestor, $adpclass);
+	    # terminate loop
+	    last;
+	} else {
+	    # cache failure as well ...
+	    $self->{'_failed_objadp'}->{$ancestor} = 1;
+	}
+    }
+    return $adpclass if $adpclass;
+    # cache failure as well ...
+    $self->{'_failed_objadp'}->{$class} = 1;
+    # and raise the exception ...
+    $self->throw("failed to load adaptor for class $class as well as parents ".
+		 join(", ", @ancestors));
+}
+
+=head2 set_object_adaptor
+
+ Title   : set_object_adaptor
+ Usage   : $adaptor->set_object_adaptor("Bio::SeqI", $bioseqadaptor);
+ Function: Sets the PersistenceAdaptorI compliant object and/or class for the
+           given class or interface.
+ Example :
+ Returns : none
+ Args    : The class (a string) or object for which the adaptor is to be set.
+           The PersistenceAdaptorI compliant class or an instance of it to
+           serve as the adaptor.
+
+
+=cut
+
+sub set_object_adaptor{
+    my ($self, $class, $adp) = @_;
+
+    if(ref($adp) && ! $adp->isa('Bio::DB::PersistenceAdaptorI')) {
+	$self->throw(ref($adp)." to be used as adaptor for $class does not ".
+		     "implement Bio::DB::PersistenceAdaptorI. Bad.");
+    }
+    $self->{'_objadp_cache'}->{$class} = ref($adp) ? ref($adp) : $adp;
+    $self->{'_objadp_instances'}->{ref($adp)} = $adp if ref($adp);
+}
+
+=head2 create_persistent
+
+ Title   : create_persistent
+ Usage   : $dbadaptor->create_persistent($obj)
+ Function: Creates a PersistentObjectI implementing object that adapts the
+           given object to the datastore.
+ Example :
+ Returns : A Bio::DB::PeristentObjectI implementing object
+ Args    : An object of a type that can be stored in the datastore adapted
+           by this factory. Alternatively, the class name of such an object.
+           All remaining arguments will be passed to the constructor of the
+           class if the first argument is a class name.
+
+
+=cut
+
+sub create_persistent{
+   my ($self,$obj,@args) = @_;
+
+   # we need to obtain an instance of the class if it's not already an instance
+   if(! ref($obj)) {
+       my $class = $obj;
+       # load the module first, otherwise new() will fail; this will throw
+       # an exception if it fails
+       $self->_load_module($class);
+       # we wrap this in an eval in order to indicate clearer what failed (if
+       # it fails)
+       eval {
+	   $obj = $class->new(@args);
+       };
+       if($@) {
+	   $self->throw("Failed to instantiate ${obj}: ".$@);
+       }
+   }
+   # we also need to obtain an adaptor
+   my $adp = $self->get_object_adaptor($obj);
+   # ready to create the persistent object
+   return $adp->create_persistent($obj);
 }
 
 
+=head2 dbcontext
 
-=head2 DESTROY
+ Title   : dbcontext
+ Usage   : $obj->dbcontext($newval)
+ Function: Get/set the DBContextI object representing the physical database.
 
- Title   : DESTROY
+           If this slot is not set, adaptor objects returned by
+           get_adaptor() will not be initialized with a database connection,
+           unless a DBContextI is passed to get_adaptor().
+ Example : 
+ Returns : A DBContextI implementing object
+ Args    : on set, the new DBContextI implementing object
+
+
+=cut
+
+sub dbcontext{
+    my ($self,$value) = @_;
+    if( defined $value) {
+	$self->{'dbcontext'} = $value;
+    }
+    return $self->{'dbcontext'};
+}
+
+=head2 _load_object_adaptor
+
+ Title   : _load_object_adaptor
  Usage   :
  Function:
  Example :
@@ -552,15 +292,31 @@ sub _db_handle{
 
 =cut
 
-sub DESTROY {
-   my ($obj) = @_;
-   #$obj->_unlock_tables();
+sub _load_object_adaptor{
+    my ($self,$class,$suffix) = @_;
 
-   if( $obj->{'_db_handle'} ) {
-       $obj->{'_db_handle'}->disconnect;
-       $obj->{'_db_handle'} = undef;
-   }
-   $obj->SUPER::DESTROY();
+    # standard suffix is Adaptor
+    $suffix = 'Adaptor' unless $suffix;
+    # our adaptors are all in Bio::DB::BioSQL
+    my $prefix = 'Bio::DB::BioSQL';
+    # strip all leading path from the class name
+    $class =~ s/.*:://;
+    # we'll try w/ and w/o the trailing I (in case of an interface)
+    my ($class_noI) = $class =~ /^(.*)I$/;
+    # load away ...
+    my @mods = ($prefix."::".$class.$suffix);
+    push(@mods, $prefix."::".$class_noI.$suffix) if $class_noI;
+    my $adp;
+    foreach my $mod (@mods) {
+	eval {
+	    $self->debug("\tattempting to load module $mod\n");
+	    $self->_load_module($mod);
+	    $adp = $mod;
+	};
+	last if $adp;
+    }
+    return $adp if $adp;
+    $self->throw("failed to dynamically load any of (".join(",",@mods).")");
 }
 
 

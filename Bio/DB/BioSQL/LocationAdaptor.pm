@@ -1,15 +1,17 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::DBLinkAdaptor
+# BioPerl module for Bio::DB::BioSQL::LocationAdaptor
 #
-# Cared for by Ewan Birney <birney@ebi.ac.uk>
+# Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
-# Copyright Ewan Birney
+# Copyright Hilmar Lapp
 #
 # You may distribute this module under the same terms as perl itself
 
 # 
-# Version 1.10 and up are also
+# The previous Location adaptor was SeqLocationAdaptor by Ewan Birney. This
+# module evidently is similar in purpose ...
+#
 # (c) Hilmar Lapp, hlapp at gmx.net, 2002.
 # (c) GNF, Genomics Institute of the Novartis Research Foundation, 2002.
 #
@@ -27,15 +29,15 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::DBLinkAdaptor - DBLink Adaptor
+Bio::DB::BioSQL::LocationAdaptor - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
-Do not use create this object directly
+Give standard usage here
 
 =head1 DESCRIPTION
 
-Adaptor for DBLinks 
+Describe the object here
 
 =head1 FEEDBACK
 
@@ -57,9 +59,8 @@ Report bugs to the Bioperl bug tracking system to help us keep track
   bioperl-bugs@bio.perl.org
   http://bio.perl.org/bioperl-bugs/
 
-=head1 AUTHOR - Ewan Birney, Hilmar Lapp
+=head1 AUTHOR - Hilmar Lapp
 
-Email birney@ebi.ac.uk
 Email hlapp at gmx.net
 
 Describe contact details here
@@ -74,19 +75,22 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::DBLinkAdaptor;
+package Bio::DB::BioSQL::LocationAdaptor;
 use vars qw(@ISA);
 use strict;
 
-use Bio::Annotation::DBLink;
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
-use Bio::DB::PersistentObjectI;
-use Bio::BioEntry;
+use Bio::Ontology::Term;
+use Bio::Location::Simple;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
+#our %slot_cat_map = ();
 
-# we'd have to override new() here to enable caching - but we don't want that
+# new inherited from base adaptor.
+#
+# if we wanted caching we'd have to override new here - but don't do caching
+# for locations of features ...
 
 =head2 get_persistent_slots
 
@@ -95,10 +99,6 @@ use Bio::BioEntry;
  Function: Get the slots of the object that map to attributes in its respective
            entity in the datastore.
 
-           Slots should be methods callable without an argument.
-
-           This is a strictly abstract method. A derived class MUST override
-           it to return something meaningful.
  Example :
  Returns : an array of method names constituting the serializable slots
  Args    : the object about to be inserted or updated
@@ -109,7 +109,7 @@ use Bio::BioEntry;
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("database", "primary_id");
+    return ("start","end","strand","rank");
 }
 
 =head2 get_persistent_slot_values
@@ -140,8 +140,10 @@ sub get_persistent_slots{
 
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
-    my @vals = ($obj->database(),
-		$obj->primary_id()
+    my @vals = ($obj->start(),
+		$obj->end(),
+		$obj->strand(),
+		$obj->can('rank') ? $obj->rank() : undef
 		);
     return \@vals;
 }
@@ -153,20 +155,60 @@ sub get_persistent_slot_values {
  Function: Gets the objects referenced by this object, and which therefore need
            to be referenced as foreign keys in the datastore.
 
-           Bio::Annotation::DBLink has no FKs, therefore this version just
-           returns an empty array.
+           A Bio::LocationI references a Bio::SeqFeatureI.
  Example :
  Returns : an array of Bio::DB::PersistentObjectI implementing objects
- Args    : The object about to be inserted or updated.
-           Optionally, additional named parameters. A common parameter will
-           be -fkobjs, with a reference to an array of foreign key objects
-           that are not retrievable from the persistent object itself.
+ Args    : The object about to be inserted or updated, or undef if the call
+           is for a SELECT query. In the latter case return class or interface
+           names that are mapped to the foreign key tables.
+           Additional named parameters, with -fkobjs being recognized and
+           pointing to a reference to an array of foreign key objects (the
+	   Bio::SeqFeatureI object) not retrievable from the object itself.
 
 
 =cut
 
 sub get_foreign_key_objects{
-    return ();
+    my ($self,$obj,@args) = @_;
+
+    # Bio::LocationI doesn't have a pointer to the feature. Hence, we need to
+    # get this from the arguments.
+    my ($fkobjs) = $self->_rearrange([qw(FKOBJS)], @args);
+    my $feat;
+    if($fkobjs && @$fkobjs) {
+	($feat) = grep { $_->isa("Bio::SeqFeatureI"); } @$fkobjs;
+    }
+    $feat = "Bio::SeqFeatureI" unless $feat;
+
+    return ($feat);
+}
+
+=head2 attach_foreign_key_objects
+
+ Title   : attach_foreign_key_objects
+ Usage   :
+ Function: Attaches foreign key objects to the given object as far as
+           necessary.
+
+           This method is called after find_by_XXX() queries, not for INSERTs
+           or UPDATEs.
+
+           LocationIs don''t really have a foreign key object attached -- it
+           would be the SeqFeatureI if they had one.
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The object to which to attach foreign key objects.
+           A reference to an array of foreign key values, in the order of
+           foreign keys returned by get_foreign_key_objects().
+
+
+=cut
+
+sub attach_foreign_key_objects{
+    my ($self,$obj,$fks) = @_;
+    my $ok = 1;
+    
+    return $ok;
 }
 
 =head2 store_children
@@ -176,22 +218,48 @@ sub get_foreign_key_objects{
  Function: Inserts or updates the child entities of the given object in the 
            datastore.
 
-           Bio::Annotation::DBLink has no children,
-           so this version just returns TRUE.
+           Bio::LocationI may have qualifier/value pairs as children. This is
+           not implemented yet.
  Example :
  Returns : TRUE on success, and FALSE otherwise
  Args    : The Bio::DB::PersistentObjectI implementing object for which the
            child objects shall be made persistent.
-           Optionally, additional named parameters. A common parameter will
-           be -assoc_objs, with a reference to an array of objects to which
-           this object should be associated in the database if those objects
-           are not retrievable from the persistent object itself.
 
 
 =cut
 
 sub store_children{
-    my ($self,$obj,@args) = @_;
+    my ($self,$obj) = @_;
+
+    return 1;
+}
+
+=head2 attach_children
+
+ Title   : attach_children
+ Usage   :
+ Function: Possibly retrieve and attach child objects of the given object.
+
+           This is needed when whole object trees are supposed to be built
+           when a base object is queried for and returned. An example would
+           be Bio::SeqI objects and all the annotation objects that hang off
+           of it.
+
+           This is called by the find_by_XXXX() methods once the base object
+           has been built. 
+
+           For Bio::LocationIs, we need to get the qualifier/value pairs
+           possibly associated with it. Not implemented yet.
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The object for which to find and to which to attach the child
+           objects.
+
+
+=cut
+
+sub attach_children{
+    my ($self,$obj) = @_;
 
     return 1;
 }
@@ -203,15 +271,14 @@ sub store_children{
  Function: Instantiates the class this object is an adaptor for, and populates
            it with values from columns of the row.
 
-           This implementation call populate_from_row() to do the real job.
+           This implementation calls populate_from_row() to do the real job.
  Example :
  Returns : An object, or undef, if the row contains no values
  Args    : A reference to an array of column values. The first column is the
            primary key, the other columns are expected to be in the order 
            returned by get_persistent_slots().
-           Optionally, the object factory to be used for instantiating the
-           proper class. The adaptor must be able to instantiate a default
-           class if this value is undef.
+           Optionally, a Bio::Factory::SequenceFactoryI compliant object to
+           be used for creating the object.
 
 
 =cut
@@ -224,7 +291,7 @@ sub instantiate_from_row{
 	if($fact) {
 	    $obj = $fact->create_object();
 	} else {
-	    $obj = Bio::Annotation::DBLink->new();
+	    $obj = Bio::Location::Simple->new();
 	}
 	$self->populate_from_row($obj, $row);
     }
@@ -235,15 +302,10 @@ sub instantiate_from_row{
 
  Title   : populate_from_row
  Usage   :
- Function: Instantiates the class this object is an adaptor for, and populates
-           it with values from columns of the row.
+ Function: Populates the object with values from columns of the row.
 
-           Usually a derived class will instantiate the proper class and pass
-           it on to populate_from_row().
-
-           This method MUST be overridden by a derived object.
  Example :
- Returns : An object, or undef, if the row contains no values
+ Returns : The object populated, or undef, if the row contains no values
  Args    : The object to be populated.
            A reference to an array of column values. The first column is the
            primary key, the other columns are expected to be in the order 
@@ -253,16 +315,18 @@ sub instantiate_from_row{
 =cut
 
 sub populate_from_row{
-    my ($self,$obj,$row) = @_;
+    my ($self,$obj,$rows) = @_;
 
     if(! ref($obj)) {
 	$self->throw("\"$obj\" is not an object. Probably internal error.");
     }
-    if($row && @$row) {
-	$obj->database($row->[1]) if $row->[1];
-	$obj->primary_id($row->[2]) if $row->[2];
+    if($rows && @$rows) {
+	$obj->start($rows->[1]) if $rows->[1];
+	$obj->end($rows->[2]) if $rows->[2];
+	$obj->strand($rows->[3]) if $rows->[3];
+	$obj->rank($rows->[4]) if $rows->[4] && $obj->can('rank');
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
-	    $obj->primary_key($row->[0]);
+	    $obj->primary_key($rows->[0]);
 	}
 	return $obj;
     }
@@ -293,14 +357,52 @@ sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
     my $uk_h = {};
 
-    # UK is the combination of accession and database
-    if($obj->namespace()) {
-	$uk_h->{'primary_id'} = $obj->primary_id();
-	$uk_h->{'database'} = $obj->database() if $obj->database();
-    } 
-    
+    # UK for LocationIs is (seqfeature,rank)
+    # that is, we need the seqfeature or otherwise there's no point
+    my $feat;
+    if($fkobjs && @$fkobjs) {
+	($feat) = grep { $_->isa("Bio::SeqFeatureI"); } @$fkobjs;
+	if($feat &&
+	   (! ($feat->isa("Bio::DB::PersistentObjectI") &&
+	       $feat->primary_key()))) {
+	    $feat = $self->_feat_adaptor()->find_by_unique_key($feat);
+	}
+    }
+    # we only need to continue with the feature FK in hand
+    if($feat) {
+	$uk_h->{'Bio::SeqFeatureI'} = $feat->primary_key();
+	$uk_h->{'rank'} = $obj->rank() if $obj->can('rank');
+    }
+
     return $uk_h;
 }
 
+=head2 _feat_adaptor
+
+ Title   : _feat_adaptor
+ Usage   : $obj->_feat_adaptor($newval)
+ Function: Get/set cached persistence adaptor for a bioperl feature object.
+
+           In OO speak, consider the access class of this method protected.
+           I.e., call from descendants, but not from outside.
+ Example : 
+ Returns : value of _feat_adaptor (a Bio::DB::PersistenceAdaptorI
+	   instance)
+ Args    : new value (a Bio::DB::PersistenceAdaptorI instance, optional)
+
+
+=cut
+
+sub _feat_adaptor{
+    my ($self,$adp) = @_;
+    if( defined $adp) {
+	$self->{'_feat_adaptor'} = $adp;
+    }
+    if(! exists($self->{'_feat_adaptor'})) {
+	$self->{'_feat_adaptor'} =
+	    $self->db()->get_object_adaptor("Bio::SeqFeatureI");
+    }
+    return $self->{'_feat_adaptor'};
+}
 
 1;

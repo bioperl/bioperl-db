@@ -1,17 +1,10 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::SpeciesAdaptor
+# BioPerl module for Bio::DB::BioSQL::TermAdaptor
 #
-# Cared for by Ewan Birney <birney@ebi.ac.uk>
+# Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
-# Copyright Ewan Birney
-#
-# You may distribute this module under the same terms as perl itself
-
-# 
-# Completely rewritten by Hilmar Lapp, hlapp at gmx.net
-#
-# Version 1.13 and beyond is also
+# (c) Ewan Birney <birney@ebi.ac.uk>, 2002.
 # (c) Hilmar Lapp, hlapp at gmx.net, 2002.
 # (c) GNF, Genomics Institute of the Novartis Research Foundation, 2002.
 #
@@ -29,7 +22,7 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::SpeciesAdaptor - DESCRIPTION of Object
+Bio::DB::BioSQL::TermAdaptor - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -37,7 +30,7 @@ Give standard usage here
 
 =head1 DESCRIPTION
 
-Species DB adaptor 
+Term DB adaptor 
 
 =head1 FEEDBACK
 
@@ -76,7 +69,7 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::SpeciesAdaptor;
+package Bio::DB::BioSQL::TermAdaptor;
 use vars qw(@ISA);
 use strict;
 
@@ -84,7 +77,7 @@ use strict;
 
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
 use Bio::DB::PersistentObjectI;
-use Bio::Species;
+use Bio::Ontology::Term;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
@@ -121,8 +114,6 @@ sub new{
 
            Slots should be methods callable without an argument.
 
-           This is a strictly abstract method. A derived class MUST override
-           it to return something meaningful.
  Example :
  Returns : an array of method names constituting the serializable slots
  Args    : the object about to be inserted or updated
@@ -133,7 +124,7 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("common_name", "classification", "ncbi_taxid", "binomial");
+    return ("identifier", "name", "definition");
 }
 
 =head2 get_persistent_slot_values
@@ -164,12 +155,91 @@ sub get_persistent_slots{
 
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
-    my @vals = ($obj->common_name(),
-		join(":", $obj->classification()),
-		$obj->ncbi_taxid(),
-		$obj->binomial('full')
+    my @vals = ($obj->identifier(),
+		$obj->name(),
+		$obj->definition()
 		);
     return \@vals;
+}
+
+=head2 get_foreign_key_objects
+
+ Title   : get_foreign_key_objects
+ Usage   :
+ Function: Gets the objects referenced by this object, and which therefore need
+           to be referenced as foreign keys in the datastore.
+
+           Note that the objects are expected to implement
+           Bio::DB::PersistentObjectI.
+
+           An implementation may obtain the values either through the object
+           to be serialized, or through the additional arguments. An
+           implementation should also make sure that the order of foreign key
+           objects returned is always the same.
+
+           Note also that in order to indicate a NULL value for a nullable
+           foreign key, either put an object returning undef from 
+           primary_key(), or put the name of the class instead. DO NOT SIMPLY
+           LEAVE IT OUT.
+
+ Example :
+ Returns : an array of Bio::DB::PersistentObjectI implementing objects
+ Args    : The object about to be inserted or updated, or undef if the call
+           is for a SELECT query. In the latter case return class or interface
+           names that are mapped to the foreign key tables.
+           Optionally, additional named parameters. A common parameter will
+           be -fkobjs, with a reference to an array of foreign key objects
+           that are not retrievable from the persistent object itself.
+
+=cut
+
+sub get_foreign_key_objects{
+    my ($self,$obj,$fkobjs) = @_;
+    my $cat;
+
+    if(ref($obj) && $obj->category()) {
+	$cat = $obj->category();
+	$cat->foreign_key_slot(ref($self)."::category");
+    } else {
+	$cat = ref($self)."::category";
+    }
+    return ($cat);
+}
+
+=head2 attach_foreign_key_objects
+
+ Title   : attach_foreign_key_objects
+ Usage   :
+ Function: Attaches foreign key objects to the given object as far as
+           necessary.
+
+           This method is called after find_by_XXX() queries, not for INSERTs
+           or UPDATEs.
+
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The object to which to attach foreign key objects.
+           A reference to an array of foreign key values, in the order of
+           foreign keys returned by get_foreign_key_objects().
+
+
+=cut
+
+sub attach_foreign_key_objects{
+    my ($self,$obj,$fks) = @_;
+    my $ok = 1;
+    
+    if($fks && @$fks) {
+	# the foreign key to category is optional
+	if($fks->[0]) {
+	    if(my $cat_term = $self->find_by_primary_key($fks->[0])) {
+		$obj->category($cat_term);
+	    } else {
+		$ok = 0;
+	    }
+	}
+    }
+    return $ok;
 }
 
 =head2 instantiate_from_row
@@ -200,7 +270,7 @@ sub instantiate_from_row{
 	if($fact) {
 	    $obj = $fact->create_object();
 	} else {
-	    $obj = Bio::Species->new();
+	    $obj = Bio::Ontology::Term->new();
 	}
 	$self->populate_from_row($obj, $row);
     }
@@ -214,10 +284,6 @@ sub instantiate_from_row{
  Function: Instantiates the class this object is an adaptor for, and populates
            it with values from columns of the row.
 
-           Usually a derived class will instantiate the proper class and pass
-           it on to populate_from_row().
-
-           This method MUST be overridden by a derived object.
  Example :
  Returns : An object, or undef, if the row contains no values
  Args    : The object to be populated.
@@ -235,9 +301,9 @@ sub populate_from_row{
 	$self->throw("\"$obj\" is not an object. Probably internal error.");
     }
     if($rows && @$rows) {
-	$obj->common_name($rows->[1]) if $rows->[1];
-	$obj->classification(split(/:/,$rows->[2])) if $rows->[2];
-	$obj->ncbi_taxid($rows->[3]) if $rows->[3];
+	$obj->identifier($rows->[1]) if $rows->[1];
+	$obj->name($rows->[2]) if $rows->[2];
+	$obj->definition($rows->[3]) if $rows->[3];
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($rows->[0]);
 	}
@@ -270,15 +336,19 @@ sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
     my $uk_h = {};
 
-    # UKs for species are common_name, full binomial, and ncbi_taxid
-    if($obj->ncbi_taxid()) {
-	$uk_h->{'ncbi_taxid'} = $obj->ncbi_taxid();
-    } elsif($obj->binomial()) {
-	$uk_h->{'binomial'} = $obj->binomial('full');
-    } elsif($obj->common_name()) {
-	$uk_h->{'common_name'} = $obj->common_name();
-    } elsif($obj->classification()) {
-	$uk_h->{'classification'} = join(":", $obj->classification());
+    # UKs for ontology terms are identifier and (name,category)
+    if($obj->identifier()) {
+	$uk_h->{'identifier'} = $obj->identifier();
+    } elsif($obj->name()) {
+	$uk_h->{'name'} = $obj->name();
+	if(my $cat = $obj->category()) {
+	    if($cat->isa("Bio::DB::PersistentObjectI")) {
+		$cat->store() unless $cat->primary_key();
+	    } else {
+		$cat = $self->find_by_unique_key($cat);
+	    }
+	    $uk_h->{'category'} = $cat->primary_key() if $cat;
+	}
     }
     
     return $uk_h;

@@ -9,30 +9,51 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 5;
+    plan tests => 15;
 }
 
-use BioSQLBase;
 use DBTestHarness;
 use Bio::Species;
 
-$biosql = BioSQLBase->new();
+$biosql = DBTestHarness->new("biosql");
 ok $biosql;
 
-$sa = $biosql->db()->get_SpeciesAdaptor;
-ok $sa;
+$db = $biosql->get_DBAdaptor();
+ok $db;
+$db->verbose(1) if $ENV{HARNESS_VERBOSE};
 
-$s = Bio::Species->new('-classification' => [qw(Eukaryota Metazoa Chordata
+$s = Bio::Species->new('-classification' => [reverse(
+					     qw(Eukaryota Metazoa Chordata
 						Vertebrata Mammalia Eutheria
 						Primates Catarrhini Hominidae
-						Homo sapiens)]);
-$dbid = $sa->store_if_needed($s);
+						Homo sapiens))]);
+$p_s = $db->create_persistent($s);
+ok $p_s;
+ok $p_s->isa("Bio::DB::PersistentObjectI");
+ok $p_s->isa("Bio::Species");
 
-$dbobj = $sa->fetch_by_dbID($dbid);
+$p_s->store();
+$dbid = $p_s->primary_key();
+ok $dbid;
+
+$adp = $db->get_object_adaptor($s);
+ok $adp;
+ok $adp->isa("Bio::DB::PersistenceAdaptorI");
+$dbobj = $adp->find_by_primary_key($dbid);
 
 ok ($dbobj->species, $s->species);
 ok ($dbobj->genus, $s->genus);
 
-$db2   = $sa->store_if_needed($s);
-ok ( $dbid, $db2 );
+$dbobj2 = $adp->find_by_unique_key($s);
+ok $dbobj2;
+if($dbobj2) {
+    ok ( $dbobj2->primary_key(), $dbobj->primary_key() );
+} else {
+    skip("fetch by UK failed", 0);
+}
 
+ok ($p_s->remove(), 1);
+ok (undef, $p_s->primary_key());
+
+$dbobj2 = $adp->find_by_unique_key($s);
+ok (undef, $dbobj2);

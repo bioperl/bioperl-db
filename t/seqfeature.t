@@ -9,54 +9,71 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 13;
+    plan tests => 19;
 }
 
-use BioSQLBase;
 use DBTestHarness;
-use Bio::DB::BioSQL::DBAdaptor;
 use Bio::SeqIO;
+use Bio::Root::IO;
 
-$biosql = BioSQLBase->new();
-ok $biosql;
+$biosql = DBTestHarness->new("biosql");
+$db = $biosql->get_DBAdaptor();
+ok $db;
+$db->verbose(1) if $ENV{HARNESS_VERBOSE};
 
-$seq = $biosql->store_seq(Bio::SeqIO->new('-format' => 'genbank',
-					  '-file' => Bio::Root::IO->catfile(
-					        't','data','parkin.gb')),
-			  "mytestnamespace");
+my $seqio = Bio::SeqIO->new('-format' => 'genbank',
+			    '-file' => Bio::Root::IO->catfile(
+						      't','data','parkin.gb'));
+my $seq = $seqio->next_seq();
 ok $seq;
-ok $seq->primary_id();
-
-$fadp = $biosql->db()->get_SeqFeatureAdaptor();
-ok $fadp;
+my $pseq = $db->create_persistent($seq);
+$pseq->namespace("mytestnamespace");
 
 # set up feature and its location
-$feature = Bio::SeqFeature::Generic->new;
-$location = Bio::Location::Simple->new();
+$feat = Bio::SeqFeature::Generic->new;
+$loc = Bio::Location::Simple->new();
 
-$location->start(1);
-$location->end(10);
-$location->strand(-1);
+$loc->start(1);
+$loc->end(10);
+$loc->strand(-1);
 
-$feature->location($location);
+$feat->location($loc);
 
-$feature->primary_tag('tag1');
-$feature->source_tag('some-source');
-$feature->add_tag_value('tag12',18);
-$feature->add_tag_value('tag12','another damn value');
-$feature->add_tag_value('another-tag','something else');
+$feat->primary_tag('tag1');
+$feat->source_tag('some-source');
+$feat->add_tag_value('tag12',18);
+$feat->add_tag_value('tag12','another damn value');
+$feat->add_tag_value('another-tag','something else');
 
+# make persistent
+my $pfeat = $db->create_persistent($feat);
+ok $pfeat->isa("Bio::DB::PersistentObjectI");
+
+# store seq
+$pseq->store();
+ok $pseq->primary_key();
+
+# attach seq (the foreign key)
+$pfeat->attach_seq($pseq);
+
+# try/finally (we need to make sure the seq is removed at the end of the test)
 eval {
-    # store and re-retrieve
-    $fid = $fadp->store($feature, 1, $seq->primary_id());
-    ok $fid;
-    
-    $dbf = $fadp->fetch_by_dbID($fid);
+    # store the feature (this will actually be a create)
+    $pfeat->store();
+    ok $pfeat->primary_key();
+
+    # and re-retrieve
+    $fadp = $db->get_object_adaptor($feat);
+    ok $fadp;
+    $dbf = $fadp->find_by_primary_key($pfeat->primary_key());
     ok $dbf;
+    ok ($dbf->primary_key, $feat->primary_key);
+    ok ($dbf->primary_tag, $feat->primary_tag);
+    ok ($dbf->source_tag, $feat->source_tag);
     
-    ok ($feature->location->start, $dbf->location->start);
-    ok ($feature->location->end, $dbf->location->end);
-    ok ($feature->location->strand, $dbf->location->strand);
+    ok ($dbf->location->start, $feat->location->start);
+    ok ($dbf->location->end, $feat->location->end);
+    ok ($dbf->location->strand, $feat->location->strand);
     
     ok (scalar($dbf->each_tag_value('tag12')), 2);
     
@@ -68,5 +85,8 @@ eval {
 print STDERR $@ if $@;
 
 # delete seq
-ok ($biosql->delete_seq($seq), 1);
-ok ($biosql->delete_biodatabase("mytestnamespace"), 1);
+ok ($pseq->remove(), 1);
+my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pseq);
+ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);
+ok $ns->primary_key();
+ok ($ns->remove(), 1);

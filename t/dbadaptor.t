@@ -9,32 +9,30 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 5;
+    plan tests => 6;
 }
 
 use BioSQLBase;
 use Bio::DB::BioSQL::DBAdaptor;
 
 
-$biosql = BioSQLBase->new();
+my $biosql = DBTestHarness->new("biosql");
 ok $biosql;
 
-my $db = $biosql->db();
-ok $db;
+my $dbc = $biosql->get_DBContext();
+ok $dbc;
+
+my $db = $dbc->dbadaptor();
+ok $db->isa("Bio::DB::DBAdaptorI");
+ok $db->isa("Bio::DB::BioSQL::DBAdaptor");
 
 # test connection
-my $rc = $db->_db_handle()->ping();
+my $dbh = $dbc->dbi()->new_connection($dbc);
+ok $dbh;
+my $rc = $dbh->ping();
 ok ($rc && ($rc ne '0 but true'));
 
-# execute some SQL that must work
-my $sth = $db->prepare("SELECT count(*) FROM biodatabase");
-$sth->execute();
-
-ok $sth;
-my @n = $sth->fetchrow_array();
-ok (scalar(@n), 1);
-
-$sth->finish();
+$dbh->disconnect();
 
 
 

@@ -1,17 +1,14 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::SpeciesAdaptor
+# BioPerl module for Bio::DB::BioSQL::BioNamespaceAdaptor
 #
-# Cared for by Ewan Birney <birney@ebi.ac.uk>
+# Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
-# Copyright Ewan Birney
+# Copyright Hilmar Lapp
 #
 # You may distribute this module under the same terms as perl itself
 
 # 
-# Completely rewritten by Hilmar Lapp, hlapp at gmx.net
-#
-# Version 1.13 and beyond is also
 # (c) Hilmar Lapp, hlapp at gmx.net, 2002.
 # (c) GNF, Genomics Institute of the Novartis Research Foundation, 2002.
 #
@@ -29,7 +26,7 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::SpeciesAdaptor - DESCRIPTION of Object
+Bio::DB::BioSQL::BioNamespaceAdaptor - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -37,7 +34,7 @@ Give standard usage here
 
 =head1 DESCRIPTION
 
-Species DB adaptor 
+BioNamespace DB adaptor 
 
 =head1 FEEDBACK
 
@@ -59,10 +56,10 @@ Report bugs to the Bioperl bug tracking system to help us keep track
   bioperl-bugs@bio.perl.org
   http://bio.perl.org/bioperl-bugs/
 
-=head1 AUTHOR - Ewan Birney, Hilmar Lapp
+=head1 AUTHOR - Hilmar Lapp
 
-Email birney@ebi.ac.uk
 Email hlapp at gmx.net
+Based in idea on Bio:DB::BioSQL::BioDatabase by Ewan Birney <birney@ebi.ac.uk>
 
 Describe contact details here
 
@@ -76,7 +73,7 @@ The rest of the documentation details each of the object methods. Internal metho
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::SpeciesAdaptor;
+package Bio::DB::BioSQL::BioNamespaceAdaptor;
 use vars qw(@ISA);
 use strict;
 
@@ -84,7 +81,8 @@ use strict;
 
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
 use Bio::DB::PersistentObjectI;
-use Bio::Species;
+use Bio::DB::Persistent::BioNamespace;
+use Bio::BioEntry;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
@@ -133,7 +131,7 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("common_name", "classification", "ncbi_taxid", "binomial");
+    return ("namespace", "authority");
 }
 
 =head2 get_persistent_slot_values
@@ -164,12 +162,56 @@ sub get_persistent_slots{
 
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
-    my @vals = ($obj->common_name(),
-		join(":", $obj->classification()),
-		$obj->ncbi_taxid(),
-		$obj->binomial('full')
+    my @vals = ($obj->namespace(),
+		$obj->authority()
 		);
     return \@vals;
+}
+
+=head2 get_foreign_key_objects
+
+ Title   : get_foreign_key_objects
+ Usage   :
+ Function: Gets the objects referenced by this object, and which therefore need
+           to be referenced as foreign keys in the datastore.
+
+           BioNamespace has no FKs, therefore this version just returns an
+           empty array.
+ Example :
+ Returns : an array of Bio::DB::PersistentObjectI implementing objects
+ Args    : The object about to be inserted or updated.
+           Additional arguments passed on from create().
+
+
+=cut
+
+sub get_foreign_key_objects{
+    my ($self,@args) = @_;
+
+    return ();
+}
+
+=head2 store_children
+
+ Title   : store_children
+ Usage   :
+ Function: Inserts or updates the child entities of the given object in the 
+           datastore.
+
+           BioNamespace has no children (although it is a FK for bioentries),
+           so this version just returns TRUE.
+ Example :
+ Returns : TRUE on success, and FALSE otherwise
+ Args    : The Bio::DB::PersistentObjectI implementing object for which the
+           child objects shall be made persistent.
+
+
+=cut
+
+sub store_children{
+    my ($self,@args) = @_;
+
+    return 1;
 }
 
 =head2 instantiate_from_row
@@ -200,7 +242,9 @@ sub instantiate_from_row{
 	if($fact) {
 	    $obj = $fact->create_object();
 	} else {
-	    $obj = Bio::Species->new();
+	    # we need a IdentifiableI object for BioNamespace to work
+	    $obj = Bio::DB::Persistent::BioNamespace->new(-identifiable =>
+							 Bio::BioEntry->new());
 	}
 	$self->populate_from_row($obj, $row);
     }
@@ -235,9 +279,8 @@ sub populate_from_row{
 	$self->throw("\"$obj\" is not an object. Probably internal error.");
     }
     if($rows && @$rows) {
-	$obj->common_name($rows->[1]) if $rows->[1];
-	$obj->classification(split(/:/,$rows->[2])) if $rows->[2];
-	$obj->ncbi_taxid($rows->[3]) if $rows->[3];
+	$obj->namespace($rows->[1]) if $rows->[1];
+	$obj->authority($rows->[2]) if $rows->[2];
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($rows->[0]);
 	}
@@ -254,6 +297,9 @@ sub populate_from_row{
            attribute values of the given object and the additional foreign
            key objects, in case foreign keys participate in a UK. 
 
+           This method MUST be overridden by a derived class. Alternatively,
+           a derived class may choose to override find_by_unique_key() instead,
+           as that one calls this method.
  Example :
  Returns : A reference to a hash with the names of the object''s slots in the
            unique key as keys and their values as values.
@@ -270,16 +316,10 @@ sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
     my $uk_h = {};
 
-    # UKs for species are common_name, full binomial, and ncbi_taxid
-    if($obj->ncbi_taxid()) {
-	$uk_h->{'ncbi_taxid'} = $obj->ncbi_taxid();
-    } elsif($obj->binomial()) {
-	$uk_h->{'binomial'} = $obj->binomial('full');
-    } elsif($obj->common_name()) {
-	$uk_h->{'common_name'} = $obj->common_name();
-    } elsif($obj->classification()) {
-	$uk_h->{'classification'} = join(":", $obj->classification());
-    }
+    # UK is the name of the namespace ...
+    if($obj->namespace()) {
+	$uk_h->{'namespace'} = $obj->namespace();
+    } 
     
     return $uk_h;
 }

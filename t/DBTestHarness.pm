@@ -39,6 +39,7 @@ use Sys::Hostname 'hostname';
 use DBI;
 use Carp;
 use Bio::DB::BioDB;
+use Bio::DB::SimpleDBContext;
 
 #Package variable for unique database name
 my $counter=0;
@@ -55,10 +56,9 @@ my $dflt = {
     'module'        => 'Bio::DB::BioSQL::DBAdaptor'
     };
 
-{
     # This is a list of possible entries in the config
     # file "DBHarness.conf"
-    my %known_field = map {$_, 1} qw(
+my %known_field = map {$_, 1} qw(
         driver
         host
         user
@@ -68,31 +68,34 @@ my $dflt = {
 	dbname
         database
         module
-        );
+	);
     
-    sub new {
-        my( $pkg,$db ) = @_;
-
-        $counter++;
-        my $self;
-	
-        # Get config from file, or use default values
-	if( ! $db || $db eq 'basicseqdb' ) {
-	    $self = do 'DBHarness.conf' || $dflt;
-	} elsif ( $db eq 'markerdb' ) {
-	    $self = do 'DBHarness.markerdb.conf' || $dflt;
-	    $self->{"schema_sql"} = ['./sql/markerdb-mysql.sql']
-		unless $self->{"schema_sql"};
-	}
-        foreach my $f (keys %$self) {
-            confess "Unknown config field: '$f'" unless $known_field{$f};
-        }
-        bless $self, $pkg;
-        $self->create_db() unless exists($self->{"dbname"});
-	
-        return $self;
+sub new {
+    my( $pkg,$db ) = @_;
+    
+    $counter++;
+    my $self;
+    
+    confess "Must provide db, no default any more" unless $db;
+    # Get config from file, or use default values
+    if( $db eq 'biosql' ) {
+	$self = do 'DBHarness.biosql.conf';
+    } elsif ( $db eq 'markerdb' ) {
+	$self = do 'DBHarness.markerdb.conf';
+	$self->{"schema_sql"} = ['./sql/markerdb-mysql.sql']
+	    unless $self->{"schema_sql"};
+    } else {
+	confess "Don't know about db $db : are you sure you meant to say $db?";
     }
+    foreach my $f (keys %$self) {
+	confess "Unknown config field: '$f'" unless $known_field{$f};
+    }
+    bless $self, $pkg;
+    $self->create_db() unless exists($self->{"dbname"});
+    
+    return $self;
 }
+
 
 sub driver {
     my( $self, $value ) = @_;
@@ -244,18 +247,26 @@ sub db_handle {
 }
 
 sub get_DBAdaptor {
-    my( $self ) = @_;
+    my( $self, $dbc ) = @_;
     
-    return Bio::DB::BioDB->new(
-			 -"database" => $self->database,
-                         -"driver" => $self->driver,
-			 -"dbname" => $self->dbname,
-			 -"host"   => $self->host,
-			 -"user"   => $self->user,
-			 -"pass"   => $self->password,
-			 -"port"   => $self->port
-			 );
+    if(! $dbc) {
+	return $self->get_DBContext()->dbadaptor();
+    }
+    return Bio::DB::BioDB->new(-"database" => $self->database,
+			       -"dbcontext" => $dbc);
+}
 
+sub get_DBContext {
+    my ($self) = @_;
+    my $dbc = Bio::DB::SimpleDBContext->new(-"driver" => $self->driver,
+					    -"dbname" => $self->dbname,
+					    -"host"   => $self->host,
+					    -"user"   => $self->user,
+					    -"pass"   => $self->password,
+					    -"port"   => $self->port);
+    my $dbadp = $self->get_DBAdaptor($dbc);
+    $dbc->dbadaptor($dbadp);
+    return $dbc;
 }
 
 sub do_sql_file {

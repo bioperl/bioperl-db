@@ -29,6 +29,7 @@ Bio::DB::DBContextI - Interface for a class implementing a database context
     $dbcontext = Bio::DB::BioDB->new(
 			-database => 'biosql'
                         -user     => 'root',
+                        -pass     => 'mypasswd',
                         -dbname   => 'pog',
                         -host     => 'caldy',
 			-port     => 3306,    # optional
@@ -36,7 +37,8 @@ Bio::DB::DBContextI - Interface for a class implementing a database context
 	    );
 
     # obtain other adaptors as needed
-    $seq_adaptor = $dbc->get_adaptor('Bio::PrimarySeqI');
+    $dbadp = $dbc->dbadaptor();
+    $seq_adaptor = $dbadp->get_adaptor('Bio::PrimarySeqI');
 
 =head1 DESCRIPTION
 
@@ -48,7 +50,8 @@ This object represents the context of a database that is implemented somehow.
 
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object methods. Internal 
+methods are usually preceded with a _
 
 =cut
 
@@ -117,6 +120,23 @@ sub username {
     $self->throw_not_implemented();
 }
 
+=head2 password
+
+ Title   : password
+ Usage   : $obj->password($newval)
+ Function: 
+ Example : 
+ Returns : value of password (a scalar)
+ Args    : new value (a scalar, optional)
+
+
+=cut
+
+sub password{
+    my ($self,$value) = @_;
+    $self->throw_not_implemented();
+}
+
 =head2 host
 
  Title   : host
@@ -134,39 +154,56 @@ sub host {
     $self->throw_not_implemented();
 }
 
-=head2 get_adaptor
+=head2 port
 
- Title   : get_adaptor
- Usage   : $seq_adaptor = $dbc->get_adaptor('Bio::PrimarySeqI');
- Function:
- Example :
- Returns : An instance of an adaptor class suitable for the given class
-           and the database represented by this context.
- Args    : The name of the class or interface for which to obtain an
-           adaptor class for.
+ Title   : port
+ Usage   : $obj->port($newval)
+ Function: 
+ Example : 
+ Returns : value of port (a scalar)
+ Args    : new value (a scalar, optional)
 
 
 =cut
 
-sub get_adaptor{
+sub port{
+    my ($self,$value) = @_;
+    $self->throw_not_implemented();
+}
+
+=head2 dbadaptor
+
+ Title   : dbadaptor
+ Usage   : $dbadp = $dbc->dbadaptor();
+ Function:
+ Example :
+ Returns : An Bio::DB::DBAdaptorI implementing object (an object adaptor
+           factory).
+ Args    : Optionally, on set an Bio::DB::DBAdaptorI implementing object (to
+           be used as the object adaptor factory for the respective database)
+
+
+=cut
+
+sub dbadaptor{
     my ($self) = @_;
     $self->throw_not_implemented();
 }
 
-=head2 dbh
+=head2 dbi
 
- Title   : dbh
- Usage   : $dbh = $obj->dbh()
- Function: 
- Example : 
- Returns : The current database connection handle (see DBI)
- Args    : New connection handle on set (optional)
+ Title   : dbi
+ Usage   :
+ Function:
+ Example :
+ Returns : A Bio::DB::DBI implementing object
+ Args    : Optionally, on set a Bio::DB::DBI implementing object
 
 
 =cut
 
-sub dbh {
-    my ($self) = @_;
+sub dbi{
+    my ($self,@args) = @_;
     $self->throw_not_implemented();
 }
 

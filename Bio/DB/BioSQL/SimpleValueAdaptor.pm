@@ -1,15 +1,9 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::ReferenceAdaptor
+# BioPerl module for Bio::DB::BioSQL::SimpleValueAdaptor
 #
-# Cared for by Elia Stupka <elia@ebi.ac.uk>
+# Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
-# Copyright Elia Stupka
-#
-# You may distribute this module under the same terms as perl itself
-
-# 
-# Version 1.13 and up are also
 # (c) Hilmar Lapp, hlapp at gmx.net, 2002.
 # (c) GNF, Genomics Institute of the Novartis Research Foundation, 2002.
 #
@@ -27,7 +21,7 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::ReferenceAdaptor - DESCRIPTION of Object
+Bio::DB::BioSQL::SimpleValueAdaptor - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -35,14 +29,14 @@ Give standard usage here
 
 =head1 DESCRIPTION
 
-Adaptor for Reference objects inside bioperl db 
+SimpleValue DB adaptor 
 
 =head1 FEEDBACK
 
 =head2 Mailing Lists
 
 User feedback is an integral part of the evolution of this
-and other Bioperl modules. Send your references and suggestions preferably
+and other Bioperl modules. Send your comments and suggestions preferably
  to one of the Bioperl mailing lists.
 Your participation is much appreciated.
 
@@ -57,10 +51,11 @@ Report bugs to the Bioperl bug tracking system to help us keep track
   bioperl-bugs@bio.perl.org
   http://bio.perl.org/bioperl-bugs/
 
-=head1 AUTHOR - Elia Stupka, Hilmar Lapp
+=head1 AUTHOR - Hilmar Lapp
 
-Email elia@ebi.ac.uk
 Email hlapp at gmx.net
+
+Describe contact details here
 
 =head1 APPENDIX
 
@@ -71,18 +66,23 @@ The rest of the documentation details each of the object methods. Internal metho
 
 # Let the code begin...
 
-package Bio::DB::BioSQL::ReferenceAdaptor;
+
+package Bio::DB::BioSQL::SimpleValueAdaptor;
 use vars qw(@ISA);
 use strict;
 
-use Bio::Annotation::Reference;
+# Object preamble 
+
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
+use Bio::DB::BioSQL::TermAdaptor;
 use Bio::DB::PersistentObjectI;
+use Bio::Ontology::Term;
+use Bio::Annotation::SimpleValue;
 
-@ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
+@ISA = qw(Bio::DB::BioSQL::TermAdaptor);
 
 
-# we'd have to override new() here to enable caching - but we don't want that
+# new() is inherited and has caching turned on already (supposedly for terms)
 
 =head2 get_persistent_slots
 
@@ -93,8 +93,6 @@ use Bio::DB::PersistentObjectI;
 
            Slots should be methods callable without an argument.
 
-           This is a strictly abstract method. A derived class MUST override
-           it to return something meaningful.
  Example :
  Returns : an array of method names constituting the serializable slots
  Args    : the object about to be inserted or updated
@@ -105,7 +103,7 @@ use Bio::DB::PersistentObjectI;
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("authors","title","location","medline","start","end");
+    return ("tagname", "value");
 }
 
 =head2 get_persistent_slot_values
@@ -136,12 +134,8 @@ sub get_persistent_slots{
 
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
-    my @vals = ($obj->authors(),
-		$obj->title(),
-		$obj->location(),
-		$obj->medline(),
-		$obj->start(),
-		$obj->end()
+    my @vals = ($obj->tagname(),
+		$obj->value()
 		);
     return \@vals;
 }
@@ -153,45 +147,68 @@ sub get_persistent_slot_values {
  Function: Gets the objects referenced by this object, and which therefore need
            to be referenced as foreign keys in the datastore.
 
-           Bio::Annotation::DBLink has no FKs, therefore this version just
-           returns an empty array.
+           Note that the objects are expected to implement
+           Bio::DB::PersistentObjectI.
+
+           An implementation may obtain the values either through the object
+           to be serialized, or through the additional arguments. An
+           implementation should also make sure that the order of foreign key
+           objects returned is always the same.
+
+           Note also that in order to indicate a NULL value for a nullable
+           foreign key, either put an object returning undef from 
+           primary_key(), or put the name of the class instead. DO NOT SIMPLY
+           LEAVE IT OUT.
+
  Example :
  Returns : an array of Bio::DB::PersistentObjectI implementing objects
- Args    : The object about to be inserted or updated.
+ Args    : The object about to be inserted or updated, or undef if the call
+           is for a SELECT query. In the latter case return class or interface
+           names that are mapped to the foreign key tables.
            Optionally, additional named parameters. A common parameter will
            be -fkobjs, with a reference to an array of foreign key objects
            that are not retrievable from the persistent object itself.
 
-
 =cut
 
 sub get_foreign_key_objects{
-    return ();
+    my ($self,$obj,$fkobjs) = @_;
+    my $term;
+
+    if(ref($obj)) {
+	$term = $self->_category_fk();
+	$term->foreign_key_slot("Bio::Ontology::TermI::category");
+    } else {
+	$term = "Bio::Ontology::TermI::category";
+    }
+    return ($term);
 }
 
-=head2 store_children
+=head2 attach_foreign_key_objects
 
- Title   : store_children
+ Title   : attach_foreign_key_objects
  Usage   :
- Function: Inserts or updates the child entities of the given object in the 
-           datastore.
+ Function: Attaches foreign key objects to the given object as far as
+           necessary.
 
-           Bio::Annotation::DBLink has no children,
-           so this version just returns TRUE.
+           This method is called after find_by_XXX() queries, not for INSERTs
+           or UPDATEs.
+
  Example :
- Returns : TRUE on success, and FALSE otherwise
- Args    : The Bio::DB::PersistentObjectI implementing object for which the
-           child objects shall be made persistent.
-           Optionally, additional named parameters. A common parameter will
-           be -assoc_objs, with a reference to an array of objects to which
-           this object should be associated in the database if those objects
-           are not retrievable from the persistent object itself.
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The object to which to attach foreign key objects.
+           A reference to an array of foreign key values, in the order of
+           foreign keys returned by get_foreign_key_objects().
 
 
 =cut
 
-sub store_children{
-    return 1;
+sub attach_foreign_key_objects{
+    my ($self,$obj,$fks) = @_;
+    my $ok = 1;
+
+    # we don't need to attach a category here, since it's a constant ...
+    return $ok;
 }
 
 =head2 instantiate_from_row
@@ -222,7 +239,7 @@ sub instantiate_from_row{
 	if($fact) {
 	    $obj = $fact->create_object();
 	} else {
-	    $obj = Bio::Annotation::Reference->new();
+	    $obj = Bio::Annotation::SimpleValue->new();
 	}
 	$self->populate_from_row($obj, $row);
     }
@@ -236,10 +253,6 @@ sub instantiate_from_row{
  Function: Instantiates the class this object is an adaptor for, and populates
            it with values from columns of the row.
 
-           Usually a derived class will instantiate the proper class and pass
-           it on to populate_from_row().
-
-           This method MUST be overridden by a derived object.
  Example :
  Returns : An object, or undef, if the row contains no values
  Args    : The object to be populated.
@@ -251,20 +264,16 @@ sub instantiate_from_row{
 =cut
 
 sub populate_from_row{
-    my ($self,$obj,$row) = @_;
+    my ($self,$obj,$rows) = @_;
 
     if(! ref($obj)) {
 	$self->throw("\"$obj\" is not an object. Probably internal error.");
     }
-    if($row && @$row) {
-	$obj->authors($row->[1]) if $row->[1];
-	$obj->title($row->[2]) if $row->[2];
-	$obj->location($row->[3]) if $row->[3];
-	$obj->medline($row->[4]) if $row->[4];
-	$obj->start($row->[5]) if $row->[5];
-	$obj->end($row->[6]) if $row->[6];
+    if($rows && @$rows) {
+	$obj->tagname($rows->[1]) if $rows->[1];
+	$obj->value($rows->[2]) if $rows->[2];
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
-	    $obj->primary_key($row->[0]);
+	    $obj->primary_key($rows->[0]);
 	}
 	return $obj;
     }
@@ -295,22 +304,73 @@ sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
     my $uk_h = {};
 
-    # UK is the combination of accession and database
-    if($obj->medline()) {
-	$uk_h->{'medline'} = $obj->medline();
-    } elsif($obj->authors()) {
-	$uk_h->{'authors'} = $obj->authors();
-	$uk_h->{'title'} = $obj->title();
-	$uk_h->{'location'} = $obj->location();
+    # UK for the tag of tag/value is the tag
+    if($obj->tagname()) {
+	$uk_h->{'tagname'} = $obj->tagname();
+	my $cat = $self->_category_fk();
+	if($cat) {
+	    $uk_h->{'category'} = $cat->primary_key();
+	}
     }
     
     return $uk_h;
 }
 
+=head2 _category_fk
 
-=head1 Overridden Inherited Methods
+ Title   : _category_fk
+ Usage   : $obj->_category_fk($newval)
+ Function: Get/set the category foreign key constant.
+
+           This is a private method.
+ Example : 
+ Returns : value of _category_fk (a Bio::Ontology::TermI compliant object)
+ Args    : new value (a Bio::Ontology::TermI compliant object, optional)
+
 
 =cut
+
+sub _category_fk{
+    my ($self,$term) = @_;
+
+    if( defined $term) {
+	$self->{'_category_fk'} = $term;
+    } else {
+	if(! exists($self->{'_category_fk'})) {
+	    $term = Bio::Ontology::Term->new(-name => "Annotation Tags");
+	} else {
+	    $term = $self->{'_category_fk'};
+	}
+	if(! $term->isa("Bio::DB::PersistentObjectI")) {
+	    $term = $self->db()->create_persistent($term);
+	    $self->{'_category_fk'} = $term;
+	}
+    }
+    return $term;
+}
+
+=head1 Methods overriden from BasePersistenceAdaptor
+
+=cut
+
+=head2 remove
+
+ Title   : remove
+ Usage   : $objectstoreadp->remove($persistent_obj, @params)
+ Function: Removes the persistent object from the datastore.
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : The object to be removed, and optionally additional (named) 
+           parameters.
+
+
+=cut
+
+sub remove{
+    my ($self,$obj,@args) = @_;
+
+    $self->throw("remove() not yet implemented in SimpleValueAdaptor()");
+}
 
 =head2 add_association
 
@@ -318,9 +378,8 @@ sub get_unique_key_query{
  Usage   :
  Function: Stores the association between given objects in the datastore.
 
-           We override this here to add start() and end() to the values
-           hash. Everything else is left untouched and passed on to the
-           inherited implementation.
+           We override this here to make sure the value slot gets stored in
+           associations.
  Example :
  Returns : TRUE on success and FALSE otherwise
  Args    : Named parameters. At least the following must be recognized:
@@ -355,17 +414,51 @@ sub add_association{
     # have we been called in error? If so, be graceful and return an error.
     return undef unless $objs && @$objs;
     # figure out which one of the objects is the reference
-    my ($refobj) = grep { ref($_) &&
-			      $_->isa("Bio::Annotation::Reference"); } @$objs;
-    if($refobj) {
-	$values->{'start'} = $refobj->start();
-	$values->{'end'} = $refobj->end();
+    my ($obj) = grep { ref($_) &&
+			   $_->isa("Bio::Annotation::SimpleValue"); } @$objs;
+    if($obj) {
+	$values->{'value'} = $obj->value();
+	if(! $obj->primary_key()) {
+	    # this may happen as SimpleValue objects are sometimes created
+	    # on the fly from more light-weight tag/value pairs
+	    my $svobj = $self->find_by_unique_key($obj);
+	    $obj->primary_key($svobj->primary_key()) if $svobj;
+	}
     } else {
-	$self->warn("unable to figure out the Bio::Annotation::Reference ".
+	$self->warn("unable to figure out the Bio::Annotation::SimpleValue ".
 		    "object to associate with something, expect problems");
     }
     # pass on to the inherited impl.
     return $self->SUPER::add_association(@args);
+}
+
+=head2 find_by_primary_key
+
+ Title   : find_by_primary_key
+ Usage   : $objectstoreadp->find_by_primary_key($pk)
+ Function: Locates the entry associated with the given primary key and
+           initializes a persistent object with that entry.
+
+           SimpleValues are not identifiable by primary key. It is suspicious
+           if someone calls this method, so we throw an exception until we
+           know better.
+ Example :
+ Returns : An instance of the class this adaptor adapts, represented by an
+           object implementing Bio::DB::PersistentObjectI, or undef if no
+           matching entry was found.
+ Args    : The primary key.
+           Optionally, the Bio::Factory::ObjectFactoryI compliant object
+           factory to be used for instantiating the proper class. If the object
+           does not implement Bio::Factory::ObjectFactoryI, it is assumed to
+           be the object to be populated with the query results.
+
+
+=cut
+
+sub find_by_primary_key{
+    my ($self,$dbid,$fact) = @_;
+
+    $self->throw("SimpleValue annotations don't have a primary key.");
 }
 
 

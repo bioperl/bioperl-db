@@ -61,7 +61,7 @@ Describe contact details here
 
 =head1 CONTRIBUTORS
 
-Additional contributors names and emails here
+Juguang Xiao, juguang at tll.org.sg
 
 =head1 APPENDIX
 
@@ -108,7 +108,7 @@ sub new {
 
     $self->{'_dbh_pools'} = {};
     $self->{'_conn_params'} = {};
-
+    $dbc && $self->dbcontext($dbc);
     $self->sequence_name($seqname) if defined($seqname);
 
     return $self;
@@ -194,7 +194,11 @@ sub build_dsn{
 
 sub get_connection{
     my ($self,$dbc,$params) = @_;
-
+    
+    # The below line is added by Juguang. 
+    # Well, I cannot see why the dbc needs to be re-assigned here again.
+    $dbc ||= $self->dbcontext;
+    
     my @keyvalues = $params ? %$params : ("default");
     # note that in the end the key doesn't carry meaning any more; the goal is
     # rather to ensure that two invocations with the same dbcontext object and
@@ -409,6 +413,12 @@ sub DESTROY {
 
     $self->disconnect();
     $self->SUPER::DESTROY;
+}
+
+sub dbcontext {
+    my $self =shift;
+    $self->{_dbcontext}=shift if @_;
+    return $self->{_dbcontext};
 }
 
 1;

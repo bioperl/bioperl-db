@@ -284,7 +284,8 @@ sub store_children{
 	}
 	# each member needs to have a primary key
 	if(! $mem->primary_key()) {
-	    if(my $found = $mem->adaptor->find_by_unique_key($mem)) {
+	    if(my $found = $mem->adaptor->find_by_unique_key($mem, 
+                                                             -flat_only =>1)) {
 		$mem->primary_key($found->primary_key());
 	    } else {
 		$ok = $mem->create() && $ok;

@@ -5,7 +5,7 @@
 #
 # This scriptlet will remove all annotation and features associated
 # with the old entry using direct SQL queries. It is therefore specific
-# to the schema; in fact it is presently specific to the Oracl version
+# to the schema; in fact it is presently specific to the Oracle version
 # of the biosql schema. However, it is easily adapted to the mysql/Pg
 # versions by adapting the primary key/foreign key names.
 #
@@ -22,25 +22,39 @@ sub {
     # its adaptor for caching statements and getting the database handle
     my $adp = $old->adaptor();
 
+    # remove cluster members if this is a cluster - this is not dependent 
+    # on the members having actually been loaded, so is compatible with
+    # --flatlookup mode
+    if($old->isa("Bio::ClusterI")) {
+        $adp->remove_members($old);
+    }
+
     # the tables where we delete by simple foreign key matching
     my @del_by_fk_tables = ("bioentry_qualifier_value",
                             "anncomment",
                             "bioentry_reference",
-                            "bioentry_dbxref",
-                            "seqfeature",
-                            "bioentry_relationship");
+                            "bioentry_dbxref");
+    # add seqfeature only if the entry is a feature holder
+    push(@del_by_fk_tables, "seqfeature") if $new->isa("Bio::FeatureHolderI");
 
     # delete for each table by foreign key
     foreach my $tbl (@del_by_fk_tables) {
         # build the sql statement
         my $sql = "DELETE FROM $tbl WHERE ent_oid = ?";
-        # if it's the relationship table we need to add a term constraint
-        if ($tbl eq "bioentry_relationship") {
-            $sql .= " AND trm_oid = "
-                . "(SELECT t.Oid FROM Term t, Ontology o "
-                . "WHERE t.Ont_Oid = o.Oid "
-                . "AND t.name = 'cluster member' "
-                . "AND o.name = 'Relationship Type Ontology')";
+        if ($tbl eq "bioentry_qualifier_value") {
+            # if the new entry comes with type already attached, then we
+            # need to delete the old one but otherwise add a constraint that
+            # preserves the old type (as its really unlikely to change)
+            my ($bioentrytype) = 
+                $new->isa("Bio::AnnotatableI")
+                ? $new->annotation->get_Annotations("Bioentry Type Ontology")
+                : (undef);
+            if (!$bioentrytype) {
+                $sql .= " AND trm_oid NOT IN "
+                    . "(SELECT t.Oid FROM Term t, Ontology o "
+                    . "WHERE t.Ont_Oid = o.Oid "
+                    . "AND o.name = 'Bioentry Type Ontology')";
+            }
         }
         # we use DBI's facility for statement caching here
         my $sth = $adp->dbh->prepare_cached($sql);

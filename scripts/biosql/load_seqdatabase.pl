@@ -218,6 +218,12 @@ possibly do.
 
 This option will be ignored if no value is supplied.
 
+=item --logchunk
+
+If supplied with an integer argument n greater than zero, progress
+will be logged to stderr every n entries of the input file(s). Default
+is no progress logging.
+
 =item more args
 
 The remaining arguments will be treated as files to parse and load. If
@@ -257,6 +263,7 @@ my $dbpass;
 my $format = 'genbank';
 my $fmtargs = '';
 my $namespace = "bioperl";
+my $logchunk = 0;        # every how many entries to log progress (0 = don't)
 my $seqfilter;           # see conditions in Bio::Seq::SeqBuilder
 my $mergefunc;           # if and how to merge old (found) and new objects
 my $pipeline;            # see Bio::Factory::SequenceProcessorI
@@ -300,6 +307,7 @@ my $ok = GetOptions( 'host=s'         => \$host,
                      'namespace=s'    => \$namespace,
                      'pipeline:s'     => \$pipeline,
                      'mergeobjs:s'    => \$mergefunc,
+                     'logchunk=i'     => \$logchunk,
                      'safe'           => \$safe_flag,
                      'remove'         => \$remove_flag,
                      'lookup'         => \$lookup_flag,
@@ -400,6 +408,8 @@ $db->verbose($debug) if $debug > 0;
 
 # declarations
 my ($pseq, $adp);
+my $time = time();
+my $n_entries = 0;
 
 #
 # loop over every input file and load its content
@@ -436,11 +446,18 @@ foreach $file ( @files ) {
     # chain to pipeline if pipelining is requested
     if(@pipemods) {
         $pipemods[0]->source_stream($seqin);
-        $seqin = $pipemods[$#pipemods];
+        $seqin = $pipemods[-1];
     }
+
+    # reset entry counter and timer
+    $n_entries = 0;
+    $time = time();
 
     # loop over the stream
     while( my $seq = $seqin->$nextobj ) {
+        # increment entry counter
+        $n_entries++;
+
         # we can't store the structure for structured values yet, so
         # flatten them
         if($seq->isa("Bio::AnnotatableI")) {
@@ -498,8 +515,29 @@ foreach $file ( @files ) {
             }
             &$throw($msg);
         }
+
+        # report progress if enabled
+        if (($logchunk > 0) && (($n_entries % $logchunk) == 0)) {
+            my $elapsed = time() - $time;
+            printf STDERR 
+                "\t... loaded $n_entries entries "
+                . "(in %.2d:%.2d:%.2d, %4.1f entries/s)\n",
+                $elapsed/3600, ($elapsed % 3600)/60, $elapsed % 60,
+                $logchunk / $elapsed;
+            $time = time();
+        }
     }
     $seqin->close();
+}
+
+# final progress report if enabled
+if (($logchunk > 0) && (($n_entries % $logchunk) != 0)) {
+    my $elapsed = time() - $time;
+    printf STDERR 
+                "\t... loaded $n_entries entries "
+                . "(in %.2d:%.2d:%.2d, %4.1f entries/s)\n",
+                $elapsed/3600, ($elapsed % 3600)/60, $elapsed % 60,
+                ($n_entries % $logchunk) / $elapsed;
 }
 
 $adp->rollback() if $adp && $testonly_flag;

@@ -295,33 +295,19 @@ sub new {
     $self->association_entity_map(\%association_entity_map);
     $self->acronym_map(\%acronym_map);
     $self->{'schema_sequence'} = $schema_sequence;
-    
-    return $self;
-}
 
-=head2 insert_object
-
- Title   : insert_object
- Usage   :
- Function: We override this here in order to set LongReadLen on the
-           database handle (in order to affect all statements created
-	   from it).
- Example :
- Returns : The primary key of the newly inserted record.
- Args    : A Bio::DB::BioSQL::BasePersistenceAdaptor derived object
-           See L<Bio::DB::BioSQL::BaseDriver> for more arguments
-
-=cut
-
-sub insert_object{
-    my $self = shift;
-    my $adp = shift;
-    my $dbh = $adp->dbh();
-    # set LongReadLen in the database handle if not set already
-    if($dbh->{'LongReadLen'} < 0x1000) { # we want at least 4k
-	$dbh->{'LongReadLen'} = 0x20000; # if we got less we demand 128k
+    my ($adp) = $self->_rearrange([qw(ADAPTOR)], @args);
+    if($adp) {
+	my $dbh = $adp->dbh();
+	# set LongReadLen in the database handle if not set already
+	if($dbh->{'LongReadLen'} < 0x4000) { # we want at least 16k
+	    $dbh->{'LongReadLen'} = 0x20000; # if we got less we demand 128k
+	}
+    } else {
+	$self->warn("-adaptor not supplied, unable to set LOB buffer");
     }
-    return $self->SUPER::insert_object($adp, @_);
+
+    return $self;
 }
 
 =head2 primary_key_name

@@ -47,7 +47,7 @@ Hard and Fast install instructions.
 
 2) an account on the server
 
-Running 'make test' should now work. To set the options for the test
+Running 'make test' works fine. To set the options for the test
 suite, look into t/DBTestHarness.pm and make a file called
 DBTestHarness.conf
 

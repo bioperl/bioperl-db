@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::mysql::SimpleValueAdaptorDriver
+# BioPerl module for Bio::DB::BioSQL::mysql::AnnotationCollectionAdaptorDriver
 #
 # Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
@@ -26,7 +26,7 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::mysql::SimpleValueAdaptorDriver - DESCRIPTION of Object
+Bio::DB::BioSQL::mysql::AnnotationCollectionAdaptorDriver - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -77,7 +77,7 @@ Internal methods are usually preceded with a _
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::mysql::SimpleValueAdaptorDriver;
+package Bio::DB::BioSQL::mysql::AnnotationCollectionAdaptorDriver;
 use vars qw(@ISA);
 use strict;
 
@@ -94,11 +94,11 @@ use Bio::Root::Root;
 
  Title   : insert_object
  Usage   :
- Function: See parent class. We override this here because SimpleValue in
-           the mysql biosql schema doesn''t really correspond to its own
-           entity. I.e., we defer inserting the object to TermAdaptor, and 
-           do (almost) nothing here (we just grab the primary key from the
-           Term object).
+ Function: See parent class. We override this here because
+           AnnotationCollection in the mysql biosql schema doesn''t
+           really correspond to its own entity. I.e., we do (almost)
+           nothing here.
+
  Example :
  Returns : The primary key of the newly inserted record.
  Args    : A Bio::DB::BioSQL::BasePersistenceAdaptor derived object
@@ -112,26 +112,20 @@ use Bio::Root::Root;
 
 =cut
 
-# sub insert_object{
-#     my ($self,$adp,$obj,$fkobjs) = @_;
+sub insert_object{
+    my ($self,$adp,$obj,$fkobjs) = @_;
 
-#     # loop over $fkobjs to find the Term holding the primary key
-#     my $pk;
-#     if($fkobjs) {
-# 	($pk) = map {
-# 	    $_->isa("Bio::Ontology::TermI") ? $_->primary_key() : ();
-# 	} @$fkobjs;
-#     }
-#     # done, return
-#     return $pk;
-# }
+    # return a virtual PK
+    return -1;
+}
 
 =head2 update_object
 
  Title   : update_object
  Usage   :
  Function: See parent class. We override this here to not do anything in
-           particular, as we don''t update the associations.
+           particular, as AnnotationCollection is only a virtual entity.
+
  Example :
  Returns : The number of updated rows
  Args    : A Bio::DB::BioSQL::BasePersistenceAdaptor derived object
@@ -145,11 +139,11 @@ use Bio::Root::Root;
 
 =cut
 
-# sub update_object{
-#     my ($self,$adp,$obj,$fkobjs) = @_;
+sub update_object{
+    my ($self,$adp,$obj,$fkobjs) = @_;
     
-#     return 1;
-# }
+    return 1;
+}
 
 
 1;

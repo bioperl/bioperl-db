@@ -186,6 +186,7 @@ my %association_entity_map = (
 			       );
 my %slot_attribute_map = (
 	 "biodatabase" => {
+	     "name"           => "name",
 	     "namespace"      => "name",
 	     "authority"      => "authority",
 	 },

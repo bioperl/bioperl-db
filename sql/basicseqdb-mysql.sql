@@ -49,7 +49,7 @@ CREATE TABLE bioentry (
   accession    varchar(40) NOT NULL,
   entry_version int(10) NOT NULL, 
   division     varchar(3) NOT NULL,
-  UNIQUE (accession,entry_version),
+  UNIQUE (biodatabase_id,accession,entry_version),
   KEY (biodatabase_id),
   PRIMARY KEY(bioentry_id)
 );

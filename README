@@ -1,19 +1,18 @@
 # $Id$
 
-
 This package contains 2 logical projects under the common hood of
 interfaces and adaptors for relational databases for serializing and
 de-serializing bioperl objects.
 
 ===================================================================
-Information about Bio::DB::BioSQL interface, a sequence database.
+Information about BioSQL and bioperl-db
 ===================================================================
 
 This project was started by Ewan Birney with major work by Elia Stupka
-with continued support by the bioperl community.  It's purpose is a
-standalone sequence database with little external dependancies and
-tight integration with bioperl.  Support for more databases and
-bindings in java and python by Biojava and Biopython projects is
+with continued support by the bioperl community.  It's purpose is to
+create a standalone sequence database with little external dependancies and
+tight integration with Bioperl.  Support for more databases and
+bindings in Java and python by Biojava and Biopython projects is
 welcomed, and a working prototype was one of the accomplishments of
 the February 2002 hackathon in South Africa. All questions and
 comments should be directed to the bioperl list
@@ -23,14 +22,25 @@ http://www.open-bio.org.
 
 I. Related scripts located in the scripts directory:
 
-load_seqdatabase.pl     - an example and a very flexible script to load seqs
-			  into the database
-bioentry2flat.pl        - dump sequence data into rich sequence
-		          format flatfile representation
-caching_corba_server.pl - setup a corba sequence caching server
-test_bioenv.pl          - test the bioenv of a running server
-bioenv_server.pl        - setup a CORBA sequence server
+biosql/load_seqdatabase.pl      - a very flexible script to load
+			          sequences into the database
+biosql/bioentry2flat.pl         - dump sequence data into rich sequence
+		                  format flatfile from the database
+biosql/load_ontology.pl         - load GO or SOFA ontology data into
+                                  the database
+biosql/merge-unique-ann.pl      - script used by load_seqdatabase.pl,
+                                  it merges features and annotations
+biosql/update-on-new-date.pl    - script used by load_seqdatabase.pl,
+                                  it will update based on date
+biosql/update-on-new-version.pl - script used by load_seqdatabase.pl,
+			          it will update based on version
+corba/caching_corba_server.pl   - setup a corba sequence caching server
+corba/test_bioenv.pl            - test the bioenv of a running server
+corba/bioenv_server.pl          - setup a CORBA sequence server
 
+There is also a script called scripts/load_taxonomy.pl in the BioSQL
+package itself that loads taxonomic data from NCBI, you may find it
+useful.
 
 II. Some background information and how it all works:
 
@@ -41,7 +51,7 @@ following things are unsupported or do not work yet:
 
 	- sub-seqfeatures
 	- round-tripping fuzzy locations (they will be stored according
-	to their Bio::Location::CoordinatePolicyI interpretation)
+	  to their Bio::Location::CoordinatePolicyI interpretation)
 	- Bio::Annotation::DBLink::optional_id
 
 To understand the layout of the API and how you can interact with the
@@ -70,14 +80,13 @@ implement all interfaces and all methods that the non-persistent base
 object implements. E.g., a persistent sequence object will implement
 Bio::DB::PersistentObjectI and Bio::PrimarySeqI (or Bio::SeqI).
 
-4) A persistence adaptor will implement
-Bio::DB::PersistenceAdaptorI. Apart from actually implementing all the
-persistence methods for persistent objects, a persistence adaptor
-allows you to locate objects in the database by key and by query. You
-can find_by_primary_key(), find_by_unique_key(),
-find_by_association(), and find_by_query(). The latter allows you to
-formulate object queries as Bio::DB::Query::BioQuery objects and
-retrieve the matching objects.
+4) A persistence adaptor will implement Bio::DB::PersistenceAdaptorI. 
+Apart from actually implementing all the persistence methods for 
+persistent objects, a persistence adaptor allows you to locate 
+objects in the database by key and by query. You can
+find_by_primary_key(), find_by_unique_key(), find_by_association(), 
+and find_by_query(). The latter allows you to formulate object queries 
+as Bio::DB::Query::BioQuery objects and retrieve the matching objects.
 
 5) The guiding principle for the redesign of the adaptors was to
 separate business logic from schema logic. While business logic is
@@ -132,8 +141,8 @@ integrate different map locations with sequence data.
 Scripts for loading private genetic and marker maps are also to be
 provided.
 
-Related scripts located in the scripts directory:
-
+The following scripts have been removed from the bioperl-db package
+(please contact Jason Stajich for more information):
 
 download_marker_data.pl - automate downloading of marker information
 			  for local testing and faster installation

@@ -164,48 +164,55 @@ sub write {
 	    next if( !defined $marker->{$field} );
 	    if( !defined $markercopy->{$field} ||
 		($markercopy->{$field} ne $marker->{$field}) ) {
-		push (@updatefields,"$field=?");
+		push (@updatefields,"SET $field=?");
 		push (@updatevalues, $marker->{$field});
 	    }
 	}
     
 	if( $markercopy->pcrfwd ne $marker->pcrfwd ){
-	    push (@updatefields,"fwdprimer=?");
+	    push (@updatefields,"SET fwdprimer=?");
 	    push (@updatevalues, $marker->pcrfwd);
 	}
 	if( $markercopy->pcrrev ne $marker->pcrrev ){
-	    push (@updatefields,"revprimer=?");
+	    push (@updatefields,"SET revprimer=?");
 	    push (@updatevalues, $marker->pcrrev);
 	}
 	eval { 
 	    if( @updatefields ) {
-		$sth = $self->prepare(sprintf($UPDATESQL,
-						  join(',', @updatefields)));
+		my $sql = sprintf($UPDATESQL,
+				  join(', ', @updatefields));
+		print "sql is $sql\n";
+		$sth = $self->prepare($sql);
 		$sth->execute(@updatevalues,$marker->id);
 		$sth->finish();
 	    }
 	    # update aliases, in the current implementation we'll never 
 	    # remove aliases unless a marker is completely removed       
 	    $sth = $self->prepare(q(INSERT INTO marker_alias 
-					( alias, markerid, mapid ) 
+					( alias, markerid, source ) 
 					VALUES ( ?, ?, ?) 
 					));
+	    my $sthupdate = $self->prepare(q(UPDATE marker_alias 
+					     SET source = ? 
+					     WHERE markerid = ? 
+					     AND alias = ?));
 	    foreach my $alias ( $marker->each_alias ) {
+		my $src = $marker->get_source_for_alias($alias);
 		if( ! $markercopy->is_alias($alias) ) {
-		    my $map = $marker->get_map_for_alias($alias);
-		    my $mapid = $maphash{$map};
-		    if( ! $mapid ) {
-			$self->warn("Map $map does not exist for marker alias $alias");
-			next;
-		    }
-		    $sth->execute($alias,$marker->id, $mapid);
+		    $sth->execute($alias,$marker->id, $src);
+		} elsif( $markercopy->get_source_for_alias($alias) ne 
+			 $src ) {
+		    $sthupdate->execute($src, $marker->id, $alias);
 		}
 	    }
 	    $sth->finish();
-	    # update positions       
-	    my $updatesth = $self->prepare(q(INSERT INTO map_position 
-						 (position, markerid, mapid) 
-						  VALUES ( ?, ?, ?) ));
+	    $sthupdate->finish();
+	    # update positions    
+	    my $updatesth = $self->prepare(q(UPDATE map_position 
+					     SET position = ?
+					     WHRE markerid = ?
+					     AND mapid = ?));
+
 	    my $insertsth = $self->prepare(q(INSERT INTO map_position 
 						 (position, markerid, mapid) 
 						 VALUES ( ?, ?, ?) ));
@@ -253,16 +260,11 @@ sub write {
 
 	    # let's insert aliases
 	    $sth = $self->prepare(q(INSERT INTO marker_alias 
-					( markerid, alias, mapid) 
+					( markerid, alias, source) 
 					VALUES ( ?, ?, ?)));	   
 	    foreach my $alias ( $marker->each_alias ) {
-		my $mapid = $maphash{$marker->get_map_for_alias($alias)};
-		if( ! $mapid ) {
-		    $self->warn("Map ".$marker->get_map_for_alias($alias).
-				" does not exist for marker alias $alias");
-		    next;
-		}
-		$sth->execute($marker->id, $alias, $mapid);
+		$sth->execute($marker->id, $alias, 
+			      $marker->get_source_for_alias($alias));
 	    }
 	    $sth->finish();
 	    # let's insert map positions
@@ -281,7 +283,7 @@ sub write {
 	};
 	if($@ ) {
 	    $self->warn($@);	
-	    $self->warn("Working on marker " . $marker->to_string());
+	    $self->warn("Working on marker \n" . $marker->to_string());
 	    $marker = undef;
 	}
     }
@@ -345,9 +347,9 @@ sub _get_markers_by_ids {
     my $ALIASSQL =q(SELECT 
 		    m.alias as alias, 
 		    m.markerid as markerid, 
-		    map.name as mapname 
-		    FROM marker_alias m, __markers t, map 
-		    WHERE m.markerid = t.markerid AND m.mapid = map.mapid);
+		    m.source as source 
+		    FROM marker_alias m, __markers t 
+		    WHERE m.markerid = t.markerid );
 
     my $POSITIONSQL = q(SELECT 
 			p.markerid as markerid, 
@@ -383,7 +385,7 @@ sub _get_markers_by_ids {
 	$sth->execute();	
 	while( defined($row = $sth->fetchrow_hashref) ) {
 	    $markers{$row->{'markerid'}}->add_alias($row->{'alias'},
-						    $row->{'mapname'});
+						    $row->{'source'});
 	}
 	$sth->finish();
 

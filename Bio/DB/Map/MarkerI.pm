@@ -71,6 +71,7 @@ sub to_string {
     
     return join("\n", (sprintf("LOCUS: %s", $self->locus || ''),
 			     sprintf("PROBE: %s", $self->probe || ''),
+		             sprintf("CHROM: %s", $self->chrom || ''),
 			     sprintf("FWDP : %s", $self->pcrfwd || ''),
 			     sprintf("REVP : %s", $self->pcrrev || '' ),
 			     sprintf("LEN  : %s", $self->length || '?') )
@@ -93,19 +94,19 @@ sub add_alias {
     $self->abstractDeath();
 }
 
-=head2 get_map_for_alias
+=head2 get_source_for_alias
 
- Title   : get_map_for_alias
- Usage   : my $map = $marker->get_map_for_alias($alias);
- Function: Returns the map for a specific alias if stored
- Returns : map name 
+ Title   : get_source_for_alias
+ Usage   : my $source = $marker->get_source_for_alias($alias);
+ Function: Returns the source for a specific alias if stored
+ Returns : string
  Args    : alias 
 
 =cut
 
-sub get_map_for_alias {
+sub get_source_for_alias {
     my($self,$alias) = @_;
-    $self->abstractDeath();
+    $self->_abstractDeath();
 }
 
 =head2 is_alias

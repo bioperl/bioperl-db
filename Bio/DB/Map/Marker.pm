@@ -116,28 +116,29 @@ sub new {
  Function: adds an alias for a marker
  Returns : nothing
  Args    : alias to add, 
-           map name alias is from (optional)
+           source alias is from (optional)
 
 =cut
 
 sub add_alias {
-    my($self,$alias, $map) = @_;
-    $self->{'_aliases'}->{$alias} = $map || 'none';    
+    my($self,$alias, $src) = @_;
+    if( ! $alias ) { return; }
+    $self->{'_aliases'}->{$alias} = $src;    
 }
 
-=head2 get_map_for_alias
+=head2 get_source_for_alias
 
- Title   : get_map_for_alias
- Usage   : my $map = $marker->get_map_for_alias($alias);
- Function: Returns the map for a specific alias if stored
- Returns : map name 
+ Title   : get_source_for_alias
+ Usage   : my $source = $marker->get_source_for_alias($alias);
+ Function: Returns the source for a specific alias if stored
+ Returns : string
  Args    : alias 
 
 =cut
 
-sub get_map_for_alias {
+sub get_source_for_alias {
     my($self,$alias) = @_;
-    return $self->{'_aliases'}->{$alias};
+    return $self->{'_aliases'}->{$alias} || '';
 }
 
 =head2 is_alias

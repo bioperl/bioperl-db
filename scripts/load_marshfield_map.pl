@@ -17,7 +17,7 @@ BEGIN {
 		$NCBI_STSURL $ONLINE $DEBUG);
     $MARSHFIELDURL = 'http://marshfieldclinic.org/research/genetics/Map_Markers/data';
     $MARKERDATA = '/tmp/markers/marshfield';
-    $STSDATA = '/tmp/sts/human.sts';
+    $STSDATA = '/tmp/markers/human.sts';
     
     $NCBI_STSURL = 'ftp://ftp.ncbi.nlm.nih.gov/repository/dbSTS/human.sts';
     $ONLINE = 0;
@@ -175,7 +175,7 @@ foreach my $chrom ( 1..23 ) {
     close($INFO);
 }
 
-my ($count,$total) = (0,0);
+my ($count,$total,$duplicate) = (0,0,0);
 foreach my $marker ( values %markers ) {
     $total++;
     if( ! $marker->pcrfwd ) { 
@@ -185,9 +185,20 @@ foreach my $marker ( values %markers ) {
 	}
 	$count++;
     }
-    $markeradaptor->write($marker);
+    if( ! $markeradaptor->write($marker) ) {
+	my ( $markercopy ) = $markeradaptor->get('-pcrprimers' => [ $marker->pcrfwd,
+							     $marker->pcrrev ] );
+	$duplicate++;
+	if( $markercopy ) {
+	    $marker->id($markercopy->id);
+	    $markeradaptor->write($marker);
+	} else { 
+	    print "unable to find marker for primers ", $marker->pcrfwd, 
+	    ", ", $marker->pcrrev, "\n";
+	}
+    }
 }
-print "No primers for $count out of $total\n";
+print "No primers for $count, $duplicate duplicates, out of $total\n";
 
 sub get_map_data_for_chrom {
     my ($chrom) = @_;

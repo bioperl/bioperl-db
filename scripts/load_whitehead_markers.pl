@@ -177,7 +177,7 @@ foreach my $chrom ( 1..23 ) {
    close($DATA);
 }
 
-my ($count,$total) = (0,0);
+my ($count,$total,$duplicate) = (0,0,0);
 my %seen;
 foreach my $marker ( values %markers ) {
     next if( $seen{$$marker->probe}++ || $$marker->id ); # already loaded;
@@ -189,9 +189,18 @@ foreach my $marker ( values %markers ) {
 	$count++;
 	next;	    
     } 
-    $markeradaptor->write($$marker);
+    
+    if( ! $markeradaptor->write($$marker) ) {
+	$duplicate++;
+	my ( $markercopy ) = $markeradaptor->get('-pcrprimers' => [ $$marker->pcrfwd,
+							     $$marker->pcrrev ] );
+	if( $markercopy ) {
+	    $$marker->id($markercopy->id);
+	    $markeradaptor->write($$marker);
+	}
+    }
 }
-print "skipped $count out of $total\n";
+print "skipped $count, $duplicate duplicates out of $total\n";
 
 sub get_data_for_chrom {
     my ($chrom) = @_;

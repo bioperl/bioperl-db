@@ -85,6 +85,7 @@ use Bio::DB::Persistent::PersistentObjectFactory;
 use Bio::SeqFeature::Generic;
 use Bio::SeqFeature::AnnotationAdaptor;
 use Bio::Location::Split;
+use Bio::Ontology::Ontology;
 use Bio::Ontology::Term;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);

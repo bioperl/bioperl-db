@@ -238,9 +238,9 @@ sub test_locator {
 
 
 sub db_handle {
-    my( $self ) = @_;
+    my( $self, $no_create ) = @_;
     
-    unless ($self->{'_db_handle'}) {
+    unless ($self->{'_db_handle'} || $no_create) {
         $self->{'_db_handle'} = DBI->connect(
             $self->test_locator, $self->user, $self->password, {RaiseError => 1}
             ) or confess "Can't connect to server";
@@ -312,7 +312,7 @@ sub validate_sql {
 
 sub DESTROY {
     my( $self, $file ) = @_;
-    my $dbh = $self->db_handle();
+    my $dbh = $self->db_handle("no_create");
 
     if($dbh) {
 	$dbh->disconnect;

@@ -161,7 +161,9 @@ sub write {
 	my ( @updatefields, @updatevalues );
 
 	foreach my $field ( qw(locus probe chrom type length) ) {
-	    if( $markercopy->{$field} ne $marker->{$field} ) {
+	    next if( !defined $marker->{$field} );
+	    if( !defined $markercopy->{$field} ||
+		($markercopy->{$field} ne $marker->{$field}) ) {
 		push (@updatefields,"$field=?");
 		push (@updatevalues, $marker->{$field});
 	    }

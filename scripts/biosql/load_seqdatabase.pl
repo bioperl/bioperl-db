@@ -9,8 +9,8 @@ load_seqdatabase.pl
 
 =head1 SYNOPSIS
 
-   load_seqdatabase.pl -host somewhere.edu -dbname biosql \
-                       -namespace bioperl -format swiss \
+   load_seqdatabase.pl --host somewhere.edu --dbname biosql \
+                       --namespace bioperl --format swiss \
                        swiss_sptrembl swiss.dat primate.dat
 
 =head1 DESCRIPTION
@@ -20,7 +20,7 @@ options to do with where the bioperl-db database is (ie, hostname,
 user for database, password, database name) followed by the database
 name you wish to load this into and then any number of files. The
 files are assumed formatted identically with the format given in the
--format flag.
+--format flag.
 
 There are more options than the ones shown above. See below.
 
@@ -340,7 +340,7 @@ my $db = Bio::DB::BioDB->new(-database => "biosql",
 $db->verbose($debug) if $debug > 0;
 
 # declarations
-my ($pseq);
+my ($pseq, $adp);
 
 #
 # loop over every input file and load its content
@@ -379,9 +379,6 @@ foreach $file ( @files ) {
 	$seqin = $pipemods[$#pipemods];
     }
 
-    # adaptor - we'll set this on demand
-    my $adp;
-
     # loop over the stream
     while( my $seq = $seqin->$nextobj ) {
 	# we can't store the structure for structured values yet, so
@@ -392,37 +389,38 @@ foreach $file ( @files ) {
 	# don't forget to add namespace if the parser doesn't supply one
 	$seq->namespace($namespace) unless $seq->namespace();
 	# look up or delete first?
-	my ($lseq);
+	my $lseq;
 	if($lookup_flag || $remove_flag) {
 	    # look up
-	    #$lseq = clone_identifiable($seq, $seqin->object_factory());
-	    my $adp = $db->get_object_adaptor($seq);
+	    $adp = $db->get_object_adaptor($seq);
 	    $lseq = $adp->find_by_unique_key($seq,
 					     -obj_factory =>
 					     $seqin->object_factory());
 	    # found?
 	    if($lseq) {
-		# delete if requested
-		$lseq->remove() if $remove_flag;
-		# skip the rest if we are not supposed to update
-		next if $no_update_flag;
 		# merge old and new if a function for this is provided
 		$seq = &$merge_objs($lseq, $seq, $db) if $merge_objs;
 		# the return value may indicate to skip to the next
 		next unless $seq;
 	    }
 	}
-	# create a persistent object out of the seq
-	$pseq = $db->create_persistent($seq);
-	# store the primary key of we found it by lookup (this is going to
-	# be an udate then)
-	if($lseq && $lseq->primary_key) {
-	    $pseq->primary_key($lseq->primary_key);
-	}
 	# try to serialize
 	eval {
-	    $pseq->store();
-	    $pseq->commit() unless $testonly_flag;
+	    # delete if requested
+	    $lseq->remove() if $remove_flag && $lseq;
+	    # on update, skip the rest if we are not supposed to update
+	    if(! ($lseq && $no_update_flag)) {
+		# create a persistent object out of the seq
+		$pseq = $db->create_persistent($seq);
+		# store the primary key of what we found by lookup (this
+		# is going to be an udate then)
+		if($lseq && $lseq->primary_key) {
+		    $pseq->primary_key($lseq->primary_key);
+		}
+		$pseq->store();
+	    }
+	    $adp = $pseq ? $pseq->adaptor() : $lseq->adaptor();
+	    $adp->commit() unless $testonly_flag;
 	};
 	if ($@) {
 	    my $msg = "Could not store ".$seq->object_id().": $@\n";
@@ -437,7 +435,7 @@ foreach $file ( @files ) {
     $seqin->close();
 }
 
-$pseq->rollback() if $pseq && $testonly_flag;
+$adp->rollback() if $adp && $testonly_flag;
 
 # done!
 
@@ -492,24 +490,6 @@ sub setup_pipeline{
 	push(@pipemods, $proc);
     }
     return @pipemods;
-}
-
-sub clone_identifiable{
-    my ($obj, $fact) = @_;
-
-    my $newobj = $fact->create_object(-object_id => $obj->object_id,
-				      -version   => $obj->version,
-				      -namespace => $obj->namespace,
-				      -authority => $obj->authority);
-    if(! $newobj->isa("Bio::IdentifiableI")) {
-	die "trouble: factory class ".ref($fact)." does not create ".
-	    "Bio::IdentifiableI compliant objects. Bad.\n";
-    }
-    if($newobj->can('primary_id') &&
-       ($obj->primary_id() !~ /=(HASH|ARRAY)\(0x/)) {
-	$newobj->primary_id($obj->primary_id());
-    }
-    return $newobj;
 }
 
 sub flatten_annotations {

@@ -106,7 +106,7 @@ use Bio::PrimarySeq;
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("seq_version", "length", "alphabet", "seq");
+    return ("seq_version", "division", "length", "alphabet", "seq");
 }
 
 =head2 get_persistent_slot_values
@@ -137,10 +137,16 @@ sub get_persistent_slots{
 
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
-    my @vals = ($obj->isa("Bio::Seq::RichSeqI") ? $obj->seq_version() : undef,
-		$obj->length(),
-		$obj->alphabet(),
-		$obj->seq_has_changed() ? $obj->seq() : undef);
+    my @vals;
+    if($obj->isa("Bio::Seq::RichSeqI")) {
+	@vals = ($obj->seq_version(), $obj->division());
+    } else {
+	@vals = (undef, undef);
+    }
+    push(@vals,
+	 $obj->length(),
+	 $obj->alphabet(),
+	 $obj->seq_has_changed() ? $obj->seq() : undef);
     return \@vals;
 }
 
@@ -237,12 +243,13 @@ sub populate_from_row{
 	$self->throw("\"$obj\" is not an object. Probably internal error.");
     }
     if($rows && @$rows) {
-	if($rows->[1] && $obj->isa("Bio::Seq::RichSeqI")) {
-	    $obj->seq_version($rows->[1]);
+	if($obj->isa("Bio::Seq::RichSeqI")) {
+	    $obj->seq_version($rows->[1]) if $rows->[1];
+	    $obj->division($rows->[2]) if $rows->[2];
 	}
-	$obj->length($rows->[2]) if $rows->[2];
-	$obj->alphabet($rows->[3]) if $rows->[3];
-	$obj->seq($rows->[4]) if $rows->[4];
+	$obj->length($rows->[3]) if $rows->[3];
+	$obj->alphabet($rows->[4]) if $rows->[4];
+	$obj->seq($rows->[5]) if $rows->[5];
 	if($obj->isa("Bio::DB::PersistentObjectI") &&
 	   (! $obj->isa("Bio::PrimarySeqI"))) {
 	    $obj->primary_key($rows->[0]);

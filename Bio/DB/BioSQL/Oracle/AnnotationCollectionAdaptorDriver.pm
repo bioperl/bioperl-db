@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::mysql::AnnotationCollectionAdaptorDriver
+# BioPerl module for Bio::DB::BioSQL::Oracle::AnnotationCollectionAdaptorDriver
 #
 # Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
@@ -26,7 +26,7 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::mysql::AnnotationCollectionAdaptorDriver - DESCRIPTION of Object
+Bio::DB::BioSQL::Oracle::AnnotationCollectionAdaptorDriver - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -77,15 +77,15 @@ Internal methods are usually preceded with a _
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::mysql::AnnotationCollectionAdaptorDriver;
+package Bio::DB::BioSQL::Oracle::AnnotationCollectionAdaptorDriver;
 use vars qw(@ISA);
 use strict;
 
 # Object preamble - inherits from Bio::Root::Root
 
-use Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
+use Bio::DB::BioSQL::Oracle::BasePersistenceAdaptorDriver;
 
-@ISA = qw(Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver);
+@ISA = qw(Bio::DB::BioSQL::Oracle::BasePersistenceAdaptorDriver);
 
 # new() is inherited
 
@@ -94,7 +94,7 @@ use Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
  Title   : insert_object
  Usage   :
  Function: See parent class. We override this here because
-           AnnotationCollection in the mysql biosql schema doesn''t
+           AnnotationCollection in the Oracle biosql schema doesn''t
            really correspond to its own entity. I.e., we do (almost)
            nothing here.
 

@@ -130,7 +130,7 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("database", "primary_id");
+    return ("database", "primary_id", "version");
 }
 
 =head2 get_persistent_slot_values
@@ -162,7 +162,8 @@ sub get_persistent_slots{
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
     my @vals = ($obj->database(),
-		$obj->primary_id()
+		$obj->primary_id(),
+		$obj->version() || 0
 		);
     return \@vals;
 }
@@ -212,8 +213,6 @@ sub get_foreign_key_objects{
 =cut
 
 sub store_children{
-    my ($self,$obj,@args) = @_;
-
     return 1;
 }
 
@@ -282,6 +281,7 @@ sub populate_from_row{
     if($row && @$row) {
 	$obj->database($row->[1]) if $row->[1];
 	$obj->primary_id($row->[2]) if $row->[2];
+	$obj->version($row->[3]) if $row->[3];
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($row->[0]);
 	}
@@ -318,6 +318,7 @@ sub get_unique_key_query{
     if($obj->namespace()) {
 	$uk_h->{'primary_id'} = $obj->primary_id();
 	$uk_h->{'database'} = $obj->database() if $obj->database();
+	$uk_h->{'version'} = $obj->version() || 0;
     } 
     
     return $uk_h;

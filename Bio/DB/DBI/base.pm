@@ -109,10 +109,7 @@ sub new {
     $self->{'_dbh_pools'} = {};
     $self->{'_conn_params'} = {};
 
-    if(! $seqname) {
-	$seqname = ($dbc->dbname() ? $dbc->dbname() : "pk") . "_sequence";
-    }
-    $self->sequence_name($seqname);
+    $self->sequence_name($seqname) if defined($seqname);
 
     return $self;
 }
@@ -293,6 +290,7 @@ sub disconnect{
 	    next unless $dbh; # during DESTROY there are indeed undef values --
                               # I have no idea where they come from
 	    eval {
+		$self->_remove_idsths($dbh);
 		$dbh->disconnect();
 	    };
 	    $self->warn("error while closing connection: ".$@) if $@;
@@ -348,6 +346,59 @@ sub conn_params{
 	$params = {} unless $params; # default is empty hash
     }
     return $params;
+}
+
+=head2 _idsth
+
+ Title   : _idsth
+ Usage   : $obj->_idsth($newval)
+ Function: Get/set the last/next id value statement handle from/to
+           the cache.
+
+           Consider this method 'protected' in OO-speak. I.e., call it
+           from derived modules, but not from outside.
+
+ Example : 
+ Returns : a last_id_value or next_id_value prepared statement, or all
+           statements cached under the database handle if the key literal
+           is omitted
+ Args    : the database handle for which to cache the statement,
+           a key literal to distinguish between statements (e.g., 
+           'last' and 'next'),
+           and optionall on set the statement handle to cache
+
+
+=cut
+
+sub _idsth{
+    my ($self,$dbh,$key) = @_;
+
+    $self->{'_idsth_$dbh'} = {} unless exists($self->{'_idsth_$dbh'});
+    return values %{$self->{'_idsth_$dbh'}} unless $key;
+    return $self->{'_idsth_$dbh'}->{$key} = shift if @_;
+    return $self->{'_idsth_$dbh'}->{$key};
+}
+
+=head2 _remove_idsths
+
+ Title   : _remove_idsths
+ Usage   :
+ Function: Un-caches all prepared statement handles cached under the
+           given handle.
+ Example :
+ Returns : the list of previously cached statement handles
+ Args    : the database handle
+
+
+=cut
+
+sub _remove_idsths{
+    my ($self,$dbh) = @_;
+
+    return () unless exists($self->{'_idsth_$dbh'});
+    my @sths = values %{$self->{'_idsth_$dbh'}};
+    delete $self->{'_idsth_$dbh'};
+    return @sths;
 }
 
 sub DESTROY {

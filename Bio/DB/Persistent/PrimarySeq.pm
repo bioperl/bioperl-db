@@ -91,8 +91,8 @@ sub new {
 
     my $self = $class->SUPER::new(@args);
 
-    # initially, the seq is `dirty'
     my $has_seq = $self->obj()->seq() ? 1 : 0;
+    # initially, the seq is `dirty'
     $self->seq_has_changed($has_seq);
     $self->_seq_is_fetched(0);
     # get the seq length if there is a sequence

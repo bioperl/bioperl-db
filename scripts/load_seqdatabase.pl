@@ -16,9 +16,10 @@ This script loads a bioperl-db with sequences. There are a number of
 options to do with where the bioperl-db database is (ie, hostname,
 user for database, password, database name) followed by the database
 name you wish to load this into and then any number of files. The
-files are assumed to be SeqIO formatted files with the format given
-in the -format flag.
+files are assumed formatted identically with the format given in the
+-format flag.
 
+There are more options than the ones shown above. See below.
 
 =head1 ARGUMENTS
 
@@ -44,7 +45,7 @@ in the -format flag.
                          a file if it refers to a readable file, and a
                          string otherwise. Cf. Bio::Seq::SeqBuilder for
                          more information about what the code will be used
-                         for.
+                         for, and what it is passed.
   -remove              : flag to remove sequences before actually adding
                          them
   -safe                : flag to continue despite errors when loading

@@ -16,7 +16,7 @@ use Bio::DB::Query::SqlQuery;
 use Bio::DB::Query::SqlGenerator;
 use Bio::DB::Query::BioQuery;
 use Bio::DB::Query::QueryConstraint;
-use Bio::DB::BioSQL::BaseDriver;
+use Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
 
 my $query = Bio::DB::Query::SqlQuery->new(-tables => ["table1"]);
 my $sqlgen = Bio::DB::Query::SqlGenerator->new(-query => $query);
@@ -52,7 +52,7 @@ $sql = $sqlgen->generate_sql();
 ok ($sql, "SELECT col1, col2, col3 FROM table1, table2 WHERE (col4 = ? OR col5 = 'somevalue') AND (col2 = col4 AND col6 NOT LIKE 'abcd\%') ORDER BY col2, col3");
 
 $query = Bio::DB::Query::BioQuery->new();
-$mapper = Bio::DB::BioSQL::BaseDriver->new();
+$mapper = Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver->new();
 
 $query->selectelts(["accession_number","version"]);
 $query->datacollections(["Bio::PrimarySeqI"]);

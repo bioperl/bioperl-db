@@ -88,15 +88,18 @@ use Bio::Root::RootI;
 
  Title   : next_id_value
  Usage   : $pk = $obj->next_id_value("bioentry");
- Function: Returns the next unique primary key value. Depending on the argument
-           and the driver, the value may not be unique between tables.
+ Function: Returns the next unique primary key value. Depending on the
+           argument and the driver, the value may not be unique
+           between tables.
+
  Example :
  Returns : a value suitable for use as a primary key
  Args    : The database connection handle to use for retrieving the
            next primary key value.
 
-           Optionally, the name of the table. The driver is not
-           required to honor the argument if present.
+           Optionally, the name of the primary key generating
+           sequence. The driver is not required to honor the argument
+           if present.
 
 
 =cut
@@ -111,18 +114,21 @@ sub next_id_value{
 
  Title   : last_id_value
  Usage   :
- Function: Returns the last unique primary key value allocated. Depending on 
-           the argument and the driver, the value may be specific to a table,
-           or independent of the table.
+ Function: Returns the last unique primary key value
+           allocated. Depending on the argument and the driver, the
+           value may be specific to a table, or independent of the
+           table.
+
  Example :
  Returns : a value suitable for use as a primary key
- Args    : The database connection handle to use for retrieving the primary
-           key from the last insert. An individual driver may allow this 
-           argument to be omitted if next_id_value() was called before for
-           obtaining the primary key value.
-           Optionally, the name of the table. The driver is not required to
-           honor the argument if present.
-           
+ Args    : The database connection handle to use for retrieving the
+           primary key from the last insert. An individual driver may
+           allow this argument to be omitted if next_id_value() was
+           called before for obtaining the primary key value.
+
+           Optionally, the name of the primary key generating
+           sequence. The driver is not required to honor the argument
+           if present.
 
 =cut
 
@@ -136,9 +142,9 @@ sub last_id_value{
 
  Title   : get_connection
  Usage   :
- Function: Obtains a connection handle to the database represented by the
-           the DBContextI object, passing additional args to the DBI->connect()
-           method if a new connection is created.
+ Function: Obtains a connection handle to the database represented by
+           the the DBContextI object, passing additional args to the
+           DBI->connect() method if a new connection is created.
 
            Contrary to new_connection(), this method may return shared
            connections from a pool. The implementation should make

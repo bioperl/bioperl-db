@@ -88,161 +88,6 @@ use Bio::DB::DBD;
 
 @ISA = qw(Bio::Root::Root Bio::DB::DBD);
 
-our %object_entity_map;
-our %slot_attribute_map;
-our %dont_select_attrs;
-our %association_entity_map;
-
-%object_entity_map = (
-		   "Bio::BioEntry"            => "bioentry",
-		   "Bio::PrimarySeqI"         => "bioentry",
-		   "Bio::DB::BioSQL::PrimarySeqAdaptor"
-		                              => "bioentry",
-		   "Bio::SeqI"                => "bioentry",
-		   "Bio::DB::BioSQL::SeqAdaptor"
-		                              => "bioentry",
-		   "Bio::DB::BioSQL::BiosequenceAdaptor"
-		                              => "biosequence",
-		   "Bio::SeqFeatureI"         => "seqfeature",
-		   "Bio::DB::BioSQL::SeqFeatureAdaptor"
-		                              => "seqfeature",
-		   "Bio::Species"             => "taxon",
-		   "Bio::DB::BioSQL::SpeciesAdaptor"
-		                              => "taxon",
-		   "Bio::LocationI"           => "seqfeature_location",
-		   "Bio::DB::BioSQL::LocationAdaptor" 
-		                              => "seqfeature_location",
-		   "Bio::IdentifiableI"       => "biodatabase",
-		   "Bio::DB::BioSQL::BioNamespaceAdaptor"
-		                              => "biodatabase",
-		   "Bio::DB::Persistent::BioNamespace"
-			                      => "biodatabase",
-		   "Bio::Annotation::DBLink"  => "dbxref",
-		   "Bio::DB::BioSQL::DBLinkAdaptor"
-		                              => "dbxref",
-		   "Bio::Annotation::Comment" => "comment",
-		   "Bio::DB::BioSQL::CommentAdaptor" 
-                                              => "comment",
-		   "Bio::Annotation::Reference" => "reference",
-		   "Bio::DB::BioSQL::ReferenceAdaptor"
-		                              => "reference",
-		   "Bio::Annotation::SimpleValue" => "ontology_term",
-		   "Bio::DB::BioSQL::SimpleValueAdaptor" =>
-                                              => "ontology_term",
-		   "Bio::Ontology::TermI"     => "ontology_term",
-		   "Bio::DB::BioSQL::TermAdaptor" =>
-                                              => "ontology_term",
-		   );
-%association_entity_map = (
-	 "bioentry" => {
-	     "dbxref"         => "bioentry_dblink",
-	     "reference"      => "bioentry_reference",
-	     "ontology_term"  => "bioentry_qualifier_value",
-	 },
-	 "seqfeature" => {
-	     "ontology_term"  => "seqfeature_qualifier_value",
-	     "dbxref"         => undef,
-	     "reference"      => undef,
-	 },
-	 "dbxref"   => {
-	     "bioentry"       => "bioentry_dblink",
-	     "seqfeature"     => undef,
-	 },
-	 "reference"   => {
-	     "bioentry"       => "bioentry_reference",
-	     "seqfeature"     => undef,
-	 },
-	 "ontology_term" => {
-	     "bioentry"       => "bioentry_qualifier_value",
-	     "seqfeature"     => "seqfeature_qualifier_value",
-	 },
-			       );
-%slot_attribute_map = (
-	 "biodatabase" => {
-	     "namespace"      => "name",
-	     "authority"      => "authority",
-	 },
-	 "taxon" => {
-	     "classification" => "full_lineage",
-	     "common_name"    => "common_name",
-	     "ncbi_taxid"     => "ncbi_taxon_id",
-	     "binomial"       => "binomial",
-	     "variant"        => "variant",
-	 },
-	 "bioentry" => {
-	     "display_id"     => "display_id",
-	     "primary_id"     => "identifier",
-	     "accession_number" => "accession",
-	     "desc"           => "description",
-	     "description"    => "description",
-	     "version"        => "entry_version",
-	     "bionamespace"   => "biodatabase_id",
-	 },
-	 "biosequence" => {
-	     "seq_version"    => "seq_version",
-	     "length"         => "seq_length",
-	     "seq"            => "biosequence_str",
-	     "alphabet"       => "alphabet",
-	     "primary_seq"    => "bioentry_id",
-	 },
-	 "dbxref" => {
-	     "database"       => "dbname",
-	     "primary_id"     => "accession",
-	 },
-	 "bioentry_dblink" => {
-	     "rank"           => undef,
-	 },
-	 "reference" => {
-	     "authors"        => "reference_authors",
-	     "title"          => "reference_title",
-	     "location"       => "reference_location",
-	     "medline"        => "reference_medline",
-	     "start"          => "=>bioentry_reference.start",
-	     "end"            => "=>bioentry_reference.end",
-	 },
-	 "bioentry_reference" => {
-	     "start"          => "reference_start",
-	     "end"            => "reference_end",
-	     "rank"           => "reference_rank",
-	 },
-	 "comment"            => {
-	     "text"           => "comment_text",
-	     "rank"           => "comment_rank",
-	 },
-         "ontology_term"      => {
-	     "identifier"     => "term_identifier",
-             "name"           => "term_name",
-	     "tagname"        => "term_name",
-             "definition"     => "term_definition",
-             "category"       => "category_id",
-	     "value"          => "=>{bioentry_qualifier_value,seqfeature_qualifier_value}.value",
-	 },
-         "bioentry_qualifier_value" => {
-	     "value"          => "qualifier_value",
-	     "rank"           => undef,
-	 },
-	 "seqfeature"         => {
-	     "display_name"   => undef,
-	     "rank"           => "seqfeature_rank",
-	     "primary_tag"    => "ontology_term_id",
-	     "source_tag"     => "seqfeature_source_id",
-	     "entire_seq"     => "bioentry_id",
-	 },
-	 "seqfeature_location" => {
-	     "start"          => "seq_start",
-	     "end"            => "seq_end",
-	     "strand"         => "seq_strand",
-	     "rank"           => "location_rank",
-	 },
-	 "seqfeature_qualifier_value" => {
-	     "value"          => "qualifier_value",
-	     "rank"           => "qualifier_rank",
-	 },
-			   );
-%dont_select_attrs = (
-	 "biosequence.biosequence_str" => 1,
-			);
-
 
 =head2 new
 
@@ -260,12 +105,6 @@ sub new {
 
     my $self = $class->SUPER::new(@args);
 
-    # copy into our private hash
-    $self->objrel_map(\%object_entity_map);
-    $self->slot_attribute_map(\%slot_attribute_map);
-    $self->not_select_attrs(\%dont_select_attrs);
-    $self->association_entity_map(\%association_entity_map);
-    
     return $self;
 }
 
@@ -619,7 +458,8 @@ sub insert_object{
 	# RDBMS encapsulation captures the exists-already condition
 	#
 	# get the primary key that was just inserted
-	$pk = $adp->dbcontext()->dbi()->last_id_value($dbh);
+	$pk = $adp->dbcontext()->dbi()->last_id_value(
+					   $dbh, $self->sequence_name($table));
     }
     # done, return
     return $pk;
@@ -1005,6 +845,34 @@ sub foreign_key_name{
 	}
     }
     return $fk;
+}
+
+=head2 sequence_name
+
+ Title   : sequence_name
+ Usage   :
+ Function: Returns the name of the primary key generator (SQL sequence)
+           for the given table.
+
+           The value returned is passed as the second argument to the
+           L<Bio::DB:DBI>::last_id_value as implemented by the
+           driver. Because the parameter is not required irregardless
+           of driver, it is perfectly legal for this method to return
+           undef. If the L<Bio::DB::DBI> driver does need this
+           parameter, this method should be overridden by the matching
+           adaptor driver.
+
+           The default we assume here is we dont need this value.
+
+ Example :
+ Returns : the name of the sequence (a string)
+ Args    : The name of the table.
+
+
+=cut
+
+sub sequence_name{
+    return undef;
 }
 
 =head2 objrel_map

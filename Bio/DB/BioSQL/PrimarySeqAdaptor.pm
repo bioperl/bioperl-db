@@ -137,7 +137,7 @@ sub get_persistent_slot_values {
 		undef : $obj->primary_id(),
 		$obj->accession_number(),
 		$obj->description(),
-		$obj->version());
+		$obj->version() || 0);
     return \@vals;
 }
 
@@ -431,7 +431,7 @@ sub _bioseq_adaptor{
     }
     if(! exists($self->{'_bioseq_adaptor'})) {
 	$self->{'_bioseq_adaptor'} =
-	    $self->dbcontext()->dbadaptor()->get_object_adaptor("Biosequence");
+	    $self->db()->get_object_adaptor("Biosequence");
     }
     return $self->{'_bioseq_adaptor'};
 }

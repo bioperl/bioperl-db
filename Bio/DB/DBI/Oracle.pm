@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::DBI::mysql
+# BioPerl module for Bio::DB::DBI::Oracle
 #
 # Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
@@ -26,7 +26,7 @@
 
 =head1 NAME
 
-Bio::DB::DBI::mysql - DESCRIPTION of Object
+Bio::DB::DBI::Oracle - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -77,7 +77,7 @@ Internal methods are usually preceded with a _
 # Let the code begin...
 
 
-package Bio::DB::DBI::mysql;
+package Bio::DB::DBI::Oracle;
 use vars qw(@ISA);
 use strict;
 use Bio::DB::DBI;
@@ -88,10 +88,10 @@ use Bio::DB::DBI::base;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::DBI::mysql();
- Function: Builds a new Bio::DB::DBI::mysql object using the passed named 
+ Usage   : my $obj = new Bio::DB::DBI::Oracle();
+ Function: Builds a new Bio::DB::DBI::Oracle object using the passed named 
            parameters.
- Returns : an instance of Bio::DB::DBI::mysql
+ Returns : an instance of Bio::DB::DBI::Oracle
  Args    : named parameters with tags -dbcontext (a Bio::DB::DBContextI
            implementing object) and -sequence_name (the name of the sequence
            for PK generation)
@@ -109,24 +109,36 @@ sub new {
 =head2 next_id_value
 
  Title   : next_id_value
- Usage   : $pk = $obj->next_id_value("bioentry");
- Function: This implementation uses standard MySQL only and hence cannot
-           implement this method. It will throw an exception if called.
+ Usage   : $pk = $obj->next_id_value();
+ Function: 
  Example :
  Returns : a value suitable for use as a primary key
- Args    : The database connection handle to use for retrieving the next primary
-           key value.
-           Optionally, the name of the table. The driver is not required to
-           honor the argument if present.
+ Args    : The database connection handle to use for retrieving the
+           next primary key value.
+
+           Optionally, the name of the primary key generating
+           sequence. If omitted, the value returned by sequence_name()
+           will be used.
 
 
 =cut
 
 sub next_id_value{
-    my ($self, $table) = @_;
+    my ($self, $dbh) = @_;
 
-    $self->throw("plain MySQL does not provide SQL sequences - ".
-		 "next_id_value() is not available with this driver");
+    if(! $dbh) {
+	$self->throw("no database handle supplied to last_id_value() --".
+		     "last_id and currval operations are connection-specific");
+    }
+    # we need to construct the sql statement
+    my $oraseq = shift || $self->sequence_name();
+    my $row = $dbh->selectrow_arrayref("SELECT $oraseq.nextval FROM dual");
+    my $dbid;
+    if(! ($row && @$row && ($dbid = $row->[0]))) {
+	$self->throw("no record inserted or wrong database handle -- ".
+		     "probably internal error");
+    }
+    return $dbid;
 }
 
 =head2 last_id_value
@@ -138,12 +150,15 @@ sub next_id_value{
            value may be specific to a table, or independent of the
            table.
 
-           This implementation will ignore the table.
+           This implementation does not need to know the table.
  Example :
  Returns : a value suitable for use as a primary key
  Args    : The database connection handle to use for retrieving the primary
            key from the last insert.
 
+           Optionally, the name of the primary key generating
+           sequence. If omitted, the value returned by sequence_name()
+           will be used.
 
 =cut
 
@@ -154,14 +169,13 @@ sub last_id_value{
 	$self->throw("no database handle supplied to last_id_value() --".
 		     "last_id and currval operations are connection-specific");
     }
-    my $sth = $dbh->prepare("SELECT last_insert_id()");
+    # we need to construct the sql statement
+    my $oraseq = shift || $self->sequence_name();
+    my $row = $dbh->selectrow_arrayref("SELECT $oraseq.currval FROM dual");
     my $dbid;
-    if($sth->execute()) {
-	my $row = $sth->fetchrow_arrayref();
-	if(! ($row && @$row && ($dbid = $row->[0]))) {
-	    $self->throw("no record inserted or wrong database handle -- ".
-			 "probably internal error");
-	}
+    if(! ($row && @$row && ($dbid = $row->[0]))) {
+	$self->throw("no record inserted or wrong database handle -- ".
+		     "probably internal error");
     }
     return $dbid;
 }

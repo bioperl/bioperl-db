@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::BioSQL::mysql::BiosequenceAdaptorDriver
+# BioPerl module for Bio::DB::BioSQL::Oracle::BiosequenceAdaptorDriver
 #
 # Cared for by Hilmar Lapp <hlapp at gmx.net>
 #
@@ -26,7 +26,7 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::mysql::BiosequenceAdaptorDriver - DESCRIPTION of Object
+Bio::DB::BioSQL::Oracle::BiosequenceAdaptorDriver - DESCRIPTION of Object
 
 =head1 SYNOPSIS
 
@@ -77,15 +77,15 @@ Internal methods are usually preceded with a _
 # Let the code begin...
 
 
-package Bio::DB::BioSQL::mysql::BiosequenceAdaptorDriver;
+package Bio::DB::BioSQL::Oracle::BiosequenceAdaptorDriver;
 use vars qw(@ISA);
 use strict;
 
 # Object preamble - inherits from Bio::Root::Root
 
-use Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
+use Bio::DB::BioSQL::Oracle::BasePersistenceAdaptorDriver;
 
-@ISA = qw(Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver);
+@ISA = qw(Bio::DB::BioSQL::Oracle::BasePersistenceAdaptorDriver);
 
 # new() is inherited
 
@@ -93,12 +93,13 @@ use Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
 
  Title   : update_object
  Usage   :
- Function: See parent class. We need to override this here because there is
-           no Biosequence object separate from PrimarySeq that would hold a
-           primary key. Hence, store()s cannot recognize when the Biosequence
-           for a Bioentry already exists and needs to be updated, or when it
-           needs to be created. The way the code is currently wired, the
-           presence of the primary key (stemming from the bioentry) will always
+ Function: See parent class. We need to override this here because
+           there is no Biosequence object separate from PrimarySeq
+           that would hold a primary key. Hence, store()s cannot
+           recognize when the Biosequence for a Bioentry already
+           exists and needs to be updated, or when it needs to be
+           created. The way the code is currently wired, the presence
+           of the primary key (stemming from the bioentry) will always
            trigger an update.
 
            So, what we need to do here is check whether the entry already

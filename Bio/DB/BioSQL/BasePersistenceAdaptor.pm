@@ -803,8 +803,13 @@ sub find_by_unique_key{
     if(@$rows) {
 	# there should be only one row since it's a unique key
 	if(@$rows > 1) {
-	    $self->throw("Unique key query returned ".scalar(@$rows)." rows ".
-			 "instead of only 1. Bummer.");
+	    $self->throw("Unique key query in ".ref($self).
+			 " returned ".scalar(@$rows)." rows instead of 1. ".
+			 "Query was [".
+			 join(",",
+			      map { "$_=\"".$ukval_h->{$_}."\""; }
+			      keys %$ukval_h).
+			 "]");
 	}
 	# factory provided? If so, treat it as being forced to create
 	# a new object.

@@ -7,7 +7,7 @@
 # comments to bioperl - bioperl-l@bioperl.org
 
 # database have bioentries. That's about it.
-# we don't store different versions of a database as different dbid's
+# we do not store different versions of a database as different dbid's
 # (there is no concept of versions of database). There is a concept of
 # versions of entries. Versions of databases deserve their own table and
 # join to bioentry table for tracking with versions of entries 
@@ -44,7 +44,7 @@ CREATE TABLE taxa (
 
 CREATE TABLE bioentry (
   bioentry_id  int(10) unsigned NOT NULL auto_increment,
-  biodatabase_id  int(10),
+  biodatabase_id  int(10) NOT NULL,
   display_id   varchar(40) NOT NULL,
   accession    varchar(40) NOT NULL,
   entry_version int(10) NOT NULL, 
@@ -68,10 +68,10 @@ CREATE TABLE bioentry_taxa (
 
 CREATE TABLE biosequence (
   biosequence_id  int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
-  bioentry_id     int(10),
+  bioentry_id     int(10) NOT NULL,
   seq_version     int(6) NOT NULL,
   biosequence_str mediumtext NOT NULL,
-  UNIQUE (bioentry_id)
+  UNIQUE(bioentry_id)
 );
 
 
@@ -103,7 +103,7 @@ CREATE TABLE comment (
 );
 
 # separate description table separate to save on space when we
-# don't store descriptions
+# do not store descriptions
 
 CREATE TABLE bioentry_description (
    bioentry_id   int(10) unsigned NOT NULL,

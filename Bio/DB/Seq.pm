@@ -449,7 +449,7 @@ sub display_id{
 
 sub accession_number {
     my $self = shift;
-    return $self->accession;
+    return $self->accession(@_);
 }
 
 =head2 accession

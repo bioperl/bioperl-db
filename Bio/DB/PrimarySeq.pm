@@ -76,7 +76,6 @@ BEGIN {
 sub new {
     my ($class,@args) = @_;
 
-
     my $self = bless {}, ref($class) || $class;
 
     my($primary_id,$display_id,$accession,$adaptor,$alpha) = 
@@ -144,7 +143,7 @@ sub display_id{
 
 sub accession_number {
     my $self = shift;
-    return $self->accession;
+    return $self->accession(@_);
 }
 
 =head2 accession

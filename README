@@ -1,8 +1,7 @@
 # $Id$
 
-This package contains 2 logical projects under the common hood of
-interfaces and adaptors for relational databases for serializing and
-de-serializing bioperl objects.
+This package contains interfaces and adaptors for relational 
+databases for serializing and de-serializing bioperl objects.
 
 ===================================================================
 Information about BioSQL and bioperl-db
@@ -10,7 +9,7 @@ Information about BioSQL and bioperl-db
 
 This project was started by Ewan Birney with major work by Elia Stupka
 with continued support by the bioperl community.  It's purpose is to
-create a standalone sequence database with little external dependancies and
+create a standalone sequence database with little external dependencies and
 tight integration with Bioperl.  Support for more databases and
 bindings in Java and python by Biojava and Biopython projects is
 welcomed, and a working prototype was one of the accomplishments of
@@ -20,7 +19,7 @@ comments should be directed to the bioperl list
 related projects at http://www.bioperl.org and
 http://www.open-bio.org.
 
-I. Related scripts located in the scripts directory:
+I. Related scripts located in the scripts/ directory:
 
 biosql/load_seqdatabase.pl      - a very flexible script to load
 			          sequences into the database
@@ -38,9 +37,10 @@ corba/caching_corba_server.pl   - setup a corba sequence caching server
 corba/test_bioenv.pl            - test the bioenv of a running server
 corba/bioenv_server.pl          - setup a CORBA sequence server
 
-There is also a script called scripts/load_taxonomy.pl in the BioSQL
-package itself that loads taxonomic data from NCBI, you may find it
-useful.
+There is also a script called scripts/load_ncbi_taxonomy.pl in the 
+BioSQL package itself that loads taxonomic data from NCBI. Most users 
+use this script to load the NCBI taxonomy into their Biosql databases
+before loading sequences with load_seqdatabase.pl.
 
 II. Some background information and how it all works:
 

@@ -39,8 +39,6 @@ in the -format flag.
 
 =cut
 
-use lib 'c:\bioperl\bioperl\db';
-use lib 'c:\bioperl\bioperl\core';
 
 
 use Getopt::Long;

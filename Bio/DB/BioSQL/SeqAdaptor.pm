@@ -751,23 +751,26 @@ sub get_description_by_accession{
 =head2 get_all_available
 
  Title   : get_all_available
- Usage   : $SeqAd->get_all_available($molecule_type)
+ Usage   : $SeqAd->get_all_available($molecule_type, $dbname)
  Function:  to retrieve the names of all sequences of $type
  Example :  $SeqAd->get_all_available("dna");
  Returns : list of scalars; all valid sequence names
- Args    : molecule type (optional restriction)
+ Args    : biosequence.molecule (e.g. 'dna'), biodatabase.name (eg "EMBL_Mouse_Contigs")
 
 
 =cut
 
 
 sub get_all_available {
-	my ($self, $type) = @_;
-	my $query = "select be.accession ".
-		"from bioentry be, ".
+	my ($self, $type, $dbname) = @_;
+	my $query = "SELECT be.accession ".
+		"FROM bioentry be, ".
+		"biodatabase bd, ".
 		"biosequence bs ".
-		"where be.bioentry_id = bs.bioentry_id ";
-	if ($type){$query .= "and bs.molecule = '$type'"};
+		"WHERE be.bioentry_id = bs.bioentry_id ".
+		"AND be.biodatabase_id = bd.biodatabase_id ".
+		"AND bd.name = '$dbname' ";
+	if ($type){$query .= "AND bs.molecule = '$type'"};
  
 	my $sth = $self->prepare($query);
 	$sth->execute();

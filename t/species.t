@@ -20,7 +20,6 @@ ok $biosql;
 
 $db = $biosql->get_DBAdaptor();
 ok $db;
-$db->verbose(1) if $ENV{HARNESS_VERBOSE};
 
 $s = Bio::Species->new('-classification' => [reverse(
 					     qw(Eukaryota Metazoa Chordata

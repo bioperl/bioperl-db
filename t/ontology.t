@@ -21,7 +21,6 @@ ok $biosql;
 
 $db = $biosql->get_DBAdaptor();
 ok $db;
-$db->verbose(1) if $ENV{HARNESS_VERBOSE};
 
 my $io = Bio::Root::IO->new(); # saves typing
 my $ontio = Bio::OntologyIO->new(-file => $io->catfile('t','data',

@@ -19,7 +19,6 @@ use Bio::Root::IO;
 $biosql = DBTestHarness->new("biosql");
 $db = $biosql->get_DBAdaptor();
 ok $db;
-$db->verbose(1) if $ENV{HARNESS_VERBOSE};
 
 my $objio = Bio::ClusterIO->new('-format' => 'unigene',
 				'-file' => Bio::Root::IO->catfile(

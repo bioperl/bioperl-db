@@ -21,7 +21,6 @@ use Bio::Root::IO;
 $biosql = DBTestHarness->new("biosql");
 $db = $biosql->get_DBAdaptor();
 ok $db;
-$db->verbose(1) if $ENV{HARNESS_VERBOSE};
 
 my $seqio = Bio::SeqIO->new('-format' => 'genbank',
 			    '-file' => Bio::Root::IO->catfile(

@@ -286,7 +286,7 @@ sub chrom {
 	$value =~ s/Y/24/i;
 	if( $value !~ /(\d+)$/ || 
 	    ($1 < 1 || $1 > 24) ) { 
-	    $self->chrom("Must specify an integer [1-24] or X,Y for the chrom no ($value)");
+	    $self->warn("Must specify an integer [1-24] or X,Y for the chrom no ($value)");
 	    $value = undef;
 	} else { $value = $1; }
 	$self->{'_chrom'} = $value; 

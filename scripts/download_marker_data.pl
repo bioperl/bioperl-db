@@ -165,11 +165,23 @@ if( $all || $sts ) {
 
 if( $all || $genemap ) {
     $dir = "$TMPDIR/markers/genemap99";
+    mkpath([$dir],$DEBUG,0755);    
     my $filename = "genemap99.sts";
     $request = GET "$GENEMAPURL/$filename";
     $response = $ua->request($request,"$dir/$filename");
     if( ! $response->is_success ) {
 	print "unable to download $filename from $GENEMAPURL/$filename\n";
+    }
+    
+    foreach my $map ( 'gb4', 'sg3' ) {
+	foreach my $chrom ( 1..22, 'X' ) {
+	    $filename = sprintf("chr%s.%s", $chrom,$map);
+	    $request = GET "$GENEMAPURL/$filename";
+	    $response = $ua->request($request, "$dir/$filename");
+	    if( ! $response->is_success ) {
+		print "unable to download $filename from $GENEMAPURL/$filename\n";
+	    }
+	}
     }
 }
 

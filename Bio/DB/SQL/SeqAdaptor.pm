@@ -848,7 +848,7 @@ sub get_all_available {
 
 sub get_seq_lengths {
 	my ($self, @seqs) = @_;
-	my $query = "select be.display_id, length(bs.biosequence_str) ".
+	my $query = "select be.accession, length(bs.biosequence_str) ".
 		"from bioentry be, ".
 		"biosequence bs ".
 		"where be.bioentry_id = bs.bioentry_id ";

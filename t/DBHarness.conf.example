@@ -1,9 +1,9 @@
+# $Id: DBHarness.conf.example,v 1.5 2002-08-30 01:35:07 lapp Exp $
 
-# FILE: t/EnsTestDB.conf.example
+# FILE: t/DBHarness.conf.example
 # 
-# These are the default values for the
-# EnsEMBL test db configuration.  Copy
-# this file to t/EnsTestDB.conf and edit
+# These are the default values for the test db configuration.  Copy
+# this file to t/DBHarness.conf and t/DBHarness.markerdb.conf and edit
 # to change the defaults.
 
 {
@@ -14,7 +14,7 @@
     'host'          => 'localhost',
     
     # user to connect to server as - mandatory
-    'user'          => 'ensuser',
+    'user'          => 'biosql',
     
     # port the server is running on - optional
     'port'          => '3306',
@@ -23,7 +23,9 @@
     'password'      => undef,
 
     # mandatory - schema file
-    'schema_sql'    => [ 'sql/basicseqdb-mysql.sql'],
+    'schema_sql'    => [ '../biosql-schema/sql/biosqldb-mysql.sql'],
+    # or for the marker database:
+    #'schema_sql'    => [ './sql/markerdb-mysql.sql'],
 
     # Uncomment and set to the name of your pre-built database if you don't
     # want the the test scripts to build a temporary database from scratch at
@@ -32,7 +34,7 @@
 
     #'dbname'        => 'biosql',
 
-    # The name of the database within bioperl-db
+    # The name of the database within bioperl-db (biosql or map)
     'database'      => 'biosql',
 
 }

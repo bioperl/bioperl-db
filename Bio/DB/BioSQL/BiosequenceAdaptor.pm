@@ -106,7 +106,7 @@ use Bio::PrimarySeq;
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("seq_version", "length", "alphabet", "seq");
+    return ("seq_version", "length", "alphabet", "seq", "crc");
 }
 
 =head2 get_persistent_slot_values
@@ -143,10 +143,12 @@ sub get_persistent_slot_values {
     } else {
 	@vals = (undef);
     }
+    my $seq = $obj->seq_has_changed() ? $obj->seq() : undef;
     push(@vals,
 	 $obj->length(),
 	 $obj->alphabet(),
-	 $obj->seq_has_changed() ? $obj->seq() : undef);
+	 $seq,
+         defined($seq) ? $self->crc64($seq) : undef);
     return \@vals;
 }
 

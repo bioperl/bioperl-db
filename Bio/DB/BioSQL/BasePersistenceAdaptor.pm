@@ -914,7 +914,7 @@ sub _find_by_unique_key{
     my ($self,$obj,$query_h,$fkobjs,$fact,$flatonly) = @_;
 
     # matching object cached? 
-    my $obj_key = join("|", %$query_h);
+    my $obj_key = join("|", map { defined($_) ? $_ : ""; } %$query_h);
     my $cobj = $self->obj_cache($obj_key);
     return $cobj if $cobj;
     # no, we'll have to fetch this one
@@ -1704,6 +1704,75 @@ sub _remove_from_obj_cache{
     foreach (@delkeys) {
 	delete $self->{'_obj_cache'}->{$_};
     }
+}
+
+=head2 crc64
+
+ Title   : crc64
+ Usage   :
+ Function: Computes and returns the CRC64 checksum for a given string.
+
+           This method may be called as a static method too as it
+           doesn't not make any references to instance
+           properties. However, it isn't really meant for outside
+           consumption, but rather for derived classes as a utility
+           method. At present, in fact this module itself doesn't use
+           it.
+
+           This is basically ripped out of the bioperl swissprot
+           parser. Credits go to whoever contributed it there.
+
+ Example :
+ Returns : the CRC64 checksum as a string
+ Args    : the string as a scalar for which to obtain the CRC64
+
+
+=cut
+
+sub crc64{
+    my ($self, $str) = @_;
+    my $POLY64REVh = 0xd8000000;
+    my @CRCTableh;
+    my @CRCTablel;
+    
+    if (exists($self->{'_CRCtableh'})) {
+	@CRCTableh = @{$self->{'_CRCtableh'}};
+	@CRCTablel = @{$self->{'_CRCtablel'}};
+    } else {
+	@CRCTableh = 256;
+	@CRCTablel = 256;
+	for (my $i=0; $i<256; $i++) {
+	    my $partl = $i;
+	    my $parth = 0;
+	    for (my $j=0; $j<8; $j++) {
+		my $rflag = $partl & 1;
+		$partl >>= 1;
+		$partl |= (1 << 31) if $parth & 1;
+		$parth >>= 1;
+		$parth ^= $POLY64REVh if $rflag;
+	    }
+	    $CRCTableh[$i] = $parth;
+	    $CRCTablel[$i] = $partl;
+	}
+	$self->{'_CRCtableh'} = \@CRCTableh;
+	$self->{'_CRCtablel'} = \@CRCTablel;
+    }
+
+    my $crcl = 0;
+    my $crch = 0;
+
+    foreach (split '', $str) {
+	my $shr = ($crch & 0xFF) << 24;
+	my $temp1h = $crch >> 8;
+	my $temp1l = ($crcl >> 8) | $shr;
+	my $tableindex = ($crcl ^ (unpack "C", $_)) & 0xFF;
+	$crch = $temp1h ^ $CRCTableh[$tableindex];
+	$crcl = $temp1l ^ $CRCTablel[$tableindex];
+    }
+    my $crc64 = sprintf("%08X%08X", $crch, $crcl);
+        
+    return $crc64;
+      
 }
 
 =head1 Object Lifespan-related methods

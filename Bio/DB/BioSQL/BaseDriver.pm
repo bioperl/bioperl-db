@@ -241,6 +241,10 @@ my %slot_attribute_map = (
 	     "seq"            => "seq",
 	     "alphabet"       => "alphabet",
 	     "primary_seq"    => "bioentry_id",
+             # NOTE: change undef to the name of the CRC column to
+             # enable having CRC64s computed for sequences automatically,
+             # or set to undef to disable
+             "crc"            => undef,
 	 },
 	 "dbxref" => {
 	     "database"       => "dbname",

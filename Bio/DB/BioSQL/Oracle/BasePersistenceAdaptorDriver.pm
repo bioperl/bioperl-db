@@ -126,6 +126,10 @@ my %slot_attribute_map = (
 	 },
 	 "biosequence" => {
 	     "primary_seq"    => "ent_oid",
+             # NOTE: change undef to the name of the CRC column to
+             # enable having CRC64s computed for sequences automatically,
+             # or set to undef to disable
+             "crc"            => "crc",
 	 },
 	 "reference" => {
 	     "medline"        => "dbx_oid",

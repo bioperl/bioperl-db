@@ -20,11 +20,11 @@ my $sql="SELECT * FROM ontology WHERE name = ?";
 
 my $sth = $dbh->prepare($sql);
 $sth->execute($ontology_name);
-my $ontology_id = $sth->fetchrow_hashref->{ontology_id};
-unless(defined $ontology_id){
-    die "Cannot find '$ontology_name' in the database";
+my $hashref = $sth->fetchrow_hashref;
+unless(defined $hashref){
+    die "Cannot find '$ontology_name' in the database\n";
 }
-
+my $ontology_id = $hashref->{ontology_id};
 $sth=$dbh->prepare("SELECT term_id FROM term WHERE ontology_id=?");
 $sth->execute($ontology_id);
 my @term_ids;

@@ -117,6 +117,10 @@ sub fetch_by_name{
    $sth->execute;
 
    my ($id) = $sth->fetchrow_array();
+	
+   if (! defined $id) {
+	$self->throw("Could not find db for name $name");
+   }	
 
    return $id;
 }

@@ -79,8 +79,8 @@ sub new {
     my $self = {};
     bless $self,$class;
 
-    my($primary_id,$display_id,$accession,$version,$adaptor,$length,$division) = 
-	$self->_rearrange([qw(PRIMARY_ID DISPLAY_ID ACCESSION VERSION ADAPTOR LENGTH DIVISION)],@args);
+    my($primary_id,$display_id,$accession,$version,$adaptor,$length,$division,$desc) = 
+	$self->_rearrange([qw(PRIMARY_ID DISPLAY_ID ACCESSION VERSION ADAPTOR LENGTH DIVISION DESC)],@args);
 
     if( !defined $primary_id || !defined $display_id || !defined $accession || !defined $adaptor || !defined $length) {
 	$self->throw("Not got one of the arguments in DB::Seq new [$primary_id,$display_id,$accession,$adaptor,$length]");
@@ -93,7 +93,7 @@ sub new {
     $self->adaptor($adaptor);
     $self->length($length);
     $self->division($division);
-    
+    $self->desc($desc);    
     return $self;
 }
 
@@ -176,6 +176,7 @@ sub moltype{
 }
 
 
+
 =head2 desc
 
  Title   : desc
@@ -189,9 +190,15 @@ sub moltype{
 =cut
 
 sub desc{
-   my ($self,@args) = @_;
+   my $self = shift;
 
-   return $self->primary_seq->desc();
+   if (@_) {
+	my $value = shift;
+	$self->{'desc'} = $value;
+}
+		
+
+   return $self->{'desc'};
 }
 
 

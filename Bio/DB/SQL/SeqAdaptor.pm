@@ -94,11 +94,11 @@ sub fetch_by_dbID{
 
    #print STDERR "select en.display_id,en.accession,en.entry_version,length(bs.biosequence_str),bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id\n";
 
-   my $sth = $self->prepare("select en.display_id,en.accession,en.entry_version,length(bs.biosequence_str),bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
+   my $sth = $self->prepare("select en.display_id,en.accession,en.entry_version,length(bs.biosequence_str),bs.molecule,en.division,bed.description from bioentry en,biosequence bs,bioentry_description bed where bed.bioentry_id=en.bioentry_id and bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
 
    $sth->execute;
 
-   my ($display,$acc,$version,$len,$mol,$div) = $sth->fetchrow_array;
+   my ($display,$acc,$version,$len,$mol,$div,$desc) = $sth->fetchrow_array;
 
    if( !defined $display ) {
        $self->throw("Bioentry id $id does not have a biosequence or bioentry ");
@@ -111,6 +111,7 @@ sub fetch_by_dbID{
 			     '-length'   => $len,
 			     -moltype   => $mol,
 			     -division   => $div,
+			     -desc       => $desc,
 			     -adaptor    => $self);
    
 

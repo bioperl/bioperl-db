@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/bin/perl
 #
 # You may distribute this module under the same terms as perl itself.
 # Refer to the Perl Artistic License (see the license accompanying this
@@ -15,28 +15,24 @@ load_seqdatabase.pl
 =head1 SYNOPSIS
 
    load_seqdatabase.pl --host somewhere.edu --dbname biosql \
-                       --namespace bioperl --format swiss \
+                       --namespace swissprot --format swiss \
                        swiss_sptrembl swiss.dat primate.dat
 
 =head1 DESCRIPTION
 
-This script loads a bioperl-db with sequences. There are a number of
-options to do with where the bioperl-db database is (ie, hostname,
-user for database, password, database name) followed by the database
-name you wish to load this into and then any number of files. The
-files are assumed formatted identically with the format given in the
---format flag.
-
-There are more options than the ones shown above. See below.
+This script loads a Biosql database with sequences. There are a number of
+options that have to do with where the database is and how it's accessed
+and the format and namespace of the input files. These are followed by any number 
+of file names. The files are assumed to be formatted identically with the format 
+given by the --format flag. See below for more details.
 
 =head1 ARGUMENTS
 
 The arguments after the named options constitute the filelist. If
-there are no such files, input is read from stdin. Mandatory options
-are marked by (M). Default values for each parameter are shown in
-square brackets.  (Note that -bulk is no longer available):
+there are no such files, input is read from stdin. Default values for each
+parameter are shown in square brackets. Note that --bulk is no longer available.
 
-=over 2 
+=over 2
 
 =item --host $URL
 
@@ -58,11 +54,11 @@ password [undef]
 
 the DBI driver name for the RDBMS e.g., mysql, Pg, or Oracle [mysql]
 
-=item --namespace $namesp 
+=item --namespace $namesp
 
 The namespace under which the sequences in the input files are to be
-created in the database [bioperl]. Note that the namespace will be
-left untouched if the object to be submitted has it set already.
+created in the database. Note that the namespace will be
+left untouched if the object to be submitted has it set already [bioperl].
 
 =item --lookup
 
@@ -95,7 +91,7 @@ necessitates a prior lookup)
 flag to continue despite errors when loading (the entire object
 transaction will still be rolled back)
 
-=item --testonly 
+=item --testonly
 
 don't commit anything, rollback at the end
 
@@ -107,16 +103,16 @@ be separated by a double colon. See below for which subsystems are
 currently supported.
 
 The default IO subsystem is SeqIO. 'Bio::' will automatically be
-prepended if not already present. As of presently, the other supported
+prepended if not already present. As of now the other supported
 subsystem is ClusterIO. All input files must have the same format.
 
-Examples: 
+Examples:
     # this is the default
-    --format genbank  
+    --format genbank
     # SeqIO format EMBL
-    --format embl     
+    --format embl
     # Bio::ClusterIO stream with -format => 'unigene'
-    --format ClusterIO::unigene 
+    --format ClusterIO::unigene
 
 =item --fmtargs
 
@@ -146,7 +142,7 @@ This is a sequence of Bio::Factory::SeqProcessorI (see
 L<Bio::Factory::SeqProcessorI>) implementing objects that will be
 instantiated and chained in exactly this order. This allows you to
 write re-usable modules for custom post-processing of objects after
-the stream parser returns them. Cf. L<Bio::Seq::BaseSeqProcessor> for
+the stream parser returns them. See L<Bio::Seq::BaseSeqProcessor> for
 a base implementation for such modules.
 
 Modules are separated by the pipe character '|'. In addition, you can
@@ -156,11 +152,11 @@ in parentheses or angle brackets directly after the module.
 
 This option will be ignored if no value is supplied.
 
-Examples: 
+Examples:
     # one module
-    --pipeline "My::SeqProc" 
+    --pipeline "My::SeqProc"
     # two modules in the specified order
-    --pipeline "My::SeqProc|My::SecondSeqProc" 
+    --pipeline "My::SeqProc|My::SecondSeqProc"
     # two modules, the first of which has two initialization parameters
     --pipeline "My::SeqProc(-maxlength,1500,-minlength,300)|My::SecondProc"
 
@@ -168,7 +164,7 @@ Examples:
 
 This is either a string or a file defining a closure to be used as
 sequence filter. The value is interpreted as a file if it refers to a
-readable file, and a string otherwise. Cf. add_condition() in
+readable file, and a string otherwise. See add_condition() in
 L<Bio::Seq::SeqBuilder> for more information about what the code will
 be used for. The closure will be passed a hash reference with an
 accumulated list of initialization paramaters for the prospective
@@ -195,7 +191,7 @@ closure is called if a look-up for the unique key of the new object
 was successful (hence, it will never be called without supplying
 --lookup, but not --noupdate, at the same time).
 
-The closure will be passed three (3) arguments: the object found by
+The closure will be passed three arguments: the object found by
 lookup, the new object to be submitted, and the Bio::DB::DBAdaptorI
 (see L<Bio::DB::DBAdaptorI>) implementing object for the desired
 database. If the closure returns a value, it must be the object to be
@@ -260,27 +256,29 @@ use Bio::ClusterIO;
 ####################################################################
 # Defaults for options changeable through command line
 ####################################################################
-my $host; # should make the driver to default to localhost
-my $dbname = "biosql";
-my $dbuser = "root";
+my $host = 'localhost';
+my $dbname = 'biosql';
+my $dbuser = 'root';
 my $driver = 'mysql';
 my $dbpass;
 my $format = 'genbank';
 my $fmtargs = '';
-my $namespace = "bioperl";
-my $logchunk = 0;        # every how many entries to log progress (0 = don't)
+my $namespace = 'bioperl';
+my $logchunk = 0;        # log progress after <x> entries (0 = don't)
 my $seqfilter;           # see conditions in Bio::Seq::SeqBuilder
 my $mergefunc;           # if and how to merge old (found) and new objects
 my $pipeline;            # see Bio::Factory::SequenceProcessorI
+#
 # flags
-my $remove_flag = 0;     # remove object before creating?
-my $lookup_flag = 0;     # look up object before creating, update if found?
-my $flat_flag = 0;       # don't attach children (when doing a lookup)?
-my $no_update_flag = 0;  # do not update if found on look up?
-my $help = 0;            # WTH?
+#
+my $remove_flag = 0;     # remove object before creating
+my $lookup_flag = 0;     # look up object before creating, update if found
+my $flat_flag = 0;       # don't attach children (when doing a lookup)
+my $no_update_flag = 0;  # do not update if found on look up
+my $help = 0;            # WTH
 my $debug = 0;           # try it ...
-my $testonly_flag = 0;   # don't commit anything, rollback at the end?
-my $safe_flag = 0;       # tolerate exceptions on create?
+my $testonly_flag = 0;   # don't commit anything, rollback at the end
+my $safe_flag = 0;       # tolerate exceptions on create
 my $uncompress = 0;      # whether to pipe through gunzip
 my $printerror = 0;      # whether to print DBI error messages
 ####################################################################

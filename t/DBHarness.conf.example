@@ -1,9 +1,9 @@
-# $Id: DBHarness.conf.example,v 1.5 2002-08-30 01:35:07 lapp Exp $
+# $Id: DBHarness.conf.example,v 1.6 2002-10-08 04:07:09 lapp Exp $
 
 # FILE: t/DBHarness.conf.example
 # 
 # These are the default values for the test db configuration.  Copy
-# this file to t/DBHarness.conf and t/DBHarness.markerdb.conf and edit
+# this file to t/DBHarness.biosql.conf and t/DBHarness.markerdb.conf and edit
 # to change the defaults.
 
 {

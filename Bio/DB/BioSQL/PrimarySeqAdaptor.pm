@@ -282,7 +282,9 @@ sub attach_children{
     # slots of $obj with the found record.
     my $o = $adp->find_by_unique_key($obj);
     # on success, $o == $obj, and $o == undef otherwise
-    return $o ? 1 : 0;
+    # however, some SeqI objects may legally lack any of those attributes
+    # and hence may not have an entry here, so we'll have to be permissive
+    return 1; #$o ? 1 : 0;
 }
 
 =head2 instantiate_from_row

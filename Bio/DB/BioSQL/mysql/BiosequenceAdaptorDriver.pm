@@ -89,6 +89,43 @@ use Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
 
 # new() is inherited
 
+=head2 insert_object
+
+ Title   : insert_object
+ Usage   :
+ Function: We override this here in order to omit the insert if there are
+           no values. This is because this entity basically represents a
+           derived class, and we may simply be dealing with the base class.
+
+ Example :
+ Returns : The primary key of the newly inserted record.
+ Args    : A Bio::DB::BioSQL::BasePersistenceAdaptor derived object
+           (basically, it needs to implement dbh(), sth($key, $sth),
+	    dbcontext(), and get_persistent_slots()).
+	   The object to be inserted.
+           A reference to an array of foreign key objects; if any of those
+           foreign key values is NULL (some foreign keys may be nullable),
+           then give the class name.
+
+
+=cut
+
+sub insert_object{
+    my $self = shift;
+    my ($adp,$obj,$fkobjs) = @_;
+    
+    # obtain the object's slot values to be serialized
+    my $slotvals = $adp->get_persistent_slot_values($obj, $fkobjs);
+    # any value present?
+    my $isdef = $slotvals->[0];
+    for(my $i = 1; $i < @$slotvals; $i++) {
+	$isdef ||= $slotvals->[$i];
+	last if $isdef;
+    }
+    return $self->SUPER::insert_object(@_) if $isdef;
+    return -1;
+}
+
 =head2 update_object
 
  Title   : update_object

@@ -101,6 +101,22 @@ CREATE TABLE bioentry_direct_links (
        KEY (source_bioentry_id)
 );
 
+#We can have multiple references per bioentry
+
+CREATE TABLE reference (
+  reference_id       int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
+  bioentry_id        int(10) NOT NULL,
+  reference_start    int(10),
+  reference_end      int(10),
+  reference_location varchar(255) NOT NULL,
+  reference_title    mediumtext NOT NULL,
+  reference_authors  mediumtext NOT NULL,
+  reference_medline  int(10) NOT NULL,
+  reference_rank     int(5) NOT NULL,                 
+
+  KEY (reference_medline),
+  KEY (bioentry_id)
+);
 
 # We can have multiple comments per seqentry, and
 # comments can have embedded '\n' characters
@@ -109,7 +125,8 @@ CREATE TABLE comment (
   comment_id  int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
   bioentry_id    int(10) NOT NULL,
   comment_text   mediumtext NOT NULL,
-  comment_rank   int(5) NOT NULL
+  comment_rank   int(5) NOT NULL,
+  KEY(bioentry_id)
 );
 
 # separate description table separate to save on space when we

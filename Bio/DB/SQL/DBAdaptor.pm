@@ -55,7 +55,7 @@ use Bio::DB::SQL::SeqFeatureAdaptor;
 use Bio::DB::SQL::CommentAdaptor;
 use Bio::DB::SQL::DBLinkAdaptor;
 use Bio::DB::SQL::SpeciesAdaptor;
-
+use Bio::DB::SQL::ReferenceAdaptor;
 
 use DBI;
 
@@ -369,6 +369,29 @@ sub get_CommentAdaptor{
    }
 
    return $self->{'_comment_adaptor'}
+
+}
+
+=head2 get_ReferenceAdaptor
+
+ Title   : get_ReferenceAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_ReferenceAdaptor{
+   my ($self) = @_;
+
+   if( !defined $self->{'_commet_adaptor'} ) {
+       $self->{'_reference_adaptor'} = Bio::DB::SQL::ReferenceAdaptor->new($self);
+   }
+
+   return $self->{'_reference_adaptor'}
 
 }
 

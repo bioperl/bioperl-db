@@ -212,6 +212,13 @@ sub store{
    foreach my $comment ( $seq->annotation->each_Comment ) {
        $adp->store($comment,$rank,$id);
    }
+   
+   $rank = 1;
+   my $rdp = $self->db->get_ReferenceAdaptor();
+   foreach my $ref ( $seq->annotation->each_Reference ) {
+       $rdp->store_if_needed($ref,$rank,$id);
+   }
+
 
    $adp = $self->db->get_DBLinkAdaptor();
    foreach my $dblink ( $seq->annotation->each_DBLink ) {

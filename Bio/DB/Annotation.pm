@@ -164,8 +164,14 @@ sub each_DBLink{
 sub each_Reference{
    my ($self,@args) = @_;
 
-   return ();
+   if( !defined $self->{'_references'} ) {
+       my @array = $self->_db_adaptor->get_ReferenceAdaptor->fetch_by_bioentry_id($self->_bioentry_id);
+       $self->{'_references'}= \@array;
+   }
+
+   return @{$self->{'_references'}};
 }
+
 
 #
 # Internal methods

@@ -5,6 +5,27 @@
 # 
 # Tested with mysql.
 #
+# $Id$
+#
+# Cared for by Juguang Xiao, juguang@tll.org.sg
+#
+# Copyright Juguang Xiao 
+#
+# You may distribute this script under the same terms as perl itself
+
+#
+# Note from the "editor" (Hilmar): 99% of this should not be necessary with
+# enabled foreign key constraints. If you want to delete an entire ontology,
+# delete the record from the ontology table, and everything else should be
+# taken care of by the database server. Likewise, to get rid of an ontology
+# term, delete the record from the term table. Dependent records in other
+# tables should be deleted for you automatically through cascading deletes
+# on the foreign key constraints. (This is one reason why properly supported
+# foreign key constraints are extremely useful, not fluff as MySql used to
+# claim.)
+#
+# Send email to biosql-l@open-bio.org if you have questions about this.
+#  
 
 use strict;
 use Getopt::Long;

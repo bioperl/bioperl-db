@@ -199,7 +199,9 @@ sub get_foreign_key_objects{
 
     if(ref($obj) && $obj->category()) {
 	$cat = $obj->category();
-	$cat->foreign_key_slot(ref($self)."::category");
+	if($cat->isa("Bio::DB::PersistentObjectI")) {
+	    $cat->foreign_key_slot(ref($self)."::category");
+	}
     } else {
 	$cat = ref($self)."::category";
     }
@@ -373,5 +375,9 @@ sub get_unique_key_query{
     
     return $uk_h;
 }
+
+=head1 Methods overriden from BasePersistenceAdaptor
+
+=cut
 
 1;

@@ -243,21 +243,23 @@ sub prepare_findbyuk_sth{
  Returns : TRUE on success and FALSE otherwise
  Args    : The calling adaptor.
            Named parameters. Currently recognized are:
-               -objs   a reference to an array of objects to be associated with
-                       each other
-               -values a reference to a hash the keys of which are column
-                       names and the values are values of columns other than
-                       the ones for foreign keys to the entities to be
-                       associated
-               -obj_contexts optional; if given it denotes a reference to an
-                       array of context keys (strings), which allow the
-                       foreign key name to be determined through the
-                       association map rather than through foreign_key_name().
-                       This is necessary if more than one object of the same
-                       type takes part in the association. The array must be
-                       in the same order as -objs, and have the same number
-                       of elements. Put "default" for objects for which there
-                       are no multiple contexts.
+               -objs   a reference to an array of objects to be
+                       associated with each other
+               -values a reference to a hash the keys of which are
+                       column names and the values are values of
+                       columns other than the ones for foreign keys to
+                       the entities to be associated
+               -contexts optional; if given it denotes a reference
+                       to an array of context keys (strings), which
+                       allow the foreign key name to be determined
+                       through the association map rather than through
+                       foreign_key_name().  This may be necessary if
+                       more than one object of the same type takes
+                       part in the association. The array must be in
+                       the same order as -objs, and have the same
+                       number of elements. Put undef for objects
+                       for which there are no multiple contexts.
+
   Caveats: Make sure you *always* give the objects to be associated in the
            same order.
 
@@ -270,7 +272,7 @@ sub prepare_insert_association_sth{
 
     # get arguments
     my ($objs, $values, $contexts) =
-	$self->_rearrange([qw(OBJS VALUES OBJ_CONTEXTS)], @args);
+	$self->_rearrange([qw(OBJS VALUES CONTEXTS)], @args);
     # obtain column map for non-fk columns
     my $table = $self->association_table_name($objs);
     if(! $table) {
@@ -293,8 +295,8 @@ sub prepare_insert_association_sth{
 	    $self->throw("no object-relational map for class ".
 			 ref($objs->[$i]));
 	}
-	if($contexts) {
-	    $attr = $columnmap->{$fktable}->{$contexts->[$i]};
+	if($contexts && $contexts->[$i]) {
+	    $attr = $columnmap->{$contexts->[$i]};
 	} else {
 	    $attr = $self->foreign_key_name($objs->[$i]);
 	}
@@ -631,12 +633,16 @@ sub _build_select_list{
     # default the entity-alias map if not provided
     if(! $entitymap) {
 	$entitymap = {};
-	$entitymap->{$table} = $table;
+	$entitymap->{$table} = [$table];
     }
+    # Alias for the table. We'll use the first one if the table is in the
+    # FROM list with different aliases. Also note that the alias may come
+    # with context, which we need to strip off.
+    my ($alias) = split(/::/, $entitymap->{$table}->[0]);
     # get the primary key name
     my $pkname = $self->primary_key_name($table);
     # SELECT columns
-    my @attrs = ($entitymap->{$table} .".". $pkname);
+    my @attrs = ($alias .".". $pkname);
     foreach (@slots) {
 	$self->throw("no mapping for slot $_ in slot-attribute map")
 	    if ! exists($slotmap->{$table}->{$_});
@@ -663,7 +669,9 @@ sub _build_select_list{
 	   $dont_select_attrs->{$tbl .".". $attr}) {
 	    push(@attrs, "NULL");
 	} else {
-	    push(@attrs, $entitymap->{$tbl} .".". $attr);
+	    # same caveats as for the alias of the 'main' table
+	    my ($tblalias) = split(/::/, $entitymap->{$tbl}->[0]);
+	    push(@attrs, $tblalias .".". $attr);
 	}
     }
     # add foreign key attributes
@@ -671,7 +679,7 @@ sub _build_select_list{
 	foreach (@$fkobjs) {
 	    my $fkattr = $self->foreign_key_name($_);
 	    $self->throw("no mapping for foreign key to $_") unless $fkattr;
-	    push(@attrs, $entitymap->{$table} .".". $fkattr);
+	    push(@attrs, $alias .".". $fkattr);
 	}
     }
     return @attrs;
@@ -707,26 +715,37 @@ sub table_name{
    # directly mapped?
    my $objrel_map = $self->objrel_map();
    my $tbl = $objrel_map->{ref($obj) || $obj};
-   # if not, and it's an object
-   if((! $tbl) && ref($obj)) {
-       # if it's a persistent object, see whether the adaptor is mapped
-       if($obj->isa("Bio::DB::PersistentObjectI")) {
-	   $tbl = $objrel_map->{ref($obj->adaptor())};
-       }
-       # if still no success, and it's not an adaptor, see which key it 
-       # implements
-       if(! ($tbl || $obj->isa("Bio::DB::PersistenceAdaptorI"))) {
-	   my ($class) = grep { $obj->isa($_); } keys %$objrel_map;
-	   if($class) {
-	       $tbl = $objrel_map->{$class};
-	       # cache for future use
-	       #$objrel_map->{ref($obj) || $obj} = $tbl;
+   if(! $tbl) {
+       # if not, and it's an object
+       if(ref($obj)) {
+	   # if it's a persistent object, see whether the adaptor is mapped
+	   if($obj->isa("Bio::DB::PersistentObjectI")) {
+	       $tbl = $objrel_map->{ref($obj->adaptor())};
+	   }
+	   # if still no success, and it's not an adaptor, see which key it 
+	   # implements
+	   if(! ($tbl || $obj->isa("Bio::DB::PersistenceAdaptorI"))) {
+	       my ($class) = grep { $obj->isa($_); } keys %$objrel_map;
+	       if($class) {
+		   $tbl = $objrel_map->{$class};
+		   # cache for future use
+		   #$objrel_map->{ref($obj) || $obj} = $tbl;
+	       }
+	   }
+       } else {
+	   # it's not an object
+	   #
+	   # look up by `last name' only, provided that maps uniquely
+	   my @class = grep { /(^|::)$obj$/; } keys %$objrel_map;
+	   $tbl = $objrel_map->{$class[0]} if(@class == 1);
+	   if(! $tbl) {
+	       # We may have a context appended. Strip the last component
+	       # and try to start over.
+	       #@class = split(/::/, $obj);
+	       #pop(@class);
+	       #$tbl = $self->table_name(join('::', @class)) if @class;
 	   }
        }
-   } else {
-       # look up by `last name' only, provided that maps uniquely
-       my @class = grep { /(^|::)$obj$/; } keys %$objrel_map;
-       $tbl = $objrel_map->{$class[0]} if(@class == 1);
    }
    return $tbl;
 }
@@ -838,6 +857,10 @@ sub foreign_key_name{
     if($table) {
 	$fk = $self->primary_key_name($table);
     } elsif(! ref($obj)) {
+	# If the object or class name didn't map to a table it may be due
+	# to a context being provided as a slot of a class. To try this,
+	# remove the last component, see whether the rest maps to a table,
+	# and if so, look up the slot in its attribute map.
 	my @comps = split(/::/, $obj);
 	my $slot = pop(@comps);
 	$table = $self->table_name(join("::",@comps));

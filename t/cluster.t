@@ -67,17 +67,14 @@ eval {
 	} $dbclu->annotation->get_Annotations($dbkeys[$i]);
 	my @anns = sort {
 	    $a->as_text cmp $b->as_text;
-	} $clu->annotation->get_Annotations($keys[$i]);
+	} $clu->annotation->get_Annotations($dbkeys[$i]);
 	ok (scalar(@dbanns), scalar(@anns),
-	    "number of annotations don't match for key ".$dbkeys[$i].
-	    ": got ".scalar(@dbanns).", expected ".scalar(@anns));
+	    "number of annotations don't match for key ".$dbkeys[$i]);
 	my $j = 0;
 	while($j < @dbanns) {
 	    ok ($dbanns[$j]->as_text, $anns[$j]->as_text,
 		"values for annotation element $j don't match for key ".
-		$dbkeys[$i].
-		": got \"".$dbanns[$j]->as_text.
-		"\", expected \"".$anns[$j]->as_text."\"");
+		$dbkeys[$i]);
 	    $j++;
 	}
 	$i++;

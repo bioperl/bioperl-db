@@ -158,7 +158,7 @@ sub set {
     }
     else {
 	# $arg is a string
-	if ($arg =~ /(.*)\s*(=|like)\s*(.*)/i) {
+	if ($arg =~ /(.*[^!])\s*([!=<>]{1,2}|like)\s*(.*)/i) {
 	    $self->name($1);
 	    $self->operand($2);
 	    $self->value($3);

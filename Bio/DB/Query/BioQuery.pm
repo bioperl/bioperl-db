@@ -151,6 +151,8 @@ sub translate_query{
 	if($entity =~ /<=>/) {
 	    # it's an association
 	    my @entities = split(/<=>/, $entity);
+	    my %ent_counts = map { ($_,0); } @entities;
+	    #foreach (@entities) { $ent_counts{$_}++; }
 	    # determine the association table
 	    my $assoc = $mapper->association_table_name(\@entities);
 	    if(! $assoc) {
@@ -158,28 +160,36 @@ sub translate_query{
 			     ") to an association table");
 	    }
 	    # record the association table alias
-	    $entitymap->{$assoc} = $alias || $assoc;
+	    $entitymap->{$assoc} = [$alias || $assoc];
 	    # resolve all participating entities to table names; at the same
 	    # time we need foreign keys to all participating entities
 	    for(my $i = 0; $i < @entities; $i++) {
 		$tbl = $mapper->table_name($entities[$i]);
  		$self->throw("failed to map $entities[$i] to a table")
 		    unless $tbl;
-		my $fk = $mapper->foreign_key_name($entities[$i]);
- 		$self->throw("failed to map $entities[$i] to a FK")
-		    unless $fk;
-		# record alias, add entity to the datacollections
-		if(! exists($entitymap->{$tbl})) {
-		    $entitymap->{$tbl} = $tbl;
+		$ent_counts{$entities[$i]}++;
+		# record alias and add entity to the datacollections if it
+		# hasn't been done yet
+		$entitymap->{$tbl} = [] unless exists($entitymap->{$tbl});
+		if(! exists($aliasmap->{$entities[$i]})) {
+		    push(@{$entitymap->{$tbl}}, $tbl);
+		    $aliasmap->{$entities[$i]} = $tbl;
+		    $aliasmap->{$tbl} = $tbl;
 		    push(@tablelist, $tbl);
 		}
-		$aliasmap->{$entities[$i]} = $entitymap->{$tbl};
 		# add join to association table
 		my $pk = $mapper->primary_key_name($tbl);
-		$self->throw("failed to map $tbl to primary key") unless $pk;
+ 		$self->throw("failed to map $tbl to primary key") unless $pk;
+		my @tblalias =
+		    split(/::/,
+			  $entitymap->{$tbl}->[$ent_counts{$entities[$i]}-1]);
+		my $fkent = $entities[$i];
+		$fkent .= "::".$tblalias[1] if @tblalias > 1;
+		my $fk = $mapper->foreign_key_name($fkent);
+ 		$self->throw("failed to map $fkent to a FK") unless $fk;
 		push(@joins,
-		     $entitymap->{$tbl} .".". $pk ." = ".
-		     $entitymap->{$assoc} .".". $fk);
+		     $tblalias[0] .".". $pk ." = ".
+		     $entitymap->{$assoc}->[0] .".". $fk);
 	    }
 	    # and finally add association table
 	    push(@tablelist, $assoc . ($alias ? " $alias" : ""));
@@ -198,17 +208,21 @@ sub translate_query{
 	    }
 	    # resolve parent and child to their table names
 	    my $ptbl;
-	    foreach my $t ($child, $parent) {
-		$tbl = $mapper->table_name($t);
-		$ptbl = $tbl if $t eq $parent;
-		$self->throw("failed to map $t to a table") unless $tbl;
+	    foreach my $ent ($child, $parent) {
+		$tbl = $mapper->table_name($ent);
+		$ptbl = $tbl if $ent eq $parent;
+		$self->throw("failed to map $ent to a table") unless $tbl;
 		# store aliases and datacollections
-		if(! exists($entitymap->{$tbl})) {
-		    $entitymap->{$tbl} = $aliases{$t} || $tbl;
+		$entitymap->{$tbl} = [] unless exists($entitymap->{$tbl});
+		$aliases{$ent} = $tbl unless $aliases{$ent};
+		if(! exists($aliasmap->{$ent})) {
+		    push(@{$entitymap->{$tbl}}, $aliases{$ent});
+		    $aliasmap->{$ent} = $aliases{$ent};
+		    $aliasmap->{$aliases{$ent}} = $tbl;
 		    push(@tablelist,
-			 $tbl . ($aliases{$t} ? ' '.$aliases{$t} : ""));
+			 $tbl .
+			 ($aliases{$ent} ne $tbl ? ' '.$aliases{$ent} : ""));
 		}
-		$aliasmap->{$t} = $entitymap->{$tbl};
 	    }
 	    # determine columns for the join (foreign key of child, primary
 	    # key of parent), and add constraint to the list
@@ -222,17 +236,24 @@ sub translate_query{
 	    $tbl = $mapper->table_name($entity);
 	    $self->throw("failed to map $entity to a table") unless $tbl;
 	    # add to data collections while preventing duplicates
-	    if(! exists($entitymap->{$tbl})) {
-		$entitymap->{$tbl} = $alias || $tbl;
-		$aliasmap->{$entity} = $entitymap->{$tbl};
-		push(@tablelist, $tbl . ($alias ? " $alias" : ""));
+	    $entitymap->{$tbl} = [] unless exists($entitymap->{$tbl});
+	    $alias = $tbl unless $alias;
+	    if(! exists($aliasmap->{$alias})) {
+		push(@{$entitymap->{$tbl}}, $alias);
+		$aliasmap->{$entity} = $alias unless $aliasmap->{$entity};
+		$aliasmap->{$alias} = $tbl;
+		if($alias && (index($alias, '::') >= 0)) {
+		    ($alias) = split(/::/, $alias);
+		    $aliasmap->{$alias} = $tbl;
+		}
+		push(@tablelist, $tbl . ($alias ne $tbl ? " $alias" : ""));
 	    }
 	    # we don't need a join here
 	}
     }
     # Entity map maps tables to their aliases. For translating column names
     # we need the reverse map alias->table.
-    while(my @pair = each %$entitymap) { $aliasmap->{$pair[1]} = $pair[0]; }
+    #while(my @pair = each %$entitymap) { $aliasmap->{$pair[1]} = $pair[0]; }
     # map the slots to columns in the constraints and prepend joins to WHERE
     if($tquery->where()) {
 	# map slots to columns
@@ -294,7 +315,7 @@ sub _map_constraint_slots_to_columns{
 	    $mcons->name($alias .".". $slot);
 	} else {
 	    $mcons->name("1");
-	    $mcons->op("=");
+	    $mcons->operand("=");
 	    $mcons->value("1");
 	}
     }

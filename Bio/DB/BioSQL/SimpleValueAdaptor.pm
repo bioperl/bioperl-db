@@ -457,7 +457,7 @@ sub find_by_association{
 	ref($_) && $_->isa("Bio::Annotation::SimpleValue");
     } @$objs;
     # constrain by the category (there is a default if there is no live
-    # annotation object
+    # annotation object)
     my $cat = $self->_category_fk($obj);
     if($cat) {
 	if(! $cat->primary_key()) {
@@ -486,9 +486,10 @@ sub find_by_association{
  Function: Locates the entry associated with the given primary key and
            initializes a persistent object with that entry.
 
-           SimpleValues are not identifiable by primary key. It is suspicious
-           if someone calls this method, so we throw an exception until we
-           know better.
+           SimpleValues are not identifiable by primary key. It is
+           suspicious if someone calls this method, so we throw an
+           exception until we know better.
+
  Example :
  Returns : An instance of the class this adaptor adapts, represented by an
            object implementing Bio::DB::PersistentObjectI, or undef if no
@@ -563,6 +564,5 @@ sub _category_fk{
     }
     return $term;
 }
-
 
 1;

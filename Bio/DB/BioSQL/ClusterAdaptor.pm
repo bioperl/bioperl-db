@@ -242,7 +242,7 @@ sub store_children{
 
     # cluster size becomes a qualifier/value association, which essentially
     # is a SimpleValue annotation
-    my $sizeann = $self->_simple_value('cluster size',$obj->size());
+    my $sizeann = $self->_object_slot('cluster size',$obj->size());
     $ok = $sizeann->store() && $ok;
     $ok = $sizeann->adaptor->add_association(-objs => [$sizeann, $obj]) && $ok;
     # we need to store the annotations, and associate ourselves with them
@@ -255,6 +255,29 @@ sub store_children{
 	    $ok = $ac->store(-fkobjs => [$obj]) && $ok;
 	    $ok = $ac->adaptor()->add_association(-objs => [$ac, $obj]) && $ok;
 	}
+    }
+    # finally, store the members
+    #
+    # obtain the type term for the association upfront
+    my $assoctype = $self->_ontology_term('cluster member',
+					  'Relationship Types','FIND IT');
+    $assoctype->create() unless $assoctype->primary_key();
+    foreach my $mem ($obj->get_members()) {
+	# each member needs to be persistent object
+	if(! $mem->isa("Bio::DB::PersistentObjectI")) {
+	    $mem = $self->db->create_persistent($mem);
+	}
+	# each member needs to have a primary key
+	if(! $mem->primary_key()) {
+	    if(my $found = $mem->adaptor->find_by_unique_key($mem)) {
+		$mem->primary_key($found->primary_key());
+	    } else {
+		$mem->create();
+	    }
+	}
+	# associate the cluster with the member
+	$mem->adaptor->add_association(-objs => [$obj, $mem, $assoctype],
+				       -contexts => ["parent","child",undef]);
     }
     # done
     return $ok;
@@ -321,28 +344,33 @@ sub attach_children{
     my ($self,$obj) = @_;
     my $ok = 1;
 
+    # we need to associate annotation
+    my $ac;
+    if($obj->can('annotation')) {
+	my $annadp = $self->db()->get_object_adaptor(
+					       "Bio::AnnotationCollectionI");
+	my $qres = $annadp->find_by_association(-objs => [$annadp,$obj]);
+	$ok &&= $qres;
+	$ac = $qres->next_object();
+	if($ac) {
+	    $obj->annotation($ac);
+	}
+    }
+    if($ac) {
+	# clean up the annotation collection from object slots
+	$ac->remove_Annotations('Object Slots');
+    }
     # find the tag/value pairs corresponding to object slots
-    my $slotval = $self->_simple_value('dummy');
+    my $slotval = $self->_object_slot('dummy');
     # The SimpleValue object in the association list must not be persistent
     # because otherwise the base adaptor thinks we want to constrain by it.
     # So we simply pass the wrapped object.
-    my $qres = $slotval->adaptor->find_by_association(-objs =>[$slotval->obj,
-							       $obj]);
+    my $qres = $slotval->adaptor->find_by_association(
+					      -objs => [$slotval->obj, $obj]);
     $ok &&= $qres;
     while($slotval = $qres->next_object()) {
 	if($slotval->tagname() eq 'cluster size') {
 	    $obj->size($slotval->value());
-	}
-    }
-    # we need to associate annotation
-    if($obj->can('annotation')) {
-	my $annadp = $self->db()->get_object_adaptor(
-					       "Bio::AnnotationCollectionI");
-	$qres = $annadp->find_by_association(-objs => [$annadp,$obj]);
-	$ok &&= $qres;
-	my $ac = $qres->next_object();
-	if($ac) {
-	    $obj->annotation($ac);
 	}
     }
     # done
@@ -521,10 +549,10 @@ sub _cluster_factory{
     return $self->{'_cluster_factory'};
 }
 
-=head2 _simple_value
+=head2 _object_slot
 
- Title   : _simple_value
- Usage   : $term = $obj->_simple_value($slot, $value);
+ Title   : _object_slot
+ Usage   : $term = $obj->_object_slot($slot, $value);
  Function: Obtain the persistent L<Bio::Annotation::SimpleValue>
            representation of certain slots that map to ontology term
            associations (e.g. size).
@@ -539,27 +567,72 @@ sub _cluster_factory{
 
 =cut
 
-sub _simple_value{
+sub _object_slot{
     my ($self,$slot,$val) = @_;
     my $svann;
 
-    if(! exists($self->{'_simple_values'})) {
-	$self->{'_simple_values'} = {};
+    if(! exists($self->{'_object_slots'})) {
+	$self->{'_object_slots'} = {};
     }
 
-    if(! exists($self->{'_simple_values'}->{$slot})) {
+    if(! exists($self->{'_object_slots'}->{$slot})) {
 	my $term = Bio::Ontology::Term->new(-name     => $slot,
 					    -category => 'Object Slots');
 	$svann = Bio::Annotation::SimpleValue->new(-tag_term => $term);
-	$self->{'_simple_values'}->{$slot} = $svann;
+	$self->{'_object_slots'}->{$slot} = $svann;
     } else {
-	$svann = $self->{'_simple_values'}->{$slot};
+	$svann = $self->{'_object_slots'}->{$slot};
     }
     # always create a new persistence wrapper for it - otherwise we run the
     # risk of messing with cached objects
     $svann->value($val);
     $svann = $self->db()->create_persistent($svann);
     return $svann;
+}
+
+=head2 _ontology_term
+
+ Title   : _ontology_term
+ Usage   : $term = $obj->_ontology_term($name,$category)
+ Function: Obtain the persistent ontology term with the given name
+           and category.
+
+           This is an internal method.
+
+ Example : 
+ Returns : A persistent Bio::Ontology::TermI object
+ Args    : The name for the term.
+           The category name for the term.
+           Whether or not to find the term.
+
+
+=cut
+
+sub _ontology_term{
+    my ($self,$name,$cat,$find_it) = @_;
+    my $term;
+
+    if(! exists($self->{'_ontology_terms'})) {
+	$self->{'_ontology_terms'} = {};
+    }
+
+    if(! exists($self->{'_ontology_terms'}->{$name})) {
+	$term = Bio::Ontology::Term->new(-name => $name,
+					 -category => $cat);
+	$self->{'_ontology_terms'}->{$name} = $term;
+    } else {
+	$term = $self->{'_ontology_terms'}->{$name};
+    }
+    if($find_it) {
+	my $adp = $self->db->get_object_adaptor($term);
+	my $found = $adp->find_by_unique_key($term);
+	if($found) {
+	    $term = $found;
+	} else {
+	    $term = $self->db()->create_persistent($term);
+	}
+    }
+    return $term;
 }
 
 1;

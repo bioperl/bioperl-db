@@ -315,13 +315,23 @@ sub remove{
  Example :
  Returns : TRUE on success and FALSE otherwise
  Args    : Named parameters. At least the following must be recognized:
-               -objs   a reference to an array of objects to be associated with
-                       each other
-               -values a reference to a hash the keys of which are abstract
-                       column names and the values are values of those columns.
-                       These columns are generally those other than
-                       the ones for foreign keys to the entities to be
-                       associated
+               -objs   a reference to an array of objects to be
+                       associated with each other
+               -values a reference to a hash the keys of which are
+                       abstract column names and the values are values
+                       of those columns.  These columns are generally
+                       those other than the ones for foreign keys to
+                       the entities to be associated
+               -contexts optional; if given it denotes a reference
+                       to an array of context keys (strings), which
+                       allow the foreign key name to be determined
+                       through the association map rather than through
+                       foreign_key_name().  This may be necessary if
+                       more than one object of the same type takes
+                       part in the association. The array must be in
+                       the same order as -objs, and have the same
+                       number of elements. Put undef for objects
+                       for which there are no multiple contexts.
   Caveats: Make sure you *always* give the objects to be associated in the
            same order.
 
@@ -860,8 +870,11 @@ sub find_by_query{
     my @fkobjs = $self->get_foreign_key_objects(@$fkargs);
     # if it is a named query, we check the cache
     $sth = $self->sth($qname) if $qname;
-    # if not in cache or not a named query, we need to build it
-    if(! $sth) {
+    # the query might be known but disabled because it is unsupported by the
+    # underlying schema
+    if($sth && ($sth eq "DISABLED")) {
+    	return Bio::DB::Query::PrebuiltResult->new(-objs => []);
+    } elsif(! $sth) { # not in cache or not a named query
 	# translate query object from objects and slots to tables and columns
 	$query = $self->dbd()->translate_query($self, $query, \@fkobjs);
 	# obtain SQL generator
@@ -879,7 +892,17 @@ sub find_by_query{
 	for(my $i = 1; $i <= @$qvalues; $i++) {
 	    $self->debug("Query $qname: binding column $i to \"".
 			 $qvalues->[$i-1]."\"\n");
-	    $sth->bind_param($i, $qvalues->[$i-1]);
+	    if(! $sth->bind_param($i, $qvalues->[$i-1])) {
+		# This is either due to an internal bug or to a constraint
+		# column not supported by the underlying schema (i.e., mapped
+		# to undef). While the first case warrants an exception, the
+		# latter is perfectly legal and should go as unnoticed as
+		# possible. We'll return an empty set and disable the query
+		# for future use.
+		$sth->finish();
+		$self->sth($qname, "DISABLED") if $qname;
+		return Bio::DB::Query::PrebuiltResult->new(-objs => []);
+	    }
 	}
     }
     # ready to execute
@@ -1236,7 +1259,7 @@ sub finish{
     if($self->{'_dbh'}) {
 	# finish all statement handles
 	foreach my $sth ($self->sth()) {
-	    next unless $sth; # sometimes during destruction these get unset...
+	    next unless ref($sth); # some statements may be disabled
 	    eval {
 		$sth->finish();
 	    };

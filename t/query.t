@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 15;
+    plan tests => 16;
 }
 
 use Bio::DB::Query::SqlQuery;
@@ -151,3 +151,19 @@ ok ($sql,
     "WHERE bioentry.bioentry_id = bioentry_qualifier_value.bioentry_id ".
     "AND sv.ontology_term_id = bioentry_qualifier_value.ontology_term_id ".
     "AND (bioentry.bioentry_id = 10 AND sv.category_id = 3)");
+
+$query->datacollections(
+		  ["Bio::PrimarySeqI c::child",
+		   "Bio::PrimarySeqI p::parent",
+		   "Bio::PrimarySeqI<=>Bio::PrimarySeqI<=>Bio::Ontology::TermI"]);
+$query->where(["p.accession_number = 'Hs.2'",
+	       "Bio::Ontology::TermI::name = 'cluster member'"]);
+$tquery = $query->translate_query($mapper);
+$sql = $sqlgen->generate_sql($tquery);
+ok ($sql,
+    "SELECT * ".
+    "FROM bioentry c, bioentry p, ontology_term, bioentry_relationship ".
+    "WHERE c.bioentry_id = bioentry_relationship.child_bioentry_id ".
+    "AND p.bioentry_id = bioentry_relationship.parent_bioentry_id ".
+    "AND ontology_term.ontology_term_id = bioentry_relationship.ontology_term_id ".
+    "AND (p.accession = 'Hs.2' AND ontology_term.term_name = 'cluster member')");

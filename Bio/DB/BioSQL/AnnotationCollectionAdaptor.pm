@@ -10,7 +10,7 @@
 # You may distribute this module under the same terms as perl itself
 
 # 
-# Version 1.42 and up are also
+# Version 1.4 and up are also
 # (c) Hilmar Lapp, hlapp at gmx.net, 2002.
 # (c) GNF, Genomics Institute of the Novartis Research Foundation, 2002.
 #
@@ -81,10 +81,11 @@ use strict;
 
 use Bio::DB::Query::PrebuiltResult;
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
+use Bio::Annotation::AnnotationFactory;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
-our %annotation_type_map = (
+my %annotation_type_map = (
 	"Bio::Annotation::DBLink"      => {
 	    "key"      => "dblink",
 	    "link"     => "association",
@@ -94,6 +95,10 @@ our %annotation_type_map = (
 	    "link"     => "association",
 	},
 	"Bio::Annotation::SimpleValue" => {
+	    "key"      => "dummy",
+	    "link"     => "association",
+	},
+	"Bio::Annotation::OntologyTerm" => {
 	    "key"      => "dummy",
 	    "link"     => "association",
 	},
@@ -212,11 +217,64 @@ sub store_children{
     return $ok;
 }
 
+=head2 attach_children
+
+ Title   : attach_children
+ Usage   :
+ Function: Possibly retrieve and attach child objects of the given object.
+
+           This is called by the find_by_XXXX() methods once the base
+           object has been built.
+
+ Example :
+ Returns : TRUE on success, and FALSE otherwise.
+ Args    : The object for which to find and to which to attach the child
+           objects.
+           Foreign key objects by which to find the entries to be attached
+           (as an array ref).
+
+
+=cut
+
+sub attach_children{
+    my ($self,$obj,$fkobjs) = @_;
+    my $ok = 1;
+
+    # extract the object which provides the foreign key by which to find
+    my ($fkobj) = grep {
+	ref($_) && $_->isa("Bio::DB::PersistentObjectI");
+    } ($fkobjs ? @$fkobjs : ());
+    # get the annotation type map and loop over all supported types
+    my $annotmap = $self->_supported_annotation_map();
+    foreach my $anntype (keys %$annotmap) {
+	# we only attach children for parent/child links
+	next unless $annotmap->{$anntype}->{link} eq "child";
+	# ok, this is linked as a child
+	my $annadp = $self->db()->get_object_adaptor($anntype);
+	# find by foreign key
+	my $query = Bio::DB::Query::BioQuery->new(
+			      -datacollections => ["$anntype t1"],
+		              -where => ["t1.".ref($fkobj->adaptor)." = ?"]);
+	my $qres = $annadp->find_by_query(
+			      $query,
+			      -name => "FIND $anntype BY ".ref($fkobj->obj),
+			      -values => [$fkobj->primary_key()]);
+	$ok = $qres && $ok;
+	while(my $ann = $qres->next_object()) {
+	    $ann->tagname($annotmap->{$anntype}->{key}) unless $ann->tagname();
+	    $obj->add_Annotation($ann);
+	}
+    }
+    # done
+    return $ok;
+}
+
 =head1 Inherited methods
 
-We override a couple of inherited methods here because an AnnotationCollection
-currently is only a virtual entity in the database. Hence, a number of
-operations greatly reduce or don't make sense at all.
+ We override a couple of inherited methods here because an
+ AnnotationCollection currently is only a virtual entity in the
+ database. Hence, a number of operations greatly reduce or don't make
+ sense at all.
 
 =head2 remove
 
@@ -411,8 +469,10 @@ sub find_by_association{
 	$ac = $fact ?
 	    $fact->create_object() : Bio::Annotation::Collection->new();
     }
-    delete $params{-obj_factory};
     delete $params{-OBJ_FACTORY};
+    # prepare the factory for the individual annotation objects
+    my $fact = Bio::Annotation::AnnotationFactory->new();
+    $params{-obj_factory} = $fact;
     # obtain the map from annotation types to annotation keys
     my $annotmap = $self->_supported_annotation_map();
     # loop over all supported annotations and find the ones associated
@@ -425,8 +485,12 @@ sub find_by_association{
 	my $annadp = $self->db()->get_object_adaptor($anntype);
 	# temporarily add the type to the array of objects to be associated
 	push(@$objs, $anntype);
+	# set type for annotation object factory
+	$fact->type($anntype);
+	# determine type-specific arguments if there are any
+	my @typeargs = $self->_anntype_assoc_args($annadp, $anntype);
 	# get query result
-	my $qres = $annadp->find_by_association(%params);
+	my $qres = $annadp->find_by_association(%params, @typeargs);
 	# loop over all result objects and attach
 	while(my $ann = $qres->next_object()) {
 	    # tagname may come from the db - otherwise set it from the map
@@ -437,6 +501,9 @@ sub find_by_association{
 	# restore object array
 	pop(@$objs);
     }
+    # add children if there are any (those annotations linked by
+    # foreign key instead of association)
+    $self->attach_children($ac,$objs);
     # return a prebuilt query result to be compatible with the expected
     # return type
     return $foundanything ?
@@ -483,6 +550,56 @@ sub remove_children{
     }
     # done
     return 1;
+}
+
+=head1 Internal Methods
+
+ These are mostly private or 'protected.' Methods which are in the
+ latter class have this explicitly stated in their
+ documentation. 'Protected' means you may call these from derived
+ classes, but not from outside.
+
+ Most of these methods cache certain adaptors or otherwise reduce call
+ path and object creation overhead. There's no magic here.
+
+=cut
+
+=head2 _anntype_assoc_args
+
+ Title   : _anntype_assoc_args
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub _anntype_assoc_args{
+    my ($self,$adp,$anntype) = @_;
+    my @typeargs = ();
+
+    if($anntype eq "Bio::Annotation::OntologyTerm") {
+	# exclude the SimpleValue annotation
+	my $term = $self->{'_category_fk'};
+	if(! $term) {
+	    $term = Bio::Ontology::Term->new(-name => "Annotation Tags");
+	}
+	if(! $term->isa("Bio::DB::PersistentObjectI")) {
+	    $term = $self->db()->create_persistent($term);
+	    $self->{'_category_fk'} = $term;
+	}
+	$term = $term->adaptor->find_by_unique_key($term);
+	if($term) {
+	    my $qc = Bio::DB::Query::QueryConstraint->new($anntype.
+							  "::category != ?");
+	    push(@typeargs,
+		 -constraints => [$qc],
+		 -values => { $qc => $term->primary_key() });
+	}
+    }
+    return @typeargs;
 }
 
 =head2 _supported_annotation_map

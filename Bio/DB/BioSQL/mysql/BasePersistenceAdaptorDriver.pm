@@ -91,58 +91,51 @@ use Bio::DB::BioSQL::BaseDriver;
 # here goes our entire object-relational mapping
 #
 my %object_entity_map = (
-		   "Bio::BioEntry"            => "bioentry",
-		   "Bio::PrimarySeqI"         => "bioentry",
-		   "Bio::DB::BioSQL::PrimarySeqAdaptor"
-		                              => "bioentry",
-		   "Bio::SeqI"                => "bioentry",
-		   "Bio::DB::BioSQL::SeqAdaptor"
-		                              => "bioentry",
-		   "Bio::IdentifiableI"       => "bioentry",
-		   "Bio::ClusterI"            => "bioentry",
-		   "Bio::DB::BioSQL::ClusterAdaptor"
-			                      => "bioentry",
-		   "Bio::DB::BioSQL::BiosequenceAdaptor"
-		                              => "biosequence",
-		   "Bio::SeqFeatureI"         => "seqfeature",
-		   "Bio::DB::BioSQL::SeqFeatureAdaptor"
-		                              => "seqfeature",
-		   "Bio::Species"             => "taxon",
-		   "Bio::DB::BioSQL::SpeciesAdaptor"
-		                              => "taxon",
-		   "Bio::LocationI"           => "seqfeature_location",
-		   "Bio::DB::BioSQL::LocationAdaptor" 
-		                              => "seqfeature_location",
-		   "Bio::DB::BioSQL::BioNamespaceAdaptor"
-		                              => "biodatabase",
-		   "Bio::DB::Persistent::BioNamespace"
-			                      => "biodatabase",
-		   "Bio::Annotation::DBLink"  => "dbxref",
-		   "Bio::DB::BioSQL::DBLinkAdaptor"
-		                              => "dbxref",
-		   "Bio::Annotation::Comment" => "comment",
-		   "Bio::DB::BioSQL::CommentAdaptor" 
-                                              => "comment",
-		   "Bio::Annotation::Reference" => "reference",
-		   "Bio::DB::BioSQL::ReferenceAdaptor"
-		                              => "reference",
-		   "Bio::Annotation::SimpleValue" => "ontology_term",
-		   "Bio::DB::BioSQL::SimpleValueAdaptor" =>
-                                              => "ontology_term",
-		   "Bio::Ontology::TermI"     => "ontology_term",
-		   "Bio::DB::BioSQL::TermAdaptor" =>
-                                              => "ontology_term",
+		"Bio::BioEntry"                       => "bioentry",
+		"Bio::PrimarySeqI"                    => "bioentry",
+		"Bio::DB::BioSQL::PrimarySeqAdaptor"  => "bioentry",
+		"Bio::SeqI"                           => "bioentry",
+		"Bio::DB::BioSQL::SeqAdaptor"         => "bioentry",
+		"Bio::IdentifiableI"                  => "bioentry",
+		"Bio::ClusterI"                       => "bioentry",
+		"Bio::DB::BioSQL::ClusterAdaptor"     => "bioentry",
+		"Bio::DB::BioSQL::BiosequenceAdaptor" => "biosequence",
+		"Bio::SeqFeatureI"                    => "seqfeature",
+		"Bio::DB::BioSQL::SeqFeatureAdaptor"  => "seqfeature",
+		"Bio::Species"                        => "taxon",
+		"Bio::DB::BioSQL::SpeciesAdaptor"     => "taxon",
+		"Bio::LocationI"                      => "seqfeature_location",
+		"Bio::DB::BioSQL::LocationAdaptor"    => "seqfeature_location",
+		"Bio::DB::BioSQL::BioNamespaceAdaptor"=> "biodatabase",
+		"Bio::DB::Persistent::BioNamespace"   => "biodatabase",
+		"Bio::Annotation::DBLink"             => "dbxref",
+		"Bio::DB::BioSQL::DBLinkAdaptor"      => "dbxref",
+		"Bio::Annotation::Comment"            => "comment",
+		"Bio::DB::BioSQL::CommentAdaptor"     => "comment",
+		"Bio::Annotation::Reference"          => "reference",
+		"Bio::DB::BioSQL::ReferenceAdaptor"   => "reference",
+		"Bio::Annotation::SimpleValue"        => "ontology_term",
+		"Bio::DB::BioSQL::SimpleValueAdaptor" => "ontology_term",
+		"Bio::Annotation::OntologyTerm"       => "ontology_term",
+		"Bio::Ontology::TermI"                => "ontology_term",
+		"Bio::DB::BioSQL::TermAdaptor"        => "ontology_term",
 		   );
 my %association_entity_map = (
 	 "bioentry" => {
 	     "dbxref"         => "bioentry_dblink",
 	     "reference"      => "bioentry_reference",
 	     "ontology_term"  => "bioentry_qualifier_value",
+	     "bioentry"       => {
+		 "ontology_term" => "bioentry_relationship",
+	     }
 	 },
 	 "seqfeature" => {
 	     "ontology_term"  => "seqfeature_qualifier_value",
 	     "dbxref"         => undef,
 	     "reference"      => undef,
+	     "seqfeature"     => {
+		 "ontology_term" => "seqfeature_relationship",
+	     }
 	 },
 	 "dbxref"   => {
 	     "bioentry"       => "bioentry_dblink",
@@ -177,6 +170,12 @@ my %slot_attribute_map = (
 	     "description"    => "description",
 	     "version"        => "entry_version",
 	     "bionamespace"   => "biodatabase_id",
+	     "parent"         => "parent_bioentry_id",
+	     "child"          => "child_bioentry_id",
+	 },
+	 "bioentry_relationship" => {
+	     "parent"         => "parent_bioentry_id",
+	     "child"          => "child_bioentry_id",
 	 },
 	 "biosequence" => {
 	     "seq_version"    => "seq_version",
@@ -210,6 +209,7 @@ my %slot_attribute_map = (
 	 "comment"            => {
 	     "text"           => "comment_text",
 	     "rank"           => "comment_rank",
+	     "Bio::DB::BioSQL::SeqFeatureAdaptor" => undef,
 	 },
          "ontology_term"      => {
 	     "identifier"     => "term_identifier",

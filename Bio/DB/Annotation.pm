@@ -1,4 +1,4 @@
-
+# $Id$
 
 #
 # BioPerl module for Bio::DB::Annotation
@@ -62,14 +62,9 @@ The rest of the documentation details each of the object methods. Internal metho
 package Bio::DB::Annotation;
 use vars qw(@ISA);
 use strict;
+use Bio::Root::Root;
 
-# Object preamble - inherits from Bio::Root::RootI
-
-use Bio::Root::RootI;
-
-
-@ISA = qw(Bio::Root::RootI);
-# new() can be inherited from Bio::Root::RootI
+@ISA = qw(Bio::Root::Root);
 
 =head2 new
 
@@ -86,10 +81,10 @@ use Bio::Root::RootI;
 sub new{
    my ($class,@args) = @_;
 
-   my $self = {};
-   bless $self,$class;
+   my $self = bless {}, ref($class) || $class;
 
-   my ($dbadp,$bioentry_id) = $self->_rearrange([qw(ADAPTOR BIOENTRY_ID)],@args);
+   my ($dbadp,$bioentry_id) = $self->_rearrange([qw(ADAPTOR 
+						    BIOENTRY_ID)],@args);
 
    if( !defined $dbadp || !defined $bioentry_id) {
        $self->throw("Must have database adaptor and bioentry_id");
@@ -101,6 +96,48 @@ sub new{
    return $self;
 }
 
+
+=head2 get_Annotations
+
+ Title   : get_Annotations
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_Annotations{
+   my ($self,$type) = @_;
+
+   $type = lc $type;
+   if( $type eq 'comment' ) { 
+       if( !defined $self->{'_comment'} ) {
+	   my @array = $self->_db_adaptor->get_CommentAdaptor->fetch_by_bioentry_id($self->_bioentry_id);
+	   $self->{'_comment'}= \@array;
+       }
+       return @{$self->{'_comment'}};       
+   } elsif ($type eq 'reference' ) { 
+
+       if( !defined $self->{'_references'} ) {
+	   my @array = $self->_db_adaptor->get_ReferenceAdaptor->fetch_by_bioentry_id($self->_bioentry_id);
+	   $self->{'_references'}= \@array;
+       }
+       
+       return @{$self->{'_references'}};
+
+   } elsif ($type eq 'dblink' ) {
+       if( !defined $self->{'_db_link'} ) {
+	   my @array = $self->_db_adaptor->get_DBLinkAdaptor->fetch_by_bioentry_id($self->_bioentry_id);
+	   $self->{'_db_link'}= \@array;
+       }
+       
+       return @{$self->{'_db_link'}};
+   }
+   return ();
+}
 
 =head2 each_Comment
 
@@ -116,14 +153,8 @@ sub new{
 
 sub each_Comment{
    my ($self,@args) = @_;
-
-   if( !defined $self->{'_comment'} ) {
-       my @array = $self->_db_adaptor->get_CommentAdaptor->fetch_by_bioentry_id($self->_bioentry_id);
-       $self->{'_comment'}= \@array;
-   }
-
-
-   return @{$self->{'_comment'}};
+   $self->warn("Deprecated: each_Comment is replaced with get_Annotations('comment')");
+   return $self->get_Annotations('comment');
 }
 
 =head2 each_DBLink
@@ -140,13 +171,8 @@ sub each_Comment{
 
 sub each_DBLink{
    my ($self,@args) = @_;
-
-   if( !defined $self->{'_db_link'} ) {
-       my @array = $self->_db_adaptor->get_DBLinkAdaptor->fetch_by_bioentry_id($self->_bioentry_id);
-       $self->{'_db_link'}= \@array;
-   }
-
-   return @{$self->{'_db_link'}};
+   $self->warn("Deprecated: each_DBlink is replaced with get_Annotations('dblink')");
+   return $self->get_Annotations('dblink');
 }
 
 =head2 each_Reference
@@ -163,13 +189,8 @@ sub each_DBLink{
 
 sub each_Reference{
    my ($self,@args) = @_;
-
-   if( !defined $self->{'_references'} ) {
-       my @array = $self->_db_adaptor->get_ReferenceAdaptor->fetch_by_bioentry_id($self->_bioentry_id);
-       $self->{'_references'}= \@array;
-   }
-
-   return @{$self->{'_references'}};
+   $self->warn("Deprecated: each_Reference is replaced with get_Annotations('reference')");
+   return $self->get_Annotations('reference');
 }
 
 
@@ -218,3 +239,5 @@ sub _db_adaptor{
     return $obj->{'_db_adaptor'};
 
 }
+
+1;

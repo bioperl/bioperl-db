@@ -1,5 +1,4 @@
-
-
+# $Id$
 #
 # BioPerl module for Bio::DB::SQL::PrimarySeqAdaptor
 #
@@ -95,12 +94,12 @@ sub fetch_by_dbID{
        $self->throw("Bioentry id $id does not have a biosequence or bioentry ");
    }
 
-   return Bio::DB::PrimarySeq->new( -primary_id => $id,
-				    -display_id => $display,
-				    -accession  => $acc,
-				    -moltype    => $mol,
-				    '-length'   => $len,
-				    -adaptor    => $self);
+   return Bio::DB::PrimarySeq->new( '-primary_id' => $id,
+				    '-display_id' => $display,
+				    '-accession'  => $acc,
+				    '-alphabet'    => $mol,
+				    '-length'     => $len,
+				    '-adaptor'    => $self);
    
 }
 
@@ -123,8 +122,8 @@ sub store{
        $self->throw("Yikes. Don't have a primary seq to store $pseq");
    }
    my $mol='XXX';
-   if (defined $pseq->moltype) {
-       $mol=$pseq->moltype;
+   if (defined $pseq->alphabet) {
+       $mol=$pseq->alphabet;
    }
    my $seq = $pseq->seq;
    my $sth = $self->prepare("insert into biosequence (biosequence_id,bioentry_id,biosequence_str,molecule) values (NULL,$bioentry_id,'$seq','$mol')");
@@ -216,8 +215,3 @@ sub get_description{
 }
 
 1;
-
-
-
-
-

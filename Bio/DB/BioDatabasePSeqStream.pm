@@ -1,4 +1,4 @@
-
+# $Id$
 #
 # BioPerl module for Bio::DB::BioDatabasePSeqStream
 #
@@ -12,7 +12,7 @@
 
 =head1 NAME
 
-Bio::DB::BioDatabasePSeqStream - DESCRIPTION of Object
+Bio::DB::BioDatabasePSeqStream - PrimarySeqStreamI implementation
 
 =head1 SYNOPSIS
 
@@ -64,18 +64,17 @@ use strict;
 
 # Object preamble - inherits from Bio::Root::RootI
 
-use Bio::Root::RootI;
+use Bio::Root::Root;
 
-@ISA = qw(Bio::Root::RootI);
-# new() can be inherited from Bio::Root::RootI
+@ISA = qw(Bio::Root::Root);
 
 sub new {
     my ($class,@args) = @_;
 
-    my $self = {};
-    bless $self,$class;
+    my $self = bless {}, ref($class) || $class;
 
-    my($adaptor,$idlist) = $self->_rearrange(['ADAPTOR','IDLIST'],@args);
+    my($adaptor,$idlist) = $self->_rearrange([qw(ADAPTOR 
+						 IDLIST)],@args);
     
     if( !defined $adaptor ) {
 	$self->throw("No adaptor!");
@@ -93,8 +92,8 @@ sub new {
  Usage   :
  Function:
  Example :
- Returns : 
- Args    :
+ Returns : Bio::PrimarySeqI
+ Args    : none
 
 
 =cut
@@ -131,5 +130,4 @@ sub _adaptor{
 
 }
 
-
-
+1;

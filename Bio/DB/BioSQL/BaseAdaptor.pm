@@ -1,3 +1,4 @@
+# $Id$
 
 =head1 NAME
 
@@ -40,16 +41,15 @@ package Bio::DB::SQL::BaseAdaptor;
 
 use vars qw(@ISA);
 use strict;
-use Bio::Root::RootI;
+use Bio::Root::Root;
 use Bio::DB::SQL::BioQuery;
 
-@ISA = qw(Bio::Root::RootI);
+@ISA = qw(Bio::Root::Root);
 
 sub new {
     my ($class,$dbobj) = @_;
 
-    my $self = {};
-    bless $self,$class;
+    my $self = bless {}, ref($class) || $class;
 
     if( !defined $dbobj || !ref $dbobj ) {
 	$self->throw("Don't have a db [$dbobj] for new adaptor");
@@ -285,9 +285,5 @@ sub do_query {
     $sth->execute;
     return $sth;
 }
-
-
-
-
 
 1;

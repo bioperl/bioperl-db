@@ -1,4 +1,4 @@
-
+# $Id$
 #
 # BioPerl module for Bio::DB::Map::MarkerI
 #
@@ -92,7 +92,7 @@ sub to_string {
 
 sub add_alias {
     my($self,$alias, $map) = @_;
-    $self->abstractDeath();
+    $self->abstractDeath('add_alias');
 }
 
 =head2 get_source_for_alias
@@ -107,7 +107,7 @@ sub add_alias {
 
 sub get_source_for_alias {
     my($self,$alias) = @_;
-    $self->_abstractDeath();
+    $self->_abstractDeath('get_source_for_alias');
 }
 
 =head2 is_alias
@@ -122,7 +122,7 @@ sub get_source_for_alias {
 
 sub is_alias {
     my ($self,$name) = @_;
-    $self->abstractDeath();
+    $self->abstractDeath('is_alias');
 }
 
 =head2 each_alias
@@ -137,7 +137,7 @@ sub is_alias {
 
 sub each_alias {
     my($self) = @_;
-    $self->abstractDeath();
+    $self->abstractDeath('each_alias');
 }
 
 =head2 remove_alias
@@ -152,7 +152,7 @@ sub each_alias {
 
 sub remove_alias {
     my ($self,$name) = @_;
-    $self->abstractDeath();
+    $self->abstractDeath('remove_alias');
 }
 
 
@@ -171,7 +171,7 @@ sub remove_alias {
 
 sub add_position {
     my($self,$position,$map) = @_;
-    $self->abstractDeath();
+    $self->abstractDeath('add_position');
 }
 
 =head2 each_position
@@ -187,7 +187,7 @@ sub add_position {
 
 sub each_position {
     my($self) = @_;
-    $self->_abstractDeath();
+    $self->_abstractDeath('each_position');
 }
 
 =head2 get_position
@@ -203,7 +203,7 @@ sub each_position {
 
 sub get_position {
     my($self,$map) = @_;
-    $self->_abstractDeath();
+    $self->_abstractDeath('get_position');
 }
 
 =head2 id
@@ -218,7 +218,7 @@ sub get_position {
 
 sub id { 
     my ($self,$value) = @_;
-    $self->_abstractDeath();
+    $self->_abstractDeath('id');
 }
 
 =head2 chrom
@@ -233,7 +233,7 @@ sub id {
 
 sub chrom { 
     my ($self,$value) = @_;
-    $self->_abstractDeath();
+    $self->_abstractDeath('chrom');
 }
 
 =head2 locus
@@ -250,7 +250,7 @@ sub chrom {
 
 sub locus{
    my ($obj,$value) = @_;
-    $obj->_abstractDeath();
+    $obj->_abstractDeath('locus');
 }
 
 =head2 probe
@@ -267,7 +267,7 @@ sub locus{
 
 sub probe{
    my ($obj,$value) = @_;
-    $obj->_abstractDeath();
+    $obj->_abstractDeath('probe');
 }
 
 =head2 pcrfwd
@@ -284,7 +284,7 @@ sub probe{
 
 sub pcrfwd{
     my ($obj) = @_;
-    $obj->_abstractDeath();
+    $obj->_abstractDeath('pcrfwd');
 }
 
 =head2 pcrrev
@@ -301,7 +301,7 @@ sub pcrfwd{
     
 sub pcrrev{
     my ($obj) = @_;
-    $obj->_abstractDeath();
+    $obj->_abstractDeath('pcrrev');
 }
 
 =head2 type
@@ -318,18 +318,8 @@ sub pcrrev{
 
 sub type{
     my ($self) = @_;
-    $self->_abstractDeath();
+    $self->_abstractDeath('type');
 }
-
-
-sub _abstractDeath {
-  my $self = shift;
-  my $package = ref $self;
-  my $caller = (caller)[1];
-  
-  confess "Abstract method '$caller' defined in interface Bio::DB::Map::MarkerI not implemented by pacakge $package. Not your fault - author of $package should be blamed!";
-}
-
 
 1;
 

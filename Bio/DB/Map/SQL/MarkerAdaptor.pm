@@ -1,4 +1,4 @@
-
+# $Id$
 #
 # BioPerl module for Bio::DB::Map::SQL::MarkerAdaptor
 #
@@ -612,4 +612,5 @@ sub prepare {
     my ($self, @args) = @_;
     $self->SUPER::prepare(@args);
 }
+
 1;

@@ -1,4 +1,4 @@
-
+# $Id$
 #
 # BioPerl module for Bio::DB::Map::Map
 #
@@ -64,14 +64,14 @@ use strict;
 
 # Object preamble - inherits from Bio::Root::RootI
 
-use Bio::Root::RootI;
+use Bio::Root::Root;
 use Bio::DB::Map::MapI;
 
-@ISA = qw(Bio::DB::Map::MapI Bio::Root::RootI );
+@ISA = qw(Bio::Root::Root Bio::DB::Map::MapI);
 
 sub new {
     my($class,@args) = @_;
-        my $self = $class->SUPER::new(@args);
+    my $self = bless {}, ref($class) || $class;
     my ($mapname,$mapunits,
 	$id, $adaptor) = $self->_rearrange([qw(NAME 
 					       UNITS 

@@ -1,3 +1,4 @@
+# $Id$
 
 =head1 NAME
 
@@ -5,7 +6,7 @@ Bio::DB::SQL::AbstractQuery - Abstract Query class
 
 =head1 SYNOPSIS
 
-Don't use this class directly; use one of the subclasses (eg SqlQuery,
+Don\'t use this class directly; use one of the subclasses (eg SqlQuery,
 BioQuery)
 
   $q = $queryclass->new;
@@ -46,16 +47,14 @@ package Bio::DB::SQL::AbstractQuery;
 
 use vars qw(@ISA);
 use strict;
-use Bio::Root::RootI;
+use Bio::Root::Root;
 use Bio::DB::SQL::QueryConstraint;
 
 @ISA = qw(Bio::Root::RootI);
 
 sub new {
     my $class = shift;
-
-    my $self = {};
-    bless $self,$class;
+    my $self = bless {}, ref($class) || $class;
 
     my ($datacollection, $where, $select, $order, $group, $type, $bio) = 
 	$self->_rearrange([qw(DATACOLLECTION WHERE SELECT ORDER GROUP TYPE BIO)], @_);
@@ -261,8 +260,3 @@ sub flatten_qc {
 
 
 1;
-
-
-
-
-

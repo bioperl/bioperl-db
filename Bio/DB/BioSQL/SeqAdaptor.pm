@@ -1,4 +1,4 @@
-
+# $Id$
 
 #
 # BioPerl module for Bio::DB::SQL::SeqAdaptor
@@ -104,15 +104,15 @@ sub fetch_by_dbID{
        $self->throw("Bioentry id $id does not have a biosequence or bioentry ");
    }
 
-   return Bio::DB::Seq->new( -primary_id => $id,
-			     -display_id => $display,
-			     -accession  => $acc,
-			     -version    => $version,
+   return Bio::DB::Seq->new( '-primary_id' => $id,
+			     '-display_id' => $display,
+			     '-accession'  => $acc,
+			     '-version'    => $version,
 			     '-length'   => $len,
-			     -moltype   => $mol,
-			     -division   => $div,
-			     -desc       => $desc,
-			     -adaptor    => $self);
+			     '-alphabet' => $mol,
+			     '-division'   => $div,
+			     '-desc'       => $desc,
+			     '-adaptor'    => $self);
    
 
 }
@@ -482,14 +482,15 @@ sub store{
 
    $rank = 1;
    $adp = $self->db->get_CommentAdaptor();
-   foreach my $comment ( $seq->annotation->each_Comment ) {
+
+   foreach my $comment ( $seq->annotation->get_Annotations('comment') ) {
        $adp->store($comment,$rank,$id);
        $rank++;
    }
    
    $rank = 1;
    my $rdp = $self->db->get_ReferenceAdaptor();
-   foreach my $ref ( $seq->annotation->each_Reference ) {
+   foreach my $ref ( $seq->annotation->get_Annotations('reference') ) {
        my $rid = $rdp->store_if_needed($ref);
 
        my $start='NULL';
@@ -508,7 +509,7 @@ sub store{
 
 
    $adp = $self->db->get_DBLinkAdaptor();
-   foreach my $dblink ( $seq->annotation->each_DBLink ) {
+   foreach my $dblink ( $seq->annotation->get_Annotations('dblink') ) {
        $adp->store($dblink,$id);
    }
 
@@ -671,3 +672,5 @@ sub get_description_by_accession{
 
    return $desc;
 }
+
+1;

@@ -1,3 +1,4 @@
+# $Id$
 
 # POD documentation - main docs before the code
 
@@ -41,9 +42,7 @@ package Bio::DB::SQL::DBAdaptor;
 use vars qw(@ISA);
 use strict;
 
-# Object preamble - inherits from Bio::Root::Object
-
-use Bio::Root::RootI;
+use Bio::Root::Root;
 use Bio::DB::SQL::SeqAdaptor;
 use Bio::DB::SQL::PrimarySeqAdaptor;
 use Bio::DB::SQL::BioDatabaseAdaptor;
@@ -59,12 +58,13 @@ use Bio::DB::SQL::ReferenceAdaptor;
 
 use DBI;
 
-@ISA = qw(Bio::Root::RootI);
+@ISA = qw(Bio::Root::Root);
 
 sub new {
   my($pkg, @args) = @_;
 
-  my $self = bless {}, $pkg;
+  my $self = $pkg->SUPER::new(@args);
+  #bless {}, $pkg;
 
     my (
         $db,
@@ -82,7 +82,6 @@ sub new {
 	    )],@args);
     $db   || $self->throw("Database object must have a database name");
     $user || $self->throw("Database object must have a user");
-
     if( ! $driver ) {
         $driver = 'mysql';
     }
@@ -93,8 +92,12 @@ sub new {
         $port = '';
     }
 
-    my $dsn = "DBI:$driver:database=$db;host=$host;port=$port";
-	
+  my $dsn;
+  if( $driver eq 'mysql' ) { 
+      $dsn = "DBI:$driver:database=$db;host=$host;port=$port";
+  } elsif( $driver eq 'Pg' ) {
+      $dsn = "DBI:$driver:dbname=$db;host=$host;port=$port";
+  }
   my $dbh = DBI->connect("$dsn","$user",$password, {RaiseError => 1});
   
   $dbh || $self->throw("Could not connect to database $db user $user using [$dsn] as a locator");
@@ -479,13 +482,14 @@ sub _db_handle{
 
 sub DESTROY {
    my ($obj) = @_;
-
    #$obj->_unlock_tables();
 
    if( $obj->{'_db_handle'} ) {
        $obj->{'_db_handle'}->disconnect;
        $obj->{'_db_handle'} = undef;
    }
+   $obj->SUPER::DESTROY();
 }
 
 
+1;

@@ -1,4 +1,4 @@
-
+# $Id$
 #
 # BioPerl module for Bio::DB::Map::Marker
 #
@@ -63,10 +63,10 @@ package Bio::DB::Map::Marker;
 use vars qw(@ISA);
 use strict;
 
-use Bio::Root::RootI;
+use Bio::Root::Root;
 use Bio::DB::Map::MarkerI;
 
-@ISA = qw(Bio::DB::Map::MarkerI );
+@ISA = qw(Bio::Root::Root Bio::DB::Map::MarkerI );
 
 =head2 new
 
@@ -87,7 +87,7 @@ use Bio::DB::Map::MarkerI;
 
 sub new { 
     my ($class,@args) = @_;
-    my $self = $class->SUPER::new(@args);
+    my $self = bless {}, ref($class) || $class;
     # initialize
     $self->{'_positions'} = {};    
     $self->{'_aliases'} = {};    

@@ -1,4 +1,4 @@
-
+# $Id$
 #
 # BioPerl module for Bio::DB::SQL::DBLinkAdaptor
 #
@@ -12,11 +12,11 @@
 
 =head1 NAME
 
-Bio::DB::SQL::DBLinkAdaptor - DESCRIPTION of Object
+Bio::DB::SQL::DBLinkAdaptor - DBLink Adaptor
 
 =head1 SYNOPSIS
 
-Give standard usage here
+Do not use create this object directly
 
 =head1 DESCRIPTION
 
@@ -62,15 +62,9 @@ package Bio::DB::SQL::DBLinkAdaptor;
 use vars qw(@ISA);
 use strict;
 use Bio::Annotation::DBLink;
-
-# Object preamble - inherits from Bio::Root::RootI
-
 use Bio::DB::SQL::BaseAdaptor;
 
-
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
-# new() can be inherited from Bio::Root::RootI
-
 
 =head2 fetch_by_dbID
 
@@ -180,3 +174,5 @@ sub remove_by_bioentry_id {
 	my $sth = $self->prepare("DELETE FROM bioentry_direct_links WHERE source_bioentry_id IN ($be)"); 
 	$sth->execute(); 
 }
+
+1;

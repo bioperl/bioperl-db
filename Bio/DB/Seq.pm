@@ -1,4 +1,4 @@
-
+# $Id$
 
 #
 # BioPerl module for Bio::DB::Seq
@@ -13,7 +13,7 @@
 
 =head1 NAME
 
-Bio::DB::Seq - DESCRIPTION of Object
+Bio::DB::Seq - Proxy object for Database Seq representations 
 
 =head1 SYNOPSIS
 
@@ -21,7 +21,14 @@ Give standard usage here
 
 =head1 DESCRIPTION
 
-Describe the object here
+This is a proxy object which will ferry calls to/from database for the
+heavy stuff (sequence data) while it stores the simple attributes in
+memory.  
+
+It is lazy an will retrieve sequence features only when necessary from
+the database, but will features in memory once they are retrieved.
+
+This object is obtained from a DBAdaptor.
 
 =head1 FEEDBACK
 
@@ -63,26 +70,32 @@ package Bio::DB::Seq;
 use vars qw(@ISA);
 use strict;
 
-# Object preamble - inherits from Bio::Root::RootI
-
-use Bio::Root::RootI;
+use Bio::Root::Root;
 use Bio::SeqI;
 use Bio::DB::Annotation;
 
-@ISA = qw(Bio::Root::RootI Bio::SeqI);
-# new() can be inherited from Bio::Root::RootI
-
+@ISA = qw(Bio::Root::Root Bio::SeqI);
 
 sub new {
     my ($class,@args) = @_;
 
-    my $self = {};
-    bless $self,$class;
-
-    my($primary_id,$display_id,$accession,$version,$adaptor,$length,$division,$desc) = 
-	$self->_rearrange([qw(PRIMARY_ID DISPLAY_ID ACCESSION VERSION ADAPTOR LENGTH DIVISION DESC)],@args);
-
-    if( !defined $primary_id || !defined $display_id || !defined $accession || !defined $adaptor || !defined $length) {
+    my $self = bless {}, ref($class) || $class;
+    my($primary_id,$display_id,$accession,
+       $version,$adaptor,$length,$division,$desc,$alpha) = 
+	   $self->_rearrange([qw(PRIMARY_ID 
+				 DISPLAY_ID 				 
+				 ACCESSION 
+				 VERSION 
+				 ADAPTOR 
+				 LENGTH 
+				 DIVISION 
+				 DESC
+				 ALPHABET				 
+				 )],@args);
+    
+    if( !defined $primary_id || !defined $display_id || 
+	!defined $accession || !defined $adaptor || 
+	!defined $length) {
 	$self->throw("Not got one of the arguments in DB::Seq new [$primary_id,$display_id,$accession,$adaptor,$length]");
     }
 
@@ -94,6 +107,7 @@ sub new {
     $self->length($length);
     $self->division($division);
     $self->desc($desc);    
+    $self->alphabet($alpha);
     return $self;
 }
 
@@ -175,6 +189,24 @@ sub moltype{
    return $self->primary_seq->moltype;
 }
 
+
+=head2 alphabet
+
+ Title   : alphabet
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub alphabet{
+   my ($self,@args) = @_;
+
+   return $self->primary_seq->alphabet;
+}
 
 
 =head2 desc
@@ -536,11 +568,9 @@ sub length{
 }
 
 sub DESTROY {
+    (shift)->SUPER::DESTROY();
     #print STDERR "Releasing seq object\n!";
 }
 
 
-
-
-
-
+1;

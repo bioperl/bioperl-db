@@ -1,4 +1,4 @@
-
+# $Id$
 #
 # BioPerl module for Bio::DB::Map::MapI
 #
@@ -193,3 +193,4 @@ sub _abstractDeath {
   confess "Abstract method '$caller' defined in interface Bio::DB::Map::MapI not implemented by pacakge $package. Not your fault - author of $package should be blamed!";
 }
 
+1;

@@ -1,4 +1,4 @@
-
+# $Id$
 #
 # BioPerl module for Bio::DB::Map::SQL::DBAdaptor
 #
@@ -69,12 +69,12 @@ package Bio::DB::Map::SQL::DBAdaptor;
 use vars qw(@ISA);
 use strict;
 
-use Bio::Root::RootI;
+use Bio::Root::Root;
 use Bio::DB::Map::SQL::MapAdaptor;
 use Bio::DB::Map::SQL::MarkerAdaptor;
 use DBI;
 
-@ISA = qw(Bio::Root::RootI );
+@ISA = qw(Bio::Root::Root );
 
 =head2 new
 
@@ -94,7 +94,7 @@ use DBI;
 sub new {
     my($class,@args) = @_;
 
-    my $self = $class->SUPER::new(@args);
+    my $self = bless {}, ref($class) || $class;
     my (
         $db,
         $host,

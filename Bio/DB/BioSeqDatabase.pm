@@ -1,4 +1,4 @@
-
+# $Id$
 #
 # BioPerl module for Bio::DB::BioSeqDatabase
 #
@@ -12,7 +12,7 @@
 
 =head1 NAME
 
-Bio::DB::BioSeqDatabase - DESCRIPTION of Object
+Bio::DB::BioSeqDatabase - Database mediator between Bio::DB::SeqI interfaces and Bio::DB::SQL implementation
 
 =head1 SYNOPSIS
 
@@ -20,7 +20,8 @@ Give standard usage here
 
 =head1 DESCRIPTION
 
-Database mediator between Bio::DB::SeqI interfaces and Bio::DB::SQL implementation 
+Database mediator between Bio::DB::SeqI interfaces and Bio::DB::SQL
+implementation
 
 =head1 FEEDBACK
 
@@ -66,18 +67,16 @@ use strict;
 # Object preamble - inherits from Bio::Root::RootI
 
 use Bio::DB::SeqI;
+use Bio::Root::Root;
 
-
-@ISA = qw(Bio::DB::SeqI);
-# new() can be inherited from Bio::Root::RootI
+@ISA = qw(Bio::Root::Root Bio::DB::SeqI);
 
 sub new {
     my ($class,@args) = @_;
-
-    my $self = {};
-    bless $self,$class;
-
-    my($adaptor,$dbid) = $self->_rearrange(['ADAPTOR','DBID'],@args);
+    my $self = bless {}, ref($class) || $class;
+    
+    my($adaptor,$dbid) = $self->_rearrange([qw(ADAPTOR 
+					       DBID)],@args);
     
     if( !defined $adaptor) {
       $self->throw("No BioDatabase adaptor!");
@@ -275,5 +274,4 @@ sub _dbid{
 
 }
 
-
-
+1;

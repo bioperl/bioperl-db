@@ -1,4 +1,4 @@
-
+# $Id$
 
 #
 # BioPerl module for Bio::CacheServer::SeqDB
@@ -68,28 +68,30 @@ use strict;
 use Bio::Root::RootI;
 use Bio::DB::SeqI;
 
-@ISA = qw(Bio::DB::SeqI Bio::Root::RootI);
 
 # although we expect to be handed one of this, using
 # this ensures someone runs this component
 use Bio::DB::SQL::DBAdaptor;
-
-@ISA = qw(Bio::DB::SeqI);
+@ISA = qw(Bio::DB::SeqI Bio::Root::RootI);
 # new() can be inherited from Bio::Root::RootI
 
 sub new {
     my ($class,@args) = @_;
 
-    my $self = {};
-    bless $self,$class;
+    my $self = bless {}, ref($class) || $class;
 
-    my($read,$write_dbadaptor,$dbname) = $self->_rearrange(['READ_DB','WRITE_DBADAPTOR','DBNAME'],@args);
+    my($read,$write_dbadaptor,
+       $dbname) = $self->_rearrange([qw(READ_DB
+					WRITE_DBADAPTOR
+					DBNAME)],@args);
     
-    if( !defined $read || !ref $read || !$read->isa('Bio::DB::SeqI')) {
+    if( !defined $read || !ref $read || 
+	!$read->isa('Bio::DB::SeqI')) {
 	$self->throw("No read database or read database [$read] is not a Bio::DB::SeqI\n");
     }
 
-    if( !defined $write_dbadaptor || !ref $write_dbadaptor || !$write_dbadaptor->isa('Bio::DB::SQL::DBAdaptor')) {
+    if( !defined $write_dbadaptor || !ref $write_dbadaptor || 
+	!$write_dbadaptor->isa('Bio::DB::SQL::DBAdaptor')) {
 	$self->throw("No write dbadaptor or write database [$write_dbadaptor] is not a Bio::DB::SQL::DBAdaptor\n");
     }
 
@@ -401,3 +403,5 @@ sub read_db{
     return $obj->{'read_db'};
 
 }
+
+1;

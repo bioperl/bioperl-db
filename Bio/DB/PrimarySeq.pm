@@ -1,5 +1,4 @@
-
-
+# $Id$
 #
 # BioPerl module for Bio::DB::PrimarySeq
 #
@@ -13,7 +12,7 @@
 
 =head1 NAME
 
-Bio::DB::PrimarySeq - DESCRIPTION of Object
+Bio::DB::PrimarySeq - Proxy object for Database PrimarySeq representations 
 
 =head1 SYNOPSIS
 
@@ -21,24 +20,26 @@ Give standard usage here
 
 =head1 DESCRIPTION
 
-Describe the object here
+This is a proxy object which will ferry calls to/from database for the
+heavy stuff (sequence data) while it stores the simple attributes in
+memory.  This object is obtained from a DBAdaptor.
+
 
 =head1 FEEDBACK
 
 =head2 Mailing Lists
 
-User feedback is an integral part of the evolution of this
-and other Bioperl modules. Send your comments and suggestions preferably
- to one of the Bioperl mailing lists.
-Your participation is much appreciated.
+User feedback is an integral part of the evolution of this and other
+Bioperl modules. Send your comments and suggestions preferably to one
+of the Bioperl mailing lists.  Your participation is much appreciated.
 
   bioperl-l@bio.perl.org
 
 =head2 Reporting Bugs
 
 Report bugs to the Bioperl bug tracking system to help us keep track
- the bugs and their resolution.
- Bug reports can be submitted via email or the web:
+the bugs and their resolution.  Bug reports can be submitted via email
+or the web:
 
   bioperl-bugs@bio.perl.org
   http://bio.perl.org/bioperl-bugs/
@@ -60,28 +61,34 @@ The rest of the documentation details each of the object methods. Internal metho
 
 
 package Bio::DB::PrimarySeq;
-use vars qw(@ISA);
+use vars qw(@ISA %valid_type);
 use strict;
 
-# Object preamble - inherits from Bio::Root::RootI
-
-use Bio::Root::RootI;
 use Bio::PrimarySeqI;
+use Bio::Root::Root;
+BEGIN {
+    %valid_type = map {$_, 1} qw( dna rna protein );
+}
 
-@ISA = qw(Bio::PrimarySeqI Bio::Root::RootI);
-# new() can be inherited from Bio::Root::RootI
+@ISA = qw(Bio::Root::Root Bio::PrimarySeqI );
 
 
 sub new {
     my ($class,@args) = @_;
 
-    my $self = {};
-    bless $self,$class;
+    my $self = bless {}, ref($class) || $class;
 
-    my($primary_id,$display_id,$accession,$adaptor,$length,$moltype) = 
-	$self->_rearrange([qw(PRIMARY_ID DISPLAY_ID ACCESSION ADAPTOR LENGTH MOLTYPE)],@args);
+    my($primary_id,$display_id,$accession,$adaptor,$length,$alpha) = 
+	$self->_rearrange([qw(PRIMARY_ID 
+			      DISPLAY_ID 
+			      ACCESSION 
+			      ADAPTOR 
+			      LENGTH 
+			      ALPHABET)],@args);
 
-    if( !defined $primary_id || !defined $display_id || !defined $accession || !defined $adaptor || !defined $length) {
+    if( !defined $primary_id || !defined $display_id || 
+	!defined $accession || !defined $adaptor || 
+	!defined $length) {
 	$self->throw("Not got one of the arguments in DB::PrimarySeq new $primary_id,$display_id,$accession,$adaptor,$length");
     }
 
@@ -90,7 +97,7 @@ sub new {
     $self->accession($accession);
     $self->adaptor($adaptor);
     $self->length($length);
-    $self->moltype($moltype);
+    $self->alphabet($alpha);
 
     return $self;
 }
@@ -246,6 +253,39 @@ sub subseq{
    return $self->adaptor->get_subseq_as_string($self->primary_id,$start,$end);
 }
 
+=head2 alphabet
+
+ Title   : alphabet
+ Usage   : if( $obj->alphabet eq 'dna' ) { /Do Something/ }
+ Function: Returns the type of sequence being one of
+           'dna', 'rna' or 'protein'. This is case sensitive.
+
+           This is not called <type> because this would cause
+           upgrade problems from the 0.5 and earlier Seq objects.
+
+ Returns : a string either 'dna','rna','protein'. NB - the object must
+           make a call of the type - if there is no type specified it
+           has to guess.
+ Args    : none
+ Status  : Virtual
+
+=cut
+
+sub alphabet {
+    my ($obj,$value) = @_;
+    if (defined $value) {
+	$value = lc $value;
+	unless ( $valid_type{$value} ) {
+	    $obj->throw("Molecular type '$value' is not a valid type (".
+			join(',', map "'$_'", sort keys %valid_type) .") lowercase");
+	}
+	$obj->{'alphabet'} = $value;
+    }
+    return $obj->{'alphabet'};
+}
+
+=head2 Implemented by Bio::PrimarySeqI
+
 =head2 moltype
 
  Title   : moltype
@@ -253,20 +293,7 @@ sub subseq{
  Function: Getset for moltype value
  Returns : value of moltype
  Args    : newvalue (optional)
-
-
-=cut
-
-sub moltype{
-   my $obj = shift;
-   if( @_ ) {
-      my $value = shift;
-      $obj->{'moltype'} = $value;
-    }
-    return $obj->{'moltype'};
-
-}
-
+  Warning: Deprecated!  use alpahabet instead
 
 =head2 desc
 
@@ -296,4 +323,4 @@ sub desc{
    return $d;
 }
 
-
+1;

@@ -1,4 +1,4 @@
-
+# $Id$
 #
 # BioPerl module for Bio::DB::SQL::BioDatabaseAdaptor
 #
@@ -62,15 +62,10 @@ package Bio::DB::SQL::BioDatabaseAdaptor;
 use vars qw(@ISA);
 use strict;
 
-# Object preamble - inherits from Bio::Root::RootI
-
 use Bio::DB::SQL::BaseAdaptor;
 use Bio::DB::BioSeqDatabase;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
-
-# new() can be inherited from Bio::Root::RootI
-
 
 =head2 fetch_by_name_store_if_needed
 
@@ -336,3 +331,4 @@ sub remove_by_name{
 	   
 }
 
+1;

@@ -190,7 +190,7 @@ sub fetch_by_dbID {
 
 =head2 fetch_all_organisms
 
- Title   : fetch_all_organisms
+ Title   : fetch_all_organisms($dbname)
  Usage   :  $species_adaptor->fetch_all_organisms
  Function:  to retrieve all organisms from the database
  Example : 
@@ -201,10 +201,18 @@ sub fetch_by_dbID {
 =cut
 
 sub fetch_all_organisms {
-	my ($self)  = @_;
-   my $sth = $self->prepare("select taxa_id, full_lineage, common_name, ncbi_taxa_id from taxa");
-   $sth->execute;
+	my ($self, $dbname)  = @_;
 	my %results;
+	return \%results unless $dbname;
+
+   my $sth = $self->prepare(
+	   "SELECT t.taxa_id, t.full_lineage, t.common_name, t.ncbi_taxa_id ".
+	   "FROM taxa t, biodatabase bd, bioentry be, bioentry_taxa bt ".
+	   "WHERE bt.taxa_id = t.taxa_id ".
+	   "AND bt.bioentry_id = be.bioentry_id ".
+	   "AND be.biodatabase_id = bd.biodatabase_id ".
+	   "AND bd.name = ?");
+   $sth->execute($dbname);
 	while (my ($id, $lin, $name) = $sth->fetchrow_array()){
 		my @classification = split(/:/,$lin);
 		my $out = Bio::Species->new(-classification => \@classification);

@@ -490,6 +490,33 @@ sub get_SpeciesAdaptor{
 }
 
 
+=head2 get_dbNames
+
+ Title   : get_dbNames
+ Usage   : $obj->get_dbNames()
+ Function: find all possible biodatabase.name's available
+ Example : 
+ Returns : list of biodatabase.name fields
+ Args    : none
+
+
+=cut
+
+sub get_dbNames{
+   my ($self) = @_;
+   my $dbh =  $self->{'_db_handle'};
+   return undef unless $dbh;
+
+	my $sth = $dbh->prepare('select name from biodatabase');
+	$sth->execute;
+	my @namelist;
+	while (my ($dbn) = $sth->fetchrow_array){
+		push @namelist, $dbn;
+	}
+    return @namelist;
+
+}
+
 =head2 _db_handle
 
  Title   : _db_handle

@@ -100,7 +100,22 @@ Examples:
     --format embl     
     # Bio::ClusterIO stream with -format => 'unigene'
     --format ClusterIO::unigene 
-                          
+
+=item --fmtargs
+
+Use this argument to specify initialization parameters for the parser
+for the input format. The argument value is expected to be a string
+with parameter names and values delimited by comma.
+
+Usually you will want to protect the argument list from interpretation
+by the shell, so surround it with double or single quotes.
+
+Examples:
+
+    # turn parser exceptions into warnings (don't try this at home)"
+    --fmtargs "-verbose,-1"
+    # verbose parser with an additional path argument
+    --fmtargs "-verbose,1,-indexpath,/home/luke/warp"
 
 =item --pipeline
 
@@ -206,6 +221,7 @@ my $dbuser = "root";
 my $driver = 'mysql';
 my $dbpass;
 my $format = 'genbank';
+my $fmtargs = '';
 my $namespace = "bioperl";
 my $seqfilter;           # see conditions in Bio::Seq::SeqBuilder
 my $mergefunc;           # if and how to merge old (found) and new objects
@@ -222,6 +238,9 @@ my $safe_flag = 0;       # tolerate exceptions on create?
 # Global defaults or definitions not changeable through commandline
 ####################################################################
 
+#
+# map of I/O type to the next_XXXX method name
+#
 my %nextobj_map = (
 		   'Bio::SeqIO'     => 'next_seq',
 		   'Bio::ClusterIO' => 'next_cluster',
@@ -234,24 +253,25 @@ my %nextobj_map = (
 #
 # get options from commandline 
 #
-my $ok = GetOptions( 'host:s'   => \$host,
-		     'driver:s' => \$driver,
-		     'dbname:s' => \$dbname,
-		     'dbuser:s' => \$dbuser,
-		     'dbpass:s' => \$dbpass,
-		     'format:s' => \$format,
+my $ok = GetOptions( 'host:s'      => \$host,
+		     'driver:s'    => \$driver,
+		     'dbname:s'    => \$dbname,
+		     'dbuser:s'    => \$dbuser,
+		     'dbpass:s'    => \$dbpass,
+		     'format:s'    => \$format,
+		     'fmtargs=s'   => \$fmtargs,
 		     'seqfilter:s' => \$seqfilter,
 		     'namespace:s' => \$namespace,
 		     'pipeline:s'  => \$pipeline,
 		     'mergeobjs:s' => \$mergefunc,
-		     'safe'     => \$safe_flag,
-		     'remove'   => \$remove_flag,
-		     'lookup'   => \$lookup_flag,
-		     'noupdate' => \$no_update_flag,
-		     'debug'    => \$debug,
-		     'testonly' => \$testonly_flag,
-		     'h' => \$help,
-		     'help' => \$help
+		     'safe'        => \$safe_flag,
+		     'remove'      => \$remove_flag,
+		     'lookup'      => \$lookup_flag,
+		     'noupdate'    => \$no_update_flag,
+		     'debug'       => \$debug,
+		     'testonly'    => \$testonly_flag,
+		     'h'           => \$help,
+		     'help'        => \$help
 		     );
 
 if((! $ok) || $help) {
@@ -291,6 +311,8 @@ if(@fmtelems > 1) {
 }
 $objio = "Bio::".$objio if $objio !~ /^Bio::/;
 my $nextobj = $nextobj_map{$objio} || "next_seq"; # next_seq is the default
+# the format might come with argument specifications
+my @fmtargs = split(/\s*,\s*/,$fmtargs);
 
 #
 # setup the pipeline if desired
@@ -338,7 +360,9 @@ foreach $file ( @files ) {
 	print STDERR "Loading $file ...\n";
     }
     # create stream
-    $seqin = $objio->new(-fh => $fh, $format ? (-format => $format) : ());
+    $seqin = $objio->new(-fh => $fh,
+			 $format ? (-format => $format) : (),
+			 @fmtargs);
 
     # establish filter if provided
     if($condition) {

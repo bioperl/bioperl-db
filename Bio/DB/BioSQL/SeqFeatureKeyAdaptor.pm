@@ -123,6 +123,9 @@ sub store_if_needed{
 
    #Catch 5' and 3' and call them 5 prime and 3 prime
 
+   # could be in database 
+   my $sth = $self->prepare("select seqfeature_key_id from seqfeature_key where key_name = '$name'");
+   
    $name =~ s/\'/\\\'/g;
  
    if ($self->db->bulk_import){
@@ -145,10 +148,7 @@ sub store_if_needed{
       # nope - insert
       $sth = $self->prepare("insert into seqfeature_key (seqfeature_key_id,key_name) VALUES (NULL,'$name')");
       $sth->execute;
-      $sth = $self->prepare("select LAST_INSERT_ID()");
-      $sth->execute;
-
-      $dbid = $sth->fetchrow_array();
+      $dbid = $self->get_last_id;
       if( defined $dbid ) {
           $self->{'_name_dbID'}->{$name} = $dbid;
           return $dbid;

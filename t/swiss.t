@@ -7,7 +7,7 @@ BEGIN {
     # we include the t dir (where a copy of Test.pm is located)
     # as a fallback
     eval { require Test; };
-    use Test;    
+    use Test;
     plan tests => 16;
 }
 

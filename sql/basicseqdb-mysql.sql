@@ -50,7 +50,7 @@ CREATE TABLE bioentry (
   entry_version int(10) NOT NULL, 
   division     varchar(3) NOT NULL,
   UNIQUE (biodatabase_id,accession,entry_version),
-  KEY (biodatabase_id),
+  FOREIGN KEY (biodatabase_id) REFERENCES biodatabase(biodatabase_id),
   PRIMARY KEY(bioentry_id)
 );
 
@@ -59,6 +59,7 @@ CREATE TABLE bioentry (
 CREATE TABLE bioentry_date (
   bioentry_id int(10) NOT NULL,
   date varchar(200) NOT NULL,
+  FOREIGN KEY (bioentry_id) REFERENCES bioentry(bioentry_id),
   PRIMARY KEY(bioentry_id,date)
 );
 
@@ -68,6 +69,7 @@ CREATE TABLE bioentry_date (
 CREATE TABLE bioentry_taxa (
   bioentry_id int(10)  NOT NULL,
   taxa_id     int(10)  NOT NULL,
+  FOREIGN KEY (bioentry_id) REFERENCES bioentry(bioentry_id),
   PRIMARY KEY(bioentry_id)
 );
 
@@ -81,24 +83,25 @@ CREATE TABLE biosequence (
   seq_version     int(6) NOT NULL,
   biosequence_str mediumtext NOT NULL,
   molecule        varchar(10),
+  FOREIGN KEY (bioentry_id) REFERENCES bioentry(bioentry_id),
   UNIQUE(bioentry_id)
 );
 
 
-#
 # Direct links. It is tempting to do this
 # from bioentry_id to bioentry_id. But that wont work
 # during updates of one database - we will have to edit
 # this table each time. Better to do the join through accession
 # and db each time. Should be almost as cheap
 
-
+# [note - should we normalise this into a dbxref table?
+#  should be faster as we can join by integer ids]
 CREATE TABLE bioentry_direct_links (
        bio_dblink_id           int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
        source_bioentry_id      int(10) NOT NULL,
        dbname                  varchar(40) NOT NULL,
        accession               varchar(40) NOT NULL,
-       KEY (source_bioentry_id)
+       FOREIGN KEY (source_bioentry_id) REFERENCES bioentry(bioentry_id)
 );
 
 #We can have multiple references per bioentry, but one reference
@@ -109,10 +112,11 @@ CREATE TABLE reference (
   reference_location varchar(255) NOT NULL,
   reference_title    mediumtext NOT NULL,
   reference_authors  mediumtext NOT NULL,
-  reference_medline  int(10) NOT NULL,
+  reference_medline  int(10) NOT NULL
 
-  KEY (reference_medline)
 );
+
+CREATE INDEX medlineidx ON reference(reference_medline);
 
 CREATE TABLE bioentry_reference (
   bioentry_id int(10) unsigned NOT NULL,
@@ -122,9 +126,10 @@ CREATE TABLE bioentry_reference (
   reference_rank int(5) unsigned NOT NULL,
 
   PRIMARY KEY(bioentry_id,reference_id,reference_rank),
-  KEY (bioentry_id),
-  KEY (reference_rank)
+  FOREIGN KEY(bioentry_id) REFERENCES bioentry(bioentry_id),
+  FOREIGN KEY(reference_id) REFERENCES reference(reference_id)
 );
+CREATE INDEX reference_rank_idx ON bioentry_reference(reference_rank);
 
 # We can have multiple comments per seqentry, and
 # comments can have embedded '\n' characters
@@ -134,7 +139,7 @@ CREATE TABLE comment (
   bioentry_id    int(10) NOT NULL,
   comment_text   mediumtext NOT NULL,
   comment_rank   int(5) NOT NULL,
-  KEY(bioentry_id)
+  FOREIGN KEY(bioentry_id) REFERENCES bioentry(bioentry_id)
 );
 
 # separate description table separate to save on space when we
@@ -143,7 +148,7 @@ CREATE TABLE comment (
 CREATE TABLE bioentry_description (
    bioentry_id   int(10) unsigned NOT NULL,
    description   varchar(255) NOT NULL,
-   PRIMARY KEY(bioentry_id)
+   FOREIGN KEY(bioentry_id) REFERENCES bioentry(bioentry_id)
 );
 
 
@@ -152,6 +157,7 @@ CREATE TABLE bioentry_description (
 CREATE TABLE bioentry_keywords (
   bioentry_id   int(10) unsigned NOT NULL,
   keywords      varchar(255) NOT NULL,
+  FOREIGN KEY (bioentry_id) REFERENCES bioentry(bioentry_id),
   PRIMARY KEY(bioentry_id)
 );
 
@@ -167,6 +173,7 @@ CREATE TABLE bioentry_keywords (
 
 CREATE TABLE seqfeature_qualifier (
        seqfeature_qualifier_id int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
+       FOREIGN KEY (seqfeature_qualifier_id) REFERENCES seqfeature_qualifier(seqfeature_qualifier_id),
        qualifier_name varchar(255) NOT NULL
 );
 
@@ -180,13 +187,14 @@ CREATE TABLE seqfeature_source (
        source_name varchar(255) NOT NULL
 );
 
-
 CREATE TABLE seqfeature (
    seqfeature_id int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
    bioentry_id   int(10) NOT NULL,
    seqfeature_key_id     int(10),
    seqfeature_source_id  int(10),
-   seqfeature_rank int(5)
+   seqfeature_rank int(5),
+  FOREIGN KEY (seqfeature_source_id) REFERENCES seqfeature_source(seqfeature_source_id),
+  FOREIGN KEY (bioentry_id) REFERENCES bioentry(bioentry_id)
 );
 
 CREATE TABLE seqfeature_qualifier_value (
@@ -194,6 +202,7 @@ CREATE TABLE seqfeature_qualifier_value (
    seqfeature_qualifier_id int(10) NOT NULL,
    seqfeature_qualifier_rank int(5) NOT NULL,
    qualifier_value  mediumtext NOT NULL,
+  FOREIGN KEY (seqfeature_qualifier_id) REFERENCES seqfeature_qualifier(seqfeature_qualifier_id),
    PRIMARY KEY(seqfeature_id,seqfeature_qualifier_id,seqfeature_qualifier_rank)
 );
    
@@ -205,13 +214,16 @@ CREATE TABLE seqfeature_qualifier_value (
 # please do not try to model complex assemblies with this thing. It wont
 # work. Check out the ensembl schema for this.
 
+# we allow nulls for start/end - this is useful for fuzzies as
+# standard range queries will not be included
 CREATE TABLE seqfeature_location (
    seqfeature_location_id int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
    seqfeature_id          int(10) NOT NULL,
-   seq_start              int(10) NOT NULL,
-   seq_end                int(10) NOT NULL,
+   seq_start              int(10),
+   seq_end                int(10),
    seq_strand             int(1)  NOT NULL,
-   location_rank          int(5)  NOT NULL
+   location_rank          int(5)  NOT NULL,
+  FOREIGN KEY (seqfeature_id) REFERENCES seqfeature(seqfeature_id)
 );
 
 # for remote locations, this is the join to make.
@@ -224,9 +236,36 @@ CREATE TABLE seqfeature_location (
 CREATE TABLE remote_seqfeature_name (
        seqfeature_location_id int(10) unsigned NOT NULL PRIMARY KEY,
        accession varchar(40) NOT NULL,
-       version   int(10) NOT NULL
+       version   int(10) NOT NULL,
+  FOREIGN KEY (seqfeature_location_id) REFERENCES seqfeature_location(seqfeature_location_id)
 );
 
+# location qualifiers - mainly intended for fuzzies but anything
+# can go in here
+# some controlled vocab terms have slots;
+# fuzzies could be modeled as min_start(5), max_start(5)
+# 
+# there is no restriction on extending the fuzzy ontology
+# for your own nefarious aims, although the bio* apis will
+# most likely ignore these
+CREATE TABLE location_qualifier_value (
+   seqfeature_location_id int(10) unsigned NOT NULL,
+   seqfeature_qualifier_id int(10) NOT NULL,
+   qualifier_value  char(255) NOT NULL,
+   slot_value int(10),
+  FOREIGN KEY (seqfeature_location_id) REFERENCES seqfeature_location(seqfeature_location_id)
+);
+
+# pre-make the fuzzy ontology
+INSERT INTO seqfeature_qualifier (qualifier_name) VALUES ('min-start');
+INSERT INTO seqfeature_qualifier (qualifier_name) VALUES ('min-end');
+INSERT INTO seqfeature_qualifier (qualifier_name) VALUES ('max-start');
+INSERT INTO seqfeature_qualifier (qualifier_name) VALUES ('max-end');
+INSERT INTO seqfeature_qualifier (qualifier_name) VALUES ('unknown-start');
+INSERT INTO seqfeature_qualifier (qualifier_name) VALUES ('unknown-end');
+INSERT INTO seqfeature_qualifier (qualifier_name) VALUES ('unbounded-start');
+INSERT INTO seqfeature_qualifier (qualifier_name) VALUES ('unbounded-end');
+# coordinate policies?
 
 #
 # this is a tiny table to allow a cach'ing corba server to

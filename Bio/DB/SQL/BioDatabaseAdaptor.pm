@@ -291,11 +291,7 @@ sub store{
    } else {
 		my $sth = $self->prepare("insert into biodatabase (biodatabase_id,name) values (NULL,'$name')");
 		$sth->execute;
-		$sth = $self->prepare("select LAST_INSERT_ID()");
-		$sth->execute;
-		my ($id) = $sth->fetchrow_array;
-		print "BioDatabaseAdaptor returning $id\n";
-		return $id;
+                return $self->get_last_id;
 	}
 }
 

@@ -67,6 +67,7 @@ use strict;
 use Bio::DB::SQL::BaseAdaptor;
 
 use Bio::Location::Split;
+use Bio::Location::Fuzzy;
 use Bio::Location::Simple;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
@@ -74,6 +75,120 @@ use Bio::Location::Simple;
 
 # new() can be inherited from Bio::Root::RootI
 
+
+=head2 fetch_by_dbIDs
+
+ Title   : fetch_by_dbIDs
+ Usage   :
+ Function:
+ Example :
+ Returns : hashref of locations by dbid
+ Args    :
+
+=cut
+
+# WARNING this does not handle remote locations yet at all...
+sub fetch_by_dbIDs {
+   my ($self,$idarrayref) = @_;
+
+   my $loc_by_sf = {};
+   # accept scalars
+   my @ids = ref($idarrayref) ? @$idarrayref : ($idarrayref);
+   my $idjoin = join(",", @ids);
+   my @array;
+
+   my $rows =
+     $self->selectall("seqfeature_location",
+                      "seqfeature_id in ($idjoin)");
+   my @locids = map {$_->{seqfeature_location_id}} @$rows;
+   my $locidjoin = join(",", @locids);
+   my $qualrows =
+     $self->selectall("location_qualifier_value lqv, seqfeature_qualifier sfq",
+                      ["seqfeature_location_id in ($locidjoin)",
+                       "lqv.seqfeature_qualifier_id = sfq.seqfeature_qualifier_id"]);
+   my $remoterows =
+     $self->selectall("remote_seqfeature_name",
+                      "seqfeature_location_id in ($locidjoin)");
+   my $count = 0;
+   my $component;
+   foreach my $hr (@$rows) {
+       my ($sfid,$sflocid,$seq_start,$seq_end,$seq_strand) =
+         map {
+             $hr->{$_}
+         } qw(seqfeature_id
+              seqfeature_location_id
+              seq_start
+              seq_end
+              seq_strand);
+       # hmm, should really be a factory here
+       my $loc_class = "Bio::Location::Simple";
+       $component = $loc_class->new();
+       $component->start($seq_start);
+       $component->end($seq_end);
+       $component->strand($seq_strand);
+       if (!$loc_by_sf->{$sfid}) {
+           $loc_by_sf->{$sfid} = [];
+       }
+       # REMOTE FEATURES
+
+       # could be made faster....
+       my @remote = grep { $_->{seqfeature_location_id} == $sflocid } @$remoterows;
+       if (@remote) {
+           my $r = shift @remote;
+           if (@remote) {
+               $self->throw(">1 remote loc for $sflocid");
+           }
+           my $acc = $r->{accession};
+           my $v = $r->{version};
+	   my $accsv=$acc.".".$v;
+	   $component->is_remote(1);
+	   $component->seq_id($accsv);
+       }
+
+       # FUZZY/QUALIFIED FEATURES
+
+       # could be made faster....
+       my @qual = grep { $_->{seqfeature_location_id} == $sflocid } @$qualrows;
+       if (@qual) {
+           $loc_class = "Bio::Location::Fuzzy";
+           $component = $loc_class->new();
+           $component->start($seq_start);
+           $component->end($seq_end);
+           $component->strand($seq_strand);
+           foreach my $q (@qual) {
+               my $n =$q->{qualifier_name};
+               if ($component->can($n)) {
+                   $component->$n($q->{qualifier_value});
+               }
+               else {
+                   $self->throw("unapplicable qualifier $n for $sflocid");
+               }
+           }
+       }
+       push(@{$loc_by_sf->{$sfid}}, $component);
+   }
+
+   # now make the location objs for the hash
+   foreach my $sfid (@ids) {
+       my $locs = $loc_by_sf->{$sfid};
+       if( !$locs || !@$locs) {
+           $self->throw("no location for $sfid");
+       }
+       if (scalar(@$locs) == 1) {
+           $loc_by_sf->{$sfid} = pop @$locs;
+       }
+       else {
+           my $out = Bio::Location::Split->new();
+
+           foreach my $loc ( @$locs ) {
+               $out->add_sub_Location($loc);
+           }
+           $loc_by_sf->{$sfid} = $out;
+       }
+   }
+
+   return $loc_by_sf;
+}
 
 =head2 fetch_by_dbID
 
@@ -90,49 +205,14 @@ use Bio::Location::Simple;
 sub fetch_by_dbID{
    my ($self,$dbid) = @_;
 
-   # WARNING this does not handle remote locations yet at all...
-
-
-   my @array;
-
-   my $sth = $self->prepare("select seqfeature_location_id,seq_start,seq_end,seq_strand from seqfeature_location where seqfeature_id = $dbid order by location_rank");
-   $sth->execute();
-   
-   my $arrayref;
-   my $count = 0;
-   my $component;
-   while( $arrayref = $sth->fetchrow_arrayref ) {
-       my ($sfid,$seq_start,$seq_end,$seq_strand) = @{$arrayref};
-       
-       $component = Bio::Location::Simple->new();
-       $component->start($seq_start);
-       $component->end($seq_end);
-       $component->strand($seq_strand);
-       my $sth2=$self->prepare("select accession,version from remote_seqfeature_name where seqfeature_location_id = $sfid");
-       $sth2->execute;
-       my ($acc,$v) = $sth2->fetchrow_array();
-       if ($acc) {
-	   my $accsv=$acc.".".$v;
-	   $component->is_remote(1);
-	   $component->seq_id($accsv);
-       }
-       push(@array,$component);
-   }
-   
-   if( scalar(@array) == 0 ) {
-       $self->throw("no location for $dbid");
-   }
-
-   if( scalar(@array) == 1 ) {
-       return pop @array;
-   }
-
-   my $out = Bio::Location::Split->new();
-
-   foreach my $a ( @array ) {
-       $out->add_sub_Location($a);
-   }
-
+   my $h = $self->fetch_by_dbIDs($dbid);
+   my @keys = keys %$h;
+   my $k = shift @keys;
+   $self->throw("no loc for $dbid") unless $h;
+   $self->throw("assertion error $dbid") if @keys;
+   $self->throw("assertion error $dbid") if $k != $dbid;
+   my $out = $h->{$k};
+   $self->throw("assertion error $dbid") unless $out;
    return $out;
 }
 
@@ -155,8 +235,6 @@ sub store{
    if( !defined $seqfeature_id ) {
        $self->throw("no seqfeature_id  ...");
    }
-
-   
    if( $location->isa('Bio::Location::SplitLocationI')  ) {
        my $rank = 1;
        foreach my $sub ( $location->sub_Location ) {
@@ -205,32 +283,61 @@ sub _store_component{
    my $end    = $location->end;
    my $strand = $location->strand;
 
+   $start = 'NULL' unless defined $start;
+   $end =   'NULL' unless defined $end;
+
    #print STDERR "Got $seqfeature_id $start $end $strand with $location\n";
 
    if ($self->db->bulk_import){
-		my $id = $self->_nextid;
-		my $fh = $self->db->{"__seqfeature_location"};
-      print $fh "$id\t$seqfeature_id\t$start\t$end\t$strand\t$rank\n";
-      return $id;
+       my $id = $self->_nextid;
+       my $fh = $self->db->{"__seqfeature_location"};
+       print $fh "$id\t$seqfeature_id\t$start\t$end\t$strand\t$rank\n";
+       return $id;
    } else {
-		my $sth = $self->prepare("insert into seqfeature_location (seqfeature_location_id,seqfeature_id,seq_start,seq_end,seq_strand,location_rank) VALUES (NULL,$seqfeature_id,$start,$end,$strand,$rank)");
-		$sth->execute;
-		my $id= $sth->{'mysql_insertid'};
+       my $sth = $self->prepare("insert into seqfeature_location (seqfeature_location_id,seqfeature_id,seq_start,seq_end,seq_strand,location_rank) VALUES (NULL,$seqfeature_id,$start,$end,$strand,$rank)");
+       $sth->execute;
+       my $id= $self->get_last_id;
 
-		
-		#$location->seq_id =~ /(\S+)\.(\S+)/;
-		my $acc = $1;
-		my $v = $2;
-		if ($location->is_remote) {
-	#       my $sth = $self->prepare("insert into remote_seqfeature_name (seqfeature_location_id,accession,version) values($id,'$acc',$v)");
-	#       $sth->execute;
-		}
-		return $id;
-	}
+       if( $location->isa('Bio::Location::FuzzyLocationI')  ) {
+           $self->_store_qual($id, "max_start", $location->max_start);
+           $self->_store_qual($id, "min_start", $location->min_start);
+           $self->_store_qual($id, "max_end", $location->max_end);
+           $self->_store_qual($id, "min_end", $location->min_end);
+           $self->_store_qual($id, "end_pos_type", $location->end_pos_type);
+           $self->_store_qual($id, "start_pos_type", $location->start_pos_type);
+           $self->_store_qual($id, "location_type", $location->location_type);
+       }
+       #$location->seq_id =~ /(\S+)\.(\S+)/;
+       my $acc = $1;
+       my $v = $2;
+       if ($location->is_remote) {
+           #       my $sth = $self->prepare("insert into remote_seqfeature_name (seqfeature_location_id,accession,version) values($id,'$acc',$v)");
+           #       $sth->execute;
+       }
+       return $id;
+   }
 }
 
-1;
-
+sub _store_qual {
+    my $self = shift;
+    my ($loc_id, $qual, $slot) = @_;
+    return unless defined $slot;
+    # get the qualifier from the controlled vocab
+    my $qual_id =
+      $self->select_colval("seqfeature_qualifier",
+                           {qualifier_name=>$qual},
+                           "seqfeature_qualifier_id");
+    if (!$qual_id) {
+        $qual_id =
+          $self->insert("seqfeature_qualifier",
+                        {qualifier_name=>$qual});
+    }
+    $self->insert("location_qualifier_value",
+                  {seqfeature_qualifier_id=>$qual_id,
+                   seqfeature_location_id=>$loc_id,
+                   qualifier_value=>$slot,
+                   qualifier_int_value=>int($slot)});
+}
 
 =head2 remove_by_dbID
 

@@ -137,10 +137,8 @@ sub store_if_needed{
       # nope - insert
       $sth = $self->prepare("insert into seqfeature_qualifier (seqfeature_qualifier_id,qualifier_name) VALUES (NULL,'$name')");
       $sth->execute;
-      $sth = $self->prepare("select LAST_INSERT_ID()");
-      $sth->execute;
 
-      $dbid = $sth->fetchrow_array();
+      $dbid = $self->get_last_id;
       if( defined $dbid ) {
           $self->{'_name_dbID'}->{$name} = $dbid;
           return $dbid;

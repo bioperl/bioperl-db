@@ -76,8 +76,37 @@ sub new {
 
 sub prepare{
    my ($self,$string) = @_;
-
+   if ($ENV{SQL_TRACE}) {
+       print STDERR "SQL:$string\n";
+   }
    return $self->db->prepare($string);
+}
+
+=head2 execute
+
+ Title   : execute
+ Usage   : $sth = $adaptor->execute("select yadda from blabla")
+ Function: provides a DBI statement handle from the adaptor. A convenience
+           function so you do not have to prepare and execute all the
+           time
+ Example :
+ Returns : sth
+ Args    :
+
+
+=cut
+
+sub execute {
+    my $self = shift;
+    my $string = shift;
+    my $sth = $self->prepare($string);
+    if ($ENV{SQL_TRACE}) {
+        if (@_) {
+            printf STDERR "VALS:%s\n", join(", ", @_);
+        }
+    }
+    $sth->execute(@_);
+    return $sth;
 }
 
 =head2 quote
@@ -101,6 +130,94 @@ sub quote {
    return $self->db->_db_handle->quote($string);
 }
 
+=head2 select_colval
+
+ Title   : select_colval
+ Usage   : $val = $adaptor->select_colval($table, {$colname=>$val}, $selectcol)
+ Function: A convenience function for getting a single value via an sql query
+ Example :
+ Returns :
+ Args    :
+
+=cut
+
+sub select_colval {
+    my ($self, $table, $constr, $col) = @_;
+    my $sql = $self->make_sql($table, $constr, $col);
+    my $sth = $self->execute($sql);
+    my $rowhash = $sth->fetchrow_hashref;
+    return $rowhash->{$col};
+}
+
+sub selectall {
+    my ($self, $table, $constr, $col) = @_;
+    my $sql = $self->make_sql($table, $constr, $col);
+    my $sth = $self->execute($sql);
+    my @cols = ();
+    while( my $href = $sth->fetchrow_hashref ) {
+        push(@cols, $href);
+    }
+    return \@cols;
+}
+
+sub make_sql {
+    my ($self, $tables, $constr, $cols) = @_;
+    my $where = "";
+    if ($constr) {
+        my @w = ($constr);
+        if (ref($constr)) {
+            if (ref($constr) eq "HASH") {
+                @w = map {"$_ = ".$self->quote($constr->{$_})} keys %$constr;
+            }
+            if (ref($constr) eq "ARRAY") {
+                @w = @$constr;
+            }
+        }
+        $where =
+          sprintf(" WHERE %s",
+                  join(" AND ", @w));
+    }
+    my @cols = ("*");
+    if ($cols) {
+        if (ref($cols)) {
+            @cols = @$cols
+        }
+        else {
+            @cols = ($cols);
+        }
+    }
+    $tables or $self->throw("must supply tables");
+    my @tables = ref($tables) ? @$tables : ($tables);
+    if ($cols) {
+        if (ref($cols)) {
+            @cols = @$cols
+        }
+        else {
+            @cols = ($cols);
+        }
+    }
+    my $sql = 
+      sprintf("SELECT %s\nFROM %s$where",
+              join(", ", @cols),
+              join(", ", @tables),
+             );
+    return $sql;
+}
+
+sub insert {
+    my ($self, $table, $valh) = @_;
+    my @cols = keys %$valh;
+    my $sql =
+      sprintf("INSERT INTO %s (%s) VALUES (%s)",
+              $table,
+              join(", ", @cols),
+#              join(", ", map {'?'} @cols),
+              join(", ", map {$self->quote($valh->{$_})} @cols),
+             );
+#    my $sth = $self->execute($sql, map {$valh->{$_}} @cols);
+    my $sth = $self->execute($sql);
+    return $self->get_last_id;
+}
 
 =head2 db
 

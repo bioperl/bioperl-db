@@ -155,9 +155,7 @@ sub store_if_needed{
       my $sth = $self->prepare("insert into taxa (taxa_id,full_lineage,common_name) values (NULL,'$str','$common_name')");
       $sth->execute;
 
-      $sth = $self->prepare("select last_insert_id()");
-      $sth->execute();
-      my ($id) = $sth->fetchrow_array;
+      my $id = $self->get_last_id;
 
       $self->{'_linneage_hash'}->{$str} = $id;
 

@@ -204,7 +204,7 @@ sub store_if_needed{
 		my $sth = $self->prepare("insert into reference (reference_id,reference_authors,reference_title,reference_location,reference_medline) values (NULL,'$authors','$title','$location',$med)");
 		#print STDERR "insert into reference (reference_id,reference_start,reference_end,reference_authors,reference_title,reference_location,reference_medline) values (NULL,$start,$end,'$authors','$title','$location',$med)\n";
 		$sth->execute();
-		return $sth->{'mysql_insertid'};
+		return $self->get_last_id;
 	}
 }
 

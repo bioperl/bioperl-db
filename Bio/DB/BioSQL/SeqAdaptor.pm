@@ -445,7 +445,7 @@ sub store{
 		my $sth = $self->prepare("insert into bioentry (biodatabase_id,bioentry_id,display_id,accession,entry_version,division) values ($dbid,NULL,'$did','$accession',$version,'$division')");
 		$sth->execute;
 			
-		my $id = $sth->{'mysql_insertid'};
+		my $id = $self->get_last_id;
 
 		$self->db->get_PrimarySeqAdaptor->store($id,$seq->primary_seq);
 

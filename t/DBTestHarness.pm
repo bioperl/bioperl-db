@@ -67,7 +67,7 @@ my $counter=0;
 		'user'          => 'root',
 		'port'          => undef,
 		'password'      => undef,
-		'schema_sql'    => ['./sql/basicseqdb-mysql.sql'],
+		'schema_sql'    => ['../biosql-schema/sql/biosqldb-mysql.sql'],
 		'module'        => 'Bio::DB::SQL::DBAdaptor'
 		};
 	} elsif ( $db eq 'markerdb' ) {

@@ -59,6 +59,7 @@ my $sqlname = "bioperl_db";
 my $dbuser = "root";
 my $dbpass = undef;
 my $format = 'embl';
+my $removeflag = '';
 #If safe is turned on, the script doesn't die because of one bad entry..
 my $safe = 0;
 my $bulkload = 0;
@@ -69,7 +70,8 @@ my $bulkload = 0;
 	     'dbpass:s' => \$dbpass,
 	     'format:s' => \$format,
 	     'safe'     => \$safe,
-			'bulk:s'   => \$bulkload
+	     'remove'     => \$remove,
+	     'bulk:s'   => \$bulkload
 	     );
 
 my $dbname = shift;
@@ -96,6 +98,10 @@ foreach $file ( @files ) {
     my $seqio = Bio::SeqIO->new(-file => $file,-format => $format);
 
     while( $seq = $seqio->next_seq ) {
+        if ($removeflag) {
+            my $oldseq =
+              $seqadp->remove_by_db_and_accession($dbname, $seq->accession);
+        }
 	if ($safe) {
 	    eval {
 		$seqadp->store($dbid,$seq);

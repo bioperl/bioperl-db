@@ -72,46 +72,83 @@ use Bio::SeqFeature::Generic;
 # new is inherieted
 
 
+=head2 fetch_by_dbIDs
+
+ Title   : fetch_by_dbIDs
+ Usage   :
+ Function:
+ Example :
+ Returns :
+ Args    :
+
+=cut
+
+sub fetch_by_dbIDs {
+   my ($self,$idarrayref) = @_;
+
+   my $sfh = {};
+   # accept scalars
+   my @ids = ref($idarrayref) ? @$idarrayref : ($idarrayref);
+   my $idjoin = join(",", @ids);
+
+   # first pick out the central feature information
+   my $rows =
+     $self->selectall("seqfeature f,seqfeature_key k,seqfeature_source s",
+                      "f.seqfeature_key_id = k.seqfeature_key_id and f.seqfeature_source_id = s.seqfeature_source_id and f.seqfeature_id in ($idjoin)",
+                      "f.seqfeature_id,k.key_name,s.source_name",
+                     );
+   my $qualrows =
+     $self->selectall("seqfeature_qualifier q,seqfeature_qualifier_value qv",
+                      "q.seqfeature_qualifier_id = qv.seqfeature_qualifier_id and qv.seqfeature_id in ($idjoin)",
+                      "qv.seqfeature_id, q.qualifier_name,qv.qualifier_value"
+                     );
+
+   my $loc_by_sfid =
+     $self->db->get_SeqLocationAdaptor->fetch_by_dbIDs(\@ids);
+   foreach my $row (@$rows) {
+       my $generic = Bio::SeqFeature::Generic->new();
+       my $sfid = $row->{seqfeature_id};
+       $sfh->{$sfid} = $generic;
+       my ($key,$source) = ($row->{key}, $row->{source});
+
+       $generic->primary_tag($key);
+       $generic->source_tag($source);
+
+       my @q = grep { $_->{seqfeature_id} == $sfid } @$qualrows;
+       foreach my $qh (@q) {
+           $generic->add_tag_value($qh->{qualifier_name},
+                                   $qh->{qualifier_value});
+       }
+   }
+
+   foreach my $sfid (@ids) {
+       my $sf = $sfh->{$sfid};
+       $self->throw("no such sf as $sfid") unless $sf;
+       my $loc = $loc_by_sfid->{$sfid};
+       $self->throw("no loc for $sfid") unless $loc;
+       $sf->location($loc);
+   }
+
+   return $sfh;
+}
+
 =head2 fetch_by_dbID
 
  Title   : fetch_by_dbID
  Usage   :
- Function: 
+ Function:
  Example :
- Returns : 
+ Returns :
  Args    :
-
 
 =cut
 
 sub fetch_by_dbID{
    my ($self,$id) = @_;
 
-   my $generic = Bio::SeqFeature::Generic->new();
-
-   # first pick out the central feature information
-
-   my $sth = $self->prepare("select k.key_name,s.source_name from seqfeature f,seqfeature_key k,seqfeature_source s where f.seqfeature_key_id = k.seqfeature_key_id and f.seqfeature_source_id = s.seqfeature_source_id and f.seqfeature_id = $id");
-   $sth->execute();
-
-   my ($key,$source) = $sth->fetchrow_array();
-
-   $generic->primary_tag($key);
-   $generic->source_tag($source);
-
-   my $loc = $self->db->get_SeqLocationAdaptor->fetch_by_dbID($id);
-   $generic->location($loc);
-
-   $sth = $self->prepare("select q.qualifier_name,qv.qualifier_value from seqfeature_qualifier q,seqfeature_qualifier_value qv where q.seqfeature_qualifier_id = qv.seqfeature_qualifier_id and qv.seqfeature_id = $id");
-   $sth->execute();
-   
-
-   while( my $arrayref = $sth->fetchrow_arrayref ) {
-       my ($name,$value) = @{$arrayref};
-       $generic->add_tag_value($name,$value);
-   }
-
-   return $generic;
+   my $sfh = $self->fetch_by_dbIDs($id);
+   my @v = values %$sfh;
+   return pop @v;
 }
 
 =head2 fetch_by_bioentry_id
@@ -133,13 +170,13 @@ sub fetch_by_bioentry_id{
    my $sth = $self->prepare("select seqfeature_id from seqfeature where bioentry_id = $bioentry_id");
    $sth->execute;
 
-   my @out;
+   my @sfids;
    while( my $arrayref = $sth->fetchrow_arrayref )  {
        my ($sf_id) = @{$arrayref};
-       push(@out,$self->fetch_by_dbID($sf_id));
+       push(@sfids,$sf_id);
    }
-
-   return @out;
+   my $sfh = $self->fetch_by_dbIDs(\@sfids);
+   return values %$sfh;
 }
 
 
@@ -178,11 +215,7 @@ sub store{
       my $sth = $self->prepare("insert into seqfeature (seqfeature_id,bioentry_id,seqfeature_key_id,seqfeature_source_id,seqfeature_rank) VALUES (NULL,$bioentryid,$keyid,$sourceid,$rank)");
 
       $sth->execute();
-      my ($last_id) = $sth->{'mysql_insertid'};
-
-      if( !defined $last_id ) {
-          $self->throw("Dont have last insert id...");
-      }
+      my $last_id = $self->get_last_id;
    
       $self->db->get_SeqLocationAdaptor->store($feature->location,$last_id);
 

@@ -334,7 +334,7 @@ sub populate_from_row{
     }
     if($rows && @$rows) {
 	$obj->tagname($rows->[1]) if $rows->[1];
-	$obj->value($rows->[2]) if $rows->[2];
+	$obj->value($rows->[2]) if defined($rows->[2]);
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($rows->[0]);
 	}

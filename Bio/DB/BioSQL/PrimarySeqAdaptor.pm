@@ -396,15 +396,23 @@ sub get_unique_key_query{
     }
     if($obj->primary_id() && ($obj->primary_id() !~ /=(HASH|ARRAY)\(0x/)) {
         my $uk_h = { 'primary_id' => $obj->primary_id(), };
-        $uk_h->{'bionamespace'} = $ns->primary_key() if $ns;
+        # For the identifier we'll be graceful if the namespace was not
+        # provided, as in some earlier definitions of the schema the
+        # namespace wasn't necessarily part of the UK constraint. OTOH, if
+        # the namespace was provided but not found, we won't silently allow
+        # for typos etc.
+        if ($obj->namespace()) {
+            $uk_h->{'bionamespace'} = $ns ? $ns->primary_key() : undef;
+        }
 	push(@ukqueries, $uk_h);
     }
     if($obj->accession_number()) {
-        my $uk_h = {
-            'accession_number' => $obj->accession_number(),
-	    'version' => ($obj->version() || 0),
-        };
-        $uk_h->{'bionamespace'} = $ns->primary_key() if $ns;
+        my $uk_h = { 'accession_number' => $obj->accession_number(),};
+        # we'll be graceful on the version if it was omitted, allowing any
+        # version to be matched, as opposed to only version 0 (the equivalent
+        # in the schema of 'no version')
+        $uk_h->{'version'} = $obj->version() if defined($obj->version);
+        $uk_h->{'bionamespace'} = $ns ? $ns->primary_key() : undef;
 	push(@ukqueries, $uk_h);
     }
 

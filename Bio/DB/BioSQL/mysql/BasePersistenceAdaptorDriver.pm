@@ -162,14 +162,21 @@ my %slot_attribute_map = (
 	     "ncbi_taxid"     => "ncbi_taxon_id",
 	     "binomial"       => "name",
 	     "variant"        => undef,
-	     # name_class is a hack: there is no such thing on the object
-	     # model. The sole reason it is here is that you can set the
-	     # physical column name of your taxon_name table. You MUST have
-	     # this column.
+	     # the following are hacks: there is no such thing on
+	     # the object model. The sole reason they are here is so that you
+	     # can set the physical column name of your taxon_name table.
+	     # You MUST have these columns on the taxon node table, NOT the
+	     # taxon name table.
 	     "name_class"     => "name_class",
+	     "node_rank"      => "node_rank",
+	     "parent_taxon"   => "parent_taxon_id",
 	 },
 	 "taxon" => {
 	     "ncbi_taxid"     => "ncbi_taxon_id",
+	     # the following are hacks, see taxon_name mapping
+	     "name_class"     => "name_class",
+	     "node_rank"      => "node_rank",
+	     "parent_taxon"   => "parent_taxon_id",
 	 },
 	 "bioentry" => {
 	     "display_id"     => "name",

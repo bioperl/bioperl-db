@@ -236,9 +236,38 @@ sub populate_from_row{
     }
     if($rows && @$rows) {
 	$obj->common_name($rows->[1]) if $rows->[1];
-	$obj->classification([split(/:/,$rows->[2])], "FORCE") if $rows->[2];
 	$obj->ncbi_taxid($rows->[3]) if $rows->[3];
-	if($rows->[4] && (! $rows->[2])) {
+	# get the classification array in a separate query
+	my $clf = $self->get_classification($rows->[0]);
+	if($clf && @$clf) {
+	    # for the species object we do not maintain the nodes that don't
+	    # correspond to a standard rank, so remove them (e.g., 'root')
+	    while($clf->[0]->[1] eq "no rank") {
+		shift(@$clf);
+	    }
+	    # in the species object we store the species element without the
+	    # genus, and similary for the sub-species and variant
+	    for(my $i = scalar(@$clf)-2; $i >= 0; $i--) {
+		# is this node's name matches the start of the previous one,
+		# remove this portion from the previous one's name
+		if(index($clf->[$i+1]->[0], $clf->[$i]->[0]) == 0) {
+		    $clf->[$i+1]->[0] = substr($clf->[$i+1]->[0],
+					       length($clf->[$i]->[0])+1);
+		}
+		# don't do this stuff beyond genus and species
+		last if $clf->[$i]->[1] eq "genus";
+	    }
+	    # the last element may hold the variant
+	    if($clf->[scalar(@$clf)-1]->[1] eq "no rank") {
+		$obj->variant($clf->[scalar(@$clf)-1]->[0]);
+		# we do not store the variant in the species object's
+		# classification array
+		pop(@$clf);
+	    }
+	    # done massaging, store away
+	    $obj->classification([reverse(map { $_->[0]; } @$clf)]);
+	}
+	if($rows->[4] && (! $obj->classification)) {
 	    my @clf = split(' ',$rows->[4]);
 	    $obj->classification([$clf[1],$clf[0]], "FORCE");
 	    splice(@clf,0,2);
@@ -306,6 +335,26 @@ sub get_unique_key_query{
 
 sub remove_children{
     return 1;
+}
+
+=head2 get_classification
+
+ Title   : get_classification
+ Usage   :
+ Function: Returns the classification array for a taxon as identified by
+           its primary key.
+ Example :
+ Returns : a reference to an array of two-element arrays, where the first
+           element contains the name of the node and the second element
+           denotes its rank
+ Args    : the primary key of the taxon
+
+
+=cut
+
+sub get_classification{
+    my $self = shift;
+    return $self->dbd->get_classification($self,@_);
 }
 
 1;

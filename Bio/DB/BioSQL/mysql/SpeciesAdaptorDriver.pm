@@ -170,8 +170,6 @@ sub prepare_findbypk_sth{
 sub prepare_findbyuk_sth{
     my ($self,$adp,$ukval_h,$fkslots) = @_;
 
-    # get the slots for which we need columns
-    my @slots = $adp->get_persistent_slots();
     # get the slot/attribute map
     my $table = $self->table_name($adp);
     my $node_table = $self->table_name("TaxonNode");
@@ -264,6 +262,7 @@ sub insert_object{
     my $cache_key_tn = 'INSERT taxname '.ref($obj);
     my $sth_t = $adp->sth($cache_key_t);
     my $sth_tn = $adp->sth($cache_key_tn);
+    my $sth_max = $adp->sth("SELECT MAX TAXON SETID");
     # we need the slot map regardless of whether we need to construct the
     # SQL or not, because we need to know which slots do not map to a column
     # (indicated by them being mapped to undef)
@@ -277,10 +276,14 @@ sub insert_object{
     # if not cached, create SQL and prepare statement
     if(! $sth_tn) {
 	# Prepare the taxon insert statement first. There is really not a
-	# lot for being generic here. Also, I'm afraid we need to mandate
-	# that there is a column mapping to ncbi_taxid.
-	my $sql = "INSERT INTO $node_table (".$slotmap->{"ncbi_taxid"}.
-	    ") VALUES (?)";
+	# lot room for being generic here. Also, I'm afraid we need to mandate
+	# that there is a column mapping to ncbi_taxid, parent, and node rank.
+	my $sql = "INSERT INTO $node_table (".
+	    join(", ",($slotmap->{"parent_taxon"},
+		       $slotmap->{"ncbi_taxid"},
+		       $slotmap->{"node_rank"},
+		       "left_value","right_value")).
+	    ") VALUES (?, ?, ?, ?, ?)";
 	$adp->debug("preparing INSERT taxon: $sql\n");
 	$sth_t = $dbh->prepare($sql);
 	$adp->sth($cache_key_t, $sth_t);
@@ -295,29 +298,74 @@ sub insert_object{
 	# and cache
 	$adp->sth($cache_key_tn, $sth_tn);
     }
-    # first insert the taxon node
-    if($adp->verbose > 0) {
-	$adp->debug(substr(ref($adp),rindex(ref($adp),"::")+2).
-		    "::insert: ".
-		    "binding column 1 to \"", $obj->ncbi_taxid,
-		    "\" (ncbi_taxid)\n");
+    # prepare the classification tree: we may have subspecies and variant
+    my @clf = map { [$_,undef]; } $obj->classification();
+    # the only thing that's hopefully relatively reliable is that species
+    # and genus are the first two elements
+    $clf[0]->[1] = "species";
+    $clf[1]->[1] = "genus";
+    # also, convention is species to equal the binomial, not just first name
+    $clf[0]->[0] = $obj->binomial();
+    # sub-species and variant are to be prepended, also as full names
+    if($obj->sub_species) {
+	unshift(@clf, [$obj->binomial() ." subsp. ". $obj->sub_species(),
+		       "subspecies"]);
     }
-    my $rv = $sth_t->execute($obj->ncbi_taxid);
-    # we need the newly assigned primary key
-    my $pk;
-    if($rv) {
+    if($obj->variant) {
+	# note that this is not guaranteed to be the "varietas" rank: it
+	# might also be a strain for instance
+	unshift(@clf, [$obj->binomial() ." ". $obj->variant(), "no rank"]);
+    }
+    # the most specific rank gets the NCBI taxon ID assigned (if provided)
+    my $taxid_rank = $clf[0]->[1];
+    # reverse the whole thing before proceeding (Bio::Species stores the
+    # classification array in reverse order)
+    @clf = reverse(@clf);
+    # to avoid unique key clashes, we need to know the largest existing
+    # number
+    my $sth = $dbh->prepare("SELECT max(right_value) FROM $node_table");
+    $sth->execute() || return undef;
+    my ($maxsetid) = $sth->fetchrow_array() || (0);
+    my $setid = $maxsetid+1;
+    # for each element in the array store node and name
+    my ($pk,$rv);
+    foreach my $node (@clf) {
+	# set ncbi taxon id
+	my $ncbi_taxid = $node->[1] eq $taxid_rank ? $obj->ncbi_taxid : undef;
+	# log and insert
+	if($adp->verbose > 0) {
+	    $adp->debug(substr(ref($adp),rindex(ref($adp),"::")+2).
+			"::insert: ".
+			"binding columns 1;2;3;4;5 to \"",
+			join(";",
+			     $pk || "<NULL>",
+			     $ncbi_taxid || "<NULL>", $node->[1] || "<NULL>",
+			     $setid,
+			     2*($maxsetid+scalar(@clf))-$setid+1),
+			"\" (parent_taxon,ncbi_taxid,node_rank,left,right)\n");
+	}
+	$rv = $sth_t->execute($pk,$ncbi_taxid,$node->[1],
+			      $setid, 2*($maxsetid+scalar(@clf))-$setid+1);
+	$setid++;
+	last unless $rv;
+	# we need the newly assigned primary key
 	$pk = $adp->dbcontext->dbi->last_id_value($dbh,
 					    $self->sequence_name($node_table));
-	# now insert binomial into the taxon name table
+	# now insert name of node into the taxon name table
 	if($adp->verbose > 0) {
 	    $adp->debug(substr(ref($adp),rindex(ref($adp),"::")+2).
 			"::insert: ".
 			"binding columns 1;2;3 to \"",
-			join(";",$pk,$obj->binomial("full"),"scientific name"),
+			join(";",$pk,$node->[0],"scientific name"),
 			"\" ($fkname, name, name_class)\n");
 	}
-	$rv = $sth_tn->execute($pk, $obj->binomial("FULL"), "scientific name");
+	$rv = $sth_tn->execute($pk, $node->[0], "scientific name");
+	last unless $rv;
     }
+    # upon exit the value of $pk is the primary key for the node that got
+    # the NCBI taxon ID assigned - which is exactly what we need as the
+    # foreign key of the species for subsequent reference
+
     # if defined insert common_name into the taxon name table
     if($rv && $obj->common_name) {
 	if($adp->verbose > 0) {
@@ -330,7 +378,7 @@ sub insert_object{
 	$rv = $sth_tn->execute($pk, $obj->common_name(), "common name");
     }
     # done, return
-    return $pk;
+    return $rv ? $pk : undef;
 }
 
 =head2 update_object
@@ -356,105 +404,6 @@ sub update_object{
 
     $self->throw_not_implemented();
 
-    # obtain the object's slots to be serialized
-    my @slots = $adp->get_persistent_slots($obj);
-    # get the UPDATE statement 
-    # is it cached?
-    my $cache_key = 'UPDATE '.ref($obj).' '.join(';',@slots);
-    my $sth = $adp->sth($cache_key);
-    # we need the slot map regardless of whether we need to construct the
-    # SQL or not, because we need to know which slots do not map to a column
-    # (indicated by them being mapped to undef)
-    my $table = $self->table_name($adp);
-    my $slotmap = $self->slot_attribute_map($table);
-    $self->throw("no slot/attribute map for table $table") unless $slotmap;
-    # if not cached, create SQL and prepare statement
-    if(! $sth) {
-	# construct UPDATE statement as straightforward SQL
-	my @attrs = ();
-	foreach my $slot (@slots) {
-	    if(! exists($slotmap->{$slot})) {
-		$self->throw("no mapping for slot $_ in slot-attribute map");
-	    }
-	    # we don't add a column nor a placeholder for unmapped slots
-	    if($slotmap->{$slot} &&
-	       (substr($slotmap->{$slot},0,2) ne '=>')) {
-		push(@attrs, $slotmap->{$slot});
-	    }
-	}
-	# foreign keys
-	if($fkobjs) {
-	    foreach (@$fkobjs) {
-		my $fkattr = $self->foreign_key_name($_);
-		push(@attrs, $fkattr);
-	    }
-	}
-	my $ifnull = $adp->dbcontext->dbi->ifnull_sqlfunc();
-	my $sql = "UPDATE $table SET " .
-	    join(", ", map {"$_ = $ifnull\(?,$_\)";} @attrs) .
-	    " WHERE " . $self->primary_key_name($table) . " = ?";
-	$adp->debug("preparing UPDATE statement: $sql\n");
-	$sth = $adp->dbh()->prepare($sql);
-	# and cache
-	$adp->sth($cache_key, $sth);
-    }
-    # bind paramater values
-    my $slotvals = $adp->get_persistent_slot_values($obj, $fkobjs);
-    if(@$slotvals != @slots) {
-	$self->throw("number of slots must equal the number of values");
-    }
-    my $i = 0; # slots and slot values index
-    my $j = 1; # column index
-    while($i < @slots) {
-	if($slotmap->{$slots[$i]} &&
-	   (substr($slotmap->{$slots[$i]},0,2) ne '=>')) {
-	    if($adp->verbose > 0) {
-		$adp->debug(substr(ref($adp),rindex(ref($adp),"::")+2).
-			    "::update: ".
-			    "binding column $j to \"" .
-			    $slotvals->[$i] . "\" ($slots[$i])\n");
-	    }
-	    $sth->bind_param($j, $slotvals->[$i]);
-	    $j++;
-	}
-	$i++;
-    }
-    # bind foreign key values
-    if($fkobjs) {
-	foreach my $o (@$fkobjs) {
-	    # If it's an object, the value to bind is the primary key. If it's
-	    # numeric, the value is the number. Otherwise bind undef.
-	    my $fk = ref($o) ?
-		$o->primary_key() :
-		$o =~ /^\d+$/ ? $o : undef;
-	    if($adp->verbose > 0) {
-		$adp->debug(substr(ref($adp),rindex(ref($adp),"::")+2).
-			    "::update: ".
-			    "binding column $j to \"$fk\" (FK to ".
-			    $self->table_name($o) . ")\n");
-	    }
-	    $sth->bind_param($j, $fk);
-	    $j++;
-	}
-    }
-    # bind the primary key (which is in the WHERE clause)
-    $sth->bind_param($j, $obj->primary_key());
-    # execute
-    my $rv = $sth->execute();
-    if(! $rv) {
-	$self->warn("update in ".ref($adp)." (driver) failed, values were (\"".
-		    join("\",\"",@$slotvals)."\") ".
-		    ($fkobjs ?
-		     "FKs (".join(",",
-				  map {
-				      $_ && ref($_) ?
-					  $_->primary_key() : "<NULL>";
-				  } @$fkobjs).
-		     ")\n" : "\n").
-		    $sth->errstr);
-    }
-    # done, return
-    return $rv;
 }
 
 =head2 _build_select_list
@@ -489,6 +438,62 @@ sub _build_select_list{
 	}
     }
     return @attrs;
+}
+
+=head2 get_classification
+
+ Title   : get_classification
+ Usage   :
+ Function: Returns the classification array for a taxon as identified by
+           its primary key.
+ Example :
+ Returns : a reference to an array of two-element arrays, where the first
+           element contains the name of the node and the second element
+           denotes its rank
+ Args    : the calling adaptor, the primary key of the taxon
+
+
+=cut
+
+sub get_classification{
+    my ($self,$adp,$pk) = @_;
+    my @clf = ();
+
+    # try to obtain statement handle from cache
+    my $cache_key = "SELECT taxon classification";
+    my $sth = $adp->sth($cache_key);
+    if(! $sth) {
+	# we need to build this one
+	
+	# get table names, primary and foreign key names, slot/attribute map
+	my $name_table = $self->table_name($adp);
+	my $node_table = $self->table_name("TaxonNode");
+	my $pkname = $self->primary_key_name($node_table);
+	my $fkname = $self->foreign_key_name("TaxonNode");
+	my $slotmap = $self->slot_attribute_map($name_table);
+	# we set up the sql without any fancy:
+	my $sql =
+	    "SELECT name.".$slotmap->{"binomial"}.
+	    ", node.".$slotmap->{"node_rank"}.
+	    " FROM $node_table node, $node_table taxon, $name_table name".
+	    " WHERE name.$fkname = node.$pkname AND".
+	    " taxon.left_value BETWEEN node.left_value AND node.right_value".
+	    " AND taxon.$pkname = ?".
+	    " ORDER BY node.left_value";
+	$adp->debug("prepare SELECT CLASSIFICATION: $sql\n");
+	# prepare the query
+	$sth = $adp->dbh->prepare($sql);
+	# and cache it
+	$adp->sth($cache_key, $sth);
+    }
+    # execute with the given primary key
+    my $rv = $sth->execute($pk);
+    if($rv) {
+	while(my $row = $sth->fetchrow_arrayref()) {
+	    push(@clf, [@$row]);
+	}
+    }
+    return \@clf;
 }
 
 1;

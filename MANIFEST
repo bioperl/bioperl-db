@@ -45,7 +45,6 @@ scripts/load_seqdatabase.pl
 scripts/load_whitehead_markers.pl
 scripts/test_bioenv.pl
 scripts/validate_whitehead_markers.pl
-sql/basicseqdb-mysql.sql
 sql/bibliography-mysql.sql
 sql/markerdb-mysql.sql
 sql/rawdata-mysql.sql

@@ -128,11 +128,17 @@ CREATE TABLE seqfeature_key (
        key_name varchar(255) NOT NULL
 );
 
+CREATE TABLE seqfeature_source (
+       seqfeature_source_id int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
+       source_name varchar(255) NOT NULL
+);
+
 
 CREATE TABLE seqfeature (
    seqfeature_id int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
    bioentry_id   int(10) NOT NULL,
-   seqfeature_key_id int(10),
+   seqfeature_key_id     int(10),
+   seqfeature_source_id  int(10),
    seqfeature_rank int(5)
 );
 

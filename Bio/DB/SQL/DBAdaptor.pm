@@ -47,7 +47,10 @@ use Bio::Root::RootI;
 use Bio::DB::SQL::SeqAdaptor;
 use Bio::DB::SQL::PrimarySeqAdaptor;
 use Bio::DB::SQL::BioDatabaseAdaptor;
-
+use Bio::DB::SQL::SeqFeatureKeyAdaptor;
+use Bio::DB::SQL::SeqFeatureQualifierAdaptor;
+use Bio::DB::SQL::SeqFeatureSourceAdaptor;
+use Bio::DB::SQL::SeqLocationAdaptor;
 
 use DBI;
 
@@ -222,6 +225,98 @@ sub get_BioDatabaseAdaptor{
 
 }
 
+=head2 get_SeqFeatureKeyAdaptor
+
+ Title   : get_SeqFeatureKeyAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_SeqFeatureKeyAdaptor{
+   my ($self) = @_;
+
+   if( !defined $self->{'_seqkeydbadaptor'} ) {
+       $self->{'_seqkeydbadaptor'} = Bio::DB::SQL::SeqFeatureKeyAdaptor->new($self);
+   }
+
+   return $self->{'_seqkeydbadaptor'}
+
+}
+
+
+=head2 get_SeqFeatureKeyAdaptor
+
+ Title   : get_SeqFeatureKeyAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_SeqFeatureQualifierAdaptor{
+   my ($self) = @_;
+
+   if( !defined $self->{'_seq_qual_adaptor'} ) {
+       $self->{'_seq_qual_adaptor'} = Bio::DB::SQL::SeqFeatureQualifierAdaptor->new($self);
+   }
+
+   return $self->{'_seq_qual_adaptor'}
+}
+
+=head2 get_SeqFeatureSourceAdaptor
+
+ Title   : get_SeqFeatureSourceAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_SeqFeatureSourceAdaptor{
+   my ($self) = @_;
+
+   if( !defined $self->{'_seq_source_adaptor'} ) {
+       $self->{'_seq_source_adaptor'} = Bio::DB::SQL::SeqFeatureSourceAdaptor->new($self);
+   }
+
+   return $self->{'_seq_source_adaptor'}
+
+}
+
+
+=head2 get_SeqLocationAdaptor
+
+ Title   : get_SeqLocationAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_SeqLocationAdaptor{
+   my ($self) = @_;
+
+   if( !defined $self->{'_seq_location_adaptor'} ) {
+       $self->{'_seq_location_adaptor'} = Bio::DB::SQL::SeqLocationAdaptor->new($self);
+   }
+
+   return $self->{'_seq_location_adaptor'}
+
+}
 
 =head2 _db_handle
 

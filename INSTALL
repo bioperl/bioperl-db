@@ -46,7 +46,7 @@ errors from mis-parsed organisms.
 LOAD SEQUENCE DATA
 
 Most people will want to load sequence data into their BioSQL
-databases. Use scripts/load_seqdatabase.pl to load sequences from
+databases. Use scripts/biosql/load_seqdatabase.pl to load sequences from
 flatfiles. See its POD (--help option) for all the the available options.
 
 

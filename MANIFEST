@@ -1,0 +1,7 @@
+README
+Changes
+MANIFEST
+Makefile.PL
+t/add.t
+t/test.genbank
+Bio/EnsemblLite/UpdateableDB.pm

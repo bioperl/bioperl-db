@@ -1,6 +1,6 @@
 
 # an add on to support needed fields
-drop table dna_description;
+# drop table dna_description;
 
 CREATE TABLE dna_description (
        seqid int(10) unsigned NOT NULL PRIMARY KEY,
@@ -19,7 +19,7 @@ CREATE TABLE dna_description (
 #
 # Table structure for table 'generic_feature'
 #
-drop table generic_feature;
+# drop table generic_feature;
 CREATE TABLE generic_feature (
   featureid    int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
   seqid         int(10) unsigned NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE generic_feature (
 #
 # Table structure for table 'feature_detail'
 #
-drop table feature_detail;
+# drop table feature_detail;
 CREATE TABLE feature_detail (
   detailid   int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
   tag	    varchar(20) NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE feature_detail (
 #
 # Table structure for table 'feature_detail_association'
 #
-drop table feature_detail_association;
+# drop table feature_detail_association;
 CREATE TABLE feature_detail_association (
   featureid   int(10) unsigned NOT NULL,
   detailid      int(10) unsigned NOT NULL,
@@ -58,12 +58,12 @@ CREATE TABLE feature_detail_association (
   KEY rank (rank)
 );
 
-drop table local_accession_num;
+# drop table local_accession_num;
 create table local_accession_num (
        used_num int(10) unsigned NOT NULL auto_increment PRIMARY KEY
 );
 
-drop table listval;
+# drop table listval;
 create table listval ( 
        listname char(16) not null,
        val      smallint unsigned not null,

@@ -217,9 +217,3 @@ sub _store_component{
 }
 
 1;
-
-
-
-
-
-

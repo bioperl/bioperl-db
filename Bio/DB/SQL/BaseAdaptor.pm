@@ -123,3 +123,4 @@ sub get_last_id{
    return $rowhash->{'last_insert_id()'};
 }
 
+1;

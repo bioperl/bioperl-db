@@ -62,7 +62,7 @@ my $seqadp = $dbadaptor->get_SeqAdaptor;
 
 foreach $file ( @files ) {
 
-    print STDERR "Reasing $file\n";
+    print STDERR "Reading $file\n";
     my $seqio = Bio::SeqIO->new(-file => $file,-format => $format);
 
     while( $seq = $seqio->next_seq ) {

@@ -95,23 +95,30 @@ sub fetch_by_dbID{
 
    my @array;
 
-   my $sth = $self->prepare("select seq_start,seq_end,seq_strand from seqfeature_location where seqfeature_id = $dbid order by location_rank");
+   my $sth = $self->prepare("select seqfeature_location_id,seq_start,seq_end,seq_strand from seqfeature_location where seqfeature_id = $dbid order by location_rank");
    $sth->execute();
    
    my $arrayref;
    my $count = 0;
    my $component;
    while( $arrayref = $sth->fetchrow_arrayref ) {
-       my ($seq_start,$seq_end,$seq_strand) = @{$arrayref};
-
+       my ($sfid,$seq_start,$seq_end,$seq_strand) = @{$arrayref};
+       
        $component = Bio::Location::Simple->new();
        $component->start($seq_start);
        $component->end($seq_end);
        $component->strand($seq_strand);
-
+       my $sth2=$self->prepare("select accession,version from remote_seqfeature_name where seqfeature_location_id = $sfid");
+       $sth2->execute;
+       my ($acc,$v) = $sth2->fetchrow_array();
+       if ($acc) {
+	   my $accsv=$acc.".".$v;
+	   $component->is_remote(1);
+	   $component->seq_id($accsv);
+       }
        push(@array,$component);
    }
-
+   
    if( scalar(@array) == 0 ) {
        $self->throw("no location for $dbid");
    }

@@ -403,8 +403,14 @@ sub remove_all_relationships{
     if (! ($ont && ref($ont) && $ont->isa("Bio::Ontology::OntologyI"))) {
         $self->throw("argument must be an OntologyI-compliant object");
     }
-    if (! $ont->isa("Bio::DB::PersistentObjectI")) {
-        $ont = $self->_ont_adaptor->find_by_unique_key($ont);
+    if (! ($ont->isa("Bio::DB::PersistentObjectI") && $ont->primary_key)) {
+        # to avoid side effects like clobbering this ontology's
+        # properties with possibly older ones from the database we'll
+        # need an object factory
+        $ont = $ont->obj() if $ont->isa("Bio::DB::PeristentObjectI");
+        my $ontfact = Bio::Factory::ObjectFactory->new(-type => ref($ont));
+        my $adp = $self->_ont_adaptor();
+        $ont = $adp->find_by_unique_key($ont, '-obj_factory' => $ontfact);
     }
     return $ont ?
         # note that having the persistent object in the -objs array

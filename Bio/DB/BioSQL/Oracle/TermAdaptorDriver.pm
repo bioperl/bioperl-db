@@ -240,4 +240,37 @@ sub get_synonyms{
     return $rv;
 }
 
+=head2 bind_param
+
+ Title   : bind_param
+ Usage   :
+ Function: Binds a parameter value to a prepared statement.
+
+           We override this in order to possibly truncate term
+           definitions longer than 4000 characters, the limit of
+           Oracle's VARCHAR2 data type. Note that this problem does
+           not exist with Pg's and mysql's text types.
+
+ Example :
+ Returns : the return value of the DBI::bind_param() call
+ Args    : the DBI statement handle to bind to
+           the index of the column (1-based)
+           the value to bind
+           additional arguments to be passed to the sth->bind_param call
+
+
+=cut
+
+sub bind_param{
+    my ($self,$sth,$i,$val,@bindargs) = @_;
+    
+    # definition is the 3rd value to bind
+    if (($i == 3) && defined($val) && (length($val) > 4000)) {
+        $self->warn("term definition is "
+                    .length($val)." chars long, need to truncate to 4000");
+        $val = substr($val,0,4000);
+    }
+    return $self->SUPER::bind_param($sth,$i,$val,@bindargs);
+}
+
 1;

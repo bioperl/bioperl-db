@@ -167,8 +167,19 @@ bioperl. All input files must have the same format.
 Examples: 
     # this is the default
     --format goflat
-    # Simple ASCII hierarchy
+    # Simple ASCII hierarchy (e.g., eVoc)
     --format simplehierarchy
+
+Note that some formats may come with event-type parsers, specifically
+with XML SAX event parsers. While those aren't truly
+OntologyIO-compliant parsers (they can't be because OntologyIO defines
+a stream of ontologies as the API), this script supports them
+nevertheless. For instance, at the time of this writing there is an
+InterPro XML SAX event handler (aliased to --format interprosax) which
+will persist terms to the database as they are encountered in the
+event stream, which greatly reduces the amount of memory
+needed. Credit for conceiving this idea and writing the SAX handler
+goes to Juguang Xiao, juguang at tll.org.sg.
 
 =item --fmtargs
 
@@ -272,9 +283,10 @@ Hilmar Lapp E<lt>hlapp at gmx.netE<gt>
 
 use Getopt::Long;
 use Symbol;
-use Carp (qw:cluck confess:);
+use Carp (qw:cluck confess croak:);
 use Bio::DB::BioDB;
 use Bio::OntologyIO;
+use Bio::Root::RootI;
 
 ####################################################################
 # Defaults for options changeable through command line
@@ -422,9 +434,6 @@ my $db = Bio::DB::BioDB->new(-database   => "biosql",
 			     );
 $db->verbose($debug) if $debug > 0;
 
-# declarations
-my ($pterm, $adp);
-
 #
 # Open the ontology parser on all files supplied. Unlike other IO parsers,
 # ontologies may easily involve more than 1 input file to extract the
@@ -437,144 +446,125 @@ my @parserargs = $format ? (-format => $format) : ();
 push(@parserargs, @fmtargs);
 
 if(@files == 1) {
-    my $fh = $files[0];
-    # create a handle if it's not one already
-    if(! ref($fh)) {
-	$fh = gensym;
-	open($fh, "<".$files[0]) or
-	    die "unable to open ",$files[0]," for reading: $!\n";
-    }
-    $ontin = $objio->new(-fh => $fh, @parserargs);
+    my $prmname = ref($files[0]) ? "-fh" : "-file";
+    $ontin = $objio->new($prmname, $files[0], @parserargs);
 } else {
     $ontin = $objio->new(-files => \@files, @parserargs);
 }
 
-print STDERR "Parsing input ...\n";
+# set up the array of constant arguments to pass to the persistence handler
+my @persist_args = ('-db'          => $db,
+                    '-termfactory' => $ontin->term_factory,
+                    '-throw'       => $throw,
+                    '-mergeobs'    => $merge_objs,
+                    '-lookup'      => $lookup_flag,
+                    '-remove'      => $remove_flag,
+                    '-noupdate'    => $no_update_flag,
+                    '-noobsolete'  => $no_obsolete,
+                    '-delobsolete' => $del_obsolete,
+                    '-updobsolete' => $upd_obsolete,
+                    '-testonly'    => $testonly_flag,
+                    );
 
-# loop over the input stream(s)
-while( my $ont = $ontin->$nextobj ) {
-    # don't forget to add namespace if the parser doesn't supply one
-    $ont->name($namespace) unless $ont->name();
 
-    print STDERR "Loading ontology ",$ont->name(),":\n\t... terms\n";
+# The input parser may in fact be a SAX event handler, not a truly
+# OntologyIO-compliant parser. A SAX handler needs to be treated
+# fundamentally different from this point on than an OntologyIO
+# compliant parser. While the former is to be handed off to a XML SAX
+# parser, the latter needs to be looped over the ontologies it
+# returns.
 
-    # in order to allow callbacks to the user and generally a better ability
-    # to interfere with and customize the upload process, we load all terms
-    # first here instead of simply going for the relationships
-    foreach my $term ($ont->get_all_terms()) {
-	# if the term is obsolete and we don't want to look at obsolete
-	# terms, skip to the next one right away
-	next if $no_obsolete && $term->is_obsolete();
-	# look up or delete first? this may pertain only to obsolete terms.
-	my ($lterm);
-	if($lookup_flag || $remove_flag ||
-	   (($del_obsolete || $upd_obsolete) && $term->is_obsolete())) {
-	    # look up
-	    $adp = $db->get_object_adaptor($term);
-	    $lterm = $adp->find_by_unique_key($term,
-					      -obj_factory =>
-					      $ontin->term_factory());
-	    # found?
-	    if($lterm) {
-		# merge old and new if a function for this is provided
-		$term = &$merge_objs($lterm, $term, $db) if $merge_objs;
-		# the return value may indicate to skip to the next
-		next unless $term;
-	    } elsif(($del_obsolete || $upd_obsolete) && $term->is_obsolete()) {
-		# don't store obsolete terms if we're supposed to only update
-		# or delete them
-		next;
-	    }
-	}
-	# try to serialize
-	eval {
-	    $adp = $lterm->adaptor() if $lterm;
-	    # delete if requested
-	    if($lterm &&
-	       ($remove_flag || ($del_obsolete && $term->is_obsolete()))) {
-		$lterm->remove();
-	    }
-	    # on update, skip the rest if we are not supposed to update,
-	    # and proceed with insert or update otherwise
-	    if(! ($lterm && $no_update_flag)) {
-		# create a persistent object out of the term
-		$pterm = $db->create_persistent($term);
-		$adp = $pterm->adaptor();
-		# store the primary key of what we found by lookup (this
-		# is going to be an udate then)
-		if($lterm && $lterm->primary_key) {
-		    $pterm->primary_key($lterm->primary_key);
-		}
-		$pterm->store();
-	    }
-	    $adp->commit() unless $testonly_flag;
-	};
-	if ($@) {
-	    my $msg = "Could not store term ";
-            if (defined($term->object_id())) {
-                $msg .= $term->object_id().", name ";
-            }
-            $msg .= "'".$term->name()."':\n$@\n";
-	    $adp->rollback();
-	    &$throw($msg);
-	}
-    }
+if ($ontin->isa("Bio::OntologyIO::Handlers::BaseSAXHandler")) {
+    # this is a SAX event handler, not a true OntologyIO parser
 
-    # after all terms have been processed, we run through the relationships
-    # more or less non-interactively (i.e., without invoking a callback)
-
-    print STDERR "\t... relationships\n";
-
-    # first off, we need to delete the existing relationships in order
-    # to avoid having stale ones around
-    my $reladp = $db->get_object_adaptor("Bio::Ontology::RelationshipI");
+    # pull in the XML SAX parser
     eval {
-        $reladp->remove_all_relationships($ont);
-        $reladp->commit() unless $testonly_flag;
+        require XML::Parser::PerlSAX;
     };
-    if ($@) {
-        $reladp->rollback();
-        &$throw("failed to remove relationships prior to inserting them");
-    }
+    croak "failed to load required XML SAX parser:\n$@" if $@;
+    
+    # complete setup of the SAX event handler: pass in our persistence handlers
+    $ontin->persist_term_handler(\&persist_term, @persist_args);
+    $ontin->persist_relationship_handler(\&persist_relationship,@persist_args);
+    $ontin->db($db);
 
-    # now go and insert all of them
-    foreach my $rel ($ont->get_relationships()) {
-	# don't bother with relationships that reference an obsolete term
-	# if we don't load obsolete terms
-	if($del_obsolete || $no_obsolete) {
-	    next if ($rel->subject_term->is_obsolete() ||
-		     $rel->object_term->is_obsolete() ||
-		     $rel->predicate_term->is_obsolete());
-	}
-	my $prel = $db->create_persistent($rel);
-	eval {
-	    $prel->create(); 
-	    $prel->commit() unless $testonly_flag;
-	};
-	if ($@) {
-	    my $msg = "Could not store term relationship (".
-		join(",",
-		     $rel->subject_term->name(),
-		     $rel->predicate_term->name(), 
-		     $rel->object_term->name()).
-		"):\n$@\n";
-	    $prel->rollback();
-	    &$throw($msg);
-	}
-    }
+    # make sure the (default) ontology has a name
+    my $ont = $ontin->_ontology();
+    $ont->name($namespace) unless $ont->name;
+
+    # instantiate the XML SAX parser and pass it the event handler
+    my $parser = XML::Parser::PerlSAX->new(Handler => $ontin);
+
+    # parsing the file will persist all terms and relationships, so we need
+    # to delete the relationships first to avoid having stale ones around
+    print STDERR "\t...deleting all relationships for ",$ont->name,"\n";
+    remove_all_relationships('-ontology' => $ont, @persist_args);
+
+    # now go ahead and parse the file
+    print STDERR "\t...parsing and loading ",$ont->name,"\n";
+    $parser->parse(Source => {SystemId => $files[0]});
 
     # Generate the transitive closure if requested
     if($compute_tc) {
-	print STDERR "\t... transitive closure\n";
-	compute_tc($db, $ont, $ontin->term_factory(), $compute_tc);
+        print STDERR "\t... transitive closure\n";
+        compute_tc($db, $ont, $ontin->term_factory(), $compute_tc);
+    }
+    
+    print STDERR "\tDone with ",$ont->name,"\n";
+
+} else {
+    # this is a truly OntologyIO compliant parser, or so I hope
+
+    # loop over the input stream(s)
+    while( my $ont = $ontin->$nextobj ) {
+        # don't forget to add namespace if the parser doesn't supply one
+        $ont->name($namespace) unless $ont->name();
+        
+        print STDERR "Loading ontology ",$ont->name(),":\n\t... terms\n";
+
+        # in order to allow callbacks to the user and generally a
+        # better ability to interfere with and customize the upload
+        # process, we load all terms first here instead of simply
+        # going for the relationships
+
+        foreach my $term ($ont->get_all_terms()) {
+            # call the persistence handler - there is only one right now
+            persist_term('-term' => $term, @persist_args);
+        }
+
+        # after all terms have been processed, we run through the relationships
+        # more or less non-interactively (i.e., without invoking a callback)
+        
+        print STDERR "\t... relationships\n";
+
+        # first off, we need to delete the existing relationships in order
+        # to avoid having stale ones around
+        remove_all_relationships('-ontology' => $ont, @persist_args);
+
+        # now go and insert all of them
+        foreach my $rel ($ont->get_relationships()) {
+            # pass on to persistence function - there's only one right now
+            persist_relationship('-rel' => $rel, @persist_args);
+        }
+        
+        # Generate the transitive closure if requested
+        if($compute_tc) {
+            print STDERR "\t... transitive closure\n";
+            compute_tc($db, $ont, $ontin->term_factory(), $compute_tc);
+        }
+
+        print STDERR "\tDone with ".$ont->name.".\n";
     }
 
-    print STDERR "Done.\n";
+    # close the parser explicitly in case it needs this to be called
+    $ontin->close();
 }
 
-$adp->rollback() if $adp && $testonly_flag;
-$ontin->close();
+print STDERR "Done, cleaning up.\n";
 
+if ($db && $testonly_flag) {
+    $db->get_object_adaptor("Bio::Ontology::TermI")->rollback();
+}
 # done!
 
 #################################################################
@@ -638,5 +628,222 @@ sub compute_tc{
 	    ":\n$@";
 	$ontadp->rollback();
 	&$throw($msg);
+    }
+}
+
+=head2 persist_term
+
+ Title   : persist_term
+ Usage   :
+ Function: Persist an ontology term to the database. This function may
+           also be used as the persistence handler for event handlers,
+           e.g., an XML event stream handler.
+
+           This method requires many options and accepts even
+           more. See below.
+
+ Example :
+ Returns : 
+ Args    : Named parameters. Currently the following parameters are
+           recognized. Mandatory parameters are marked by an M in 
+           parentheses. Flags by definition are not mandatory; their
+           default value will be false.
+
+             -term        the ontology term object to persist (M)
+             -db          the adaptor factory returned by Bio::DB::BioDB (M)
+             -termfactory the factory for creating terms (M)
+             -throw       the error notification method to use
+             -mergeobs    the closure for merging old and new term
+             -lookup      whether to lookup terms first
+             -remove      whether to delete existing term first
+             -noobsolete  whether to completely ignore obsolete terms
+             -delobsolete whether to delete existing obsolete terms
+             -updobsolete whether to update existing obsolete terms
+             -testonly    whether to not commit the term upon success
+
+
+=cut
+
+sub persist_term {
+    my ($term, $db, $termfactory, $throw,
+        $merge_objs, $lookup_flag, $remove_flag, $no_update_flag,
+        $no_obsolete, $del_obsolete, $upd_obsolete,
+        $testonly_flag) =
+          Bio::Root::RootI->_rearrange([qw(TERM
+                                           DB
+                                           TERMFACTORY
+                                           THROW
+                                           MERGEOBJS
+                                           LOOKUP
+                                           REMOVE
+                                           NOUPDATE
+                                           NOOBSOLETE
+                                           DELOBSOLETE
+                                           UPDOBSOLETE
+                                           TESTONLY)],
+                                       @_);
+    # if the term is obsolete and we don't want to look at obsolete
+    # terms, skip to the next one right away
+    return if $no_obsolete && $term->is_obsolete();
+    # look up or delete first? this may pertain only to obsolete terms.
+    my ($pterm, $lterm, $adp);
+    if($lookup_flag || $remove_flag ||
+       (($del_obsolete || $upd_obsolete) && $term->is_obsolete())) {
+        # look up
+        $adp = $db->get_object_adaptor($term);
+        $lterm = $adp->find_by_unique_key($term,
+                                          -obj_factory => $termfactory);
+	    # found?
+        if($lterm) {
+            # merge old and new if a function for this is provided
+            $term = &$merge_objs($lterm, $term, $db) if $merge_objs;
+            # the return value may indicate to skip to the next
+            return unless $term;
+        } elsif(($del_obsolete || $upd_obsolete) && $term->is_obsolete()) {
+            # don't store obsolete terms if we're supposed to only update
+            # or delete them
+            return;
+        }
+    }
+    # try to serialize
+    eval {
+        $adp = $lterm->adaptor() if $lterm;
+        # delete if requested
+        if($lterm &&
+           ($remove_flag || ($del_obsolete && $term->is_obsolete()))) {
+            $lterm->remove();
+        }
+        # on update, skip the rest if we are not supposed to update,
+        # and proceed with insert or update otherwise
+        if(! ($lterm && $no_update_flag)) {
+            # create a persistent object out of the term
+            $pterm = $db->create_persistent($term);
+            $adp = $pterm->adaptor();
+            # store the primary key of what we found by lookup (this
+            # is going to be an udate then)
+            if($lterm && $lterm->primary_key) {
+                $pterm->primary_key($lterm->primary_key);
+            }
+            $pterm->store();
+        }
+        $adp->commit() unless $testonly_flag;
+    };
+    if ($@) {
+        my $msg = "Could not store term ";
+        if (defined($term->object_id())) {
+            $msg .= $term->object_id().", name ";
+        }
+        $msg .= "'".$term->name()."':\n$@\n";
+        $adp->rollback();
+        $throw = \&Carp::croak unless $throw;
+        &$throw($msg);
+    }
+}
+
+=head2 remove_all_relationships
+
+ Title   : remove_all_relationships
+ Usage   :
+ Function: Removes all relationships of an ontology from the
+           database. This is a necessary step before inserting the
+           latest ones in order to avoid stale relationships staying
+           in the database.
+
+           See below for the parameters that this method accepts
+           and/or requires.
+
+ Example :
+ Returns : 
+ Args    : Named parameters. Currently the following parameters are
+           recognized. Mandatory parameters are marked by an M in 
+           parentheses. Flags by definition are not mandatory; their
+           default value will be false.
+
+             -ontology    the ontology for which to remove relationships (M)
+             -db          the adaptor factory returned by Bio::DB::BioDB (M)
+             -throw       the error notification method to use
+             -testonly    whether to not commit the term upon success
+
+
+=cut
+
+sub remove_all_relationships {
+    my ($ont, $db, $throw, $testonly_flag) = 
+          Bio::Root::RootI->_rearrange([qw(ONTOLOGY
+                                           DB
+                                           THROW
+                                           TESTONLY)],
+                                       @_);
+
+    my $reladp = $db->get_object_adaptor("Bio::Ontology::RelationshipI");
+    eval {
+        $reladp->remove_all_relationships($ont);
+        $reladp->commit() unless $testonly_flag;
+    };
+    if ($@) {
+        $reladp->rollback();
+        $throw = \&Carp::croak;
+        &$throw("failed to remove relationships prior to inserting them: $@");
+    }
+}
+
+=head2 persist_relationship
+
+ Title   : persist_relationship
+ Usage   :
+ Function: Persist a term relationship to the database. This function
+           may also be used as the persistence handler for event
+           handlers, e.g., an XML event stream handler.
+
+           See below for the required and recognized parameters.
+
+ Example :
+ Returns : 
+ Args    : Named parameters. Currently the following parameters are
+           recognized. Mandatory parameters are marked by an M in 
+           parentheses. Flags by definition are not mandatory; their
+           default value will be false.
+
+             -rel         the term relationship object to persist (M)
+             -db          the adaptor factory returned by Bio::DB::BioDB (M)
+             -throw       the error notification method to use
+             -noobsolete  whether to completely ignore obsolete terms
+             -delobsolete whether to delete existing obsolete terms
+             -testonly    whether to not commit the term upon success
+
+
+=cut
+
+sub persist_relationship {
+    my ($rel, $db, $throw, $no_obsolete, $del_obsolete, $testonly_flag) =
+          Bio::Root::RootI->_rearrange([qw(REL
+                                           DB
+                                           THROW
+                                           NOOBSOLETE
+                                           DELOBSOLETE
+                                           TESTONLY)],
+                                       @_);
+    # don't bother with relationships that reference an obsolete term
+    # if we don't load obsolete terms
+    if($del_obsolete || $no_obsolete) {
+        return if ($rel->subject_term->is_obsolete() ||
+                   $rel->object_term->is_obsolete() ||
+                   $rel->predicate_term->is_obsolete());
+    }
+    my $prel = $db->create_persistent($rel);
+    eval {
+        $prel->create(); 
+        $prel->commit() unless $testonly_flag;
+    };
+    if ($@) {
+        my $msg = "Could not store term relationship (".
+            join(",",
+                 $rel->subject_term->name(),
+                 $rel->predicate_term->name(), 
+                 $rel->object_term->name()).
+                 "):\n$@\n";
+        $prel->rollback();
+        $throw = \&Carp::croak unless $throw;
+        &$throw($msg);
     }
 }

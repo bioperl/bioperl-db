@@ -258,6 +258,9 @@ sub set_object_adaptor{
 sub create_persistent{
    my ($self,$obj,@args) = @_;
 
+   # sanity check the object argument
+   $self->throw("are you kidding me? make undef persistent??") unless $obj;
+
    # we need to obtain an instance of the class if it's not already an instance
    if(! ref($obj)) {
        my $class = $obj;

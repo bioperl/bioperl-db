@@ -902,7 +902,7 @@ sub find_by_unique_key{
              passed object will be populated with the found values
              rather than a new object created.
 
-           - A flag indicating whether to not to retrieve and attach
+           - A flag indicating whether not to retrieve and attach
              children (objects having a foreign key to the object to
              build). Defaults to false if omitted, meaning children
              will be attached.

@@ -1,0 +1,17 @@
+=head1 HOW TO MAKE TEST
+
+=head2 problem
+
+making test for bioperl-db is not as easy as of bioperl-live, since the distribution knows nothing and gets no permission to access your local or remote database system, until you tell it.
+
+=head2 Steps
+
+1) copy t/DBHarness.conf.example into bioperl-db home directory and rename it as
+DBHarness.biosql.conf
+
+2) create a user 'biosql' without a password in MySQL; OR modify DBHarness.biosql.conf to fit an existing account in the database system.
+
+3) make test on bioperl-db home directory
+
+=cut
+

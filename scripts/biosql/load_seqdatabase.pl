@@ -548,6 +548,7 @@ foreach $file ( @files ) {
 # final progress report if enabled
 if (($logchunk > 0) && (($n_entries % $logchunk) != 0)) {
     my $elapsed = time() - $time;
+    $elapsed = 1 unless $elapsed; # avoid division by zero
     printf STDERR 
                 "\t... loaded $n_entries entries "
                 . "(in %.2d:%.2d:%.2d, %5.2f entries/s)\n",

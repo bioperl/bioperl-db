@@ -124,14 +124,14 @@ sub new {
 =cut
 
 sub next_id_value{
-    my ($self, $dbh) = @_;
+    my ($self, $dbh, $oraseq) = @_;
 
     if(! $dbh) {
 	$self->throw("no database handle supplied to last_id_value() --".
 		     "last_id and currval operations are connection-specific");
     }
     # we need to construct the sql statement
-    my $oraseq = shift || $self->sequence_name();
+    $oraseq = $self->sequence_name() unless $oraseq;
     my $row = $dbh->selectrow_arrayref("SELECT $oraseq.nextval FROM dual");
     my $dbid;
     if(! ($row && @$row && ($dbid = $row->[0]))) {
@@ -163,14 +163,15 @@ sub next_id_value{
 =cut
 
 sub last_id_value{
-    my ($self, $dbh) = @_;
+    my ($self, $dbh, $oraseq) = @_;
 
     if(! $dbh) {
 	$self->throw("no database handle supplied to last_id_value() --".
 		     "last_id and currval operations are connection-specific");
     }
     # we need to construct the sql statement
-    my $oraseq = shift || $self->sequence_name();
+    $oraseq = $self->sequence_name() unless $oraseq;
+    print "SELECT $oraseq.currval FROM dual\n";
     my $row = $dbh->selectrow_arrayref("SELECT $oraseq.currval FROM dual");
     my $dbid;
     if(! ($row && @$row && ($dbid = $row->[0]))) {
@@ -178,6 +179,31 @@ sub last_id_value{
 		     "probably internal error");
     }
     return $dbid;
+}
+
+=head2 build_dsn
+
+ Title   : build_dsn
+ Usage   :
+ Function: Constructs the DSN string from the DBContextI object. Since this
+           may be driver-specific, specific implementations may need to
+           override this method.
+ Example :
+ Returns : a string (the DSN)
+ Args    : a Bio::DB::DBContextI implementing object
+
+
+=cut
+
+sub build_dsn{
+    my ($self,$dbc) = @_;
+
+    my $dsn = "DBI:" . $dbc->driver() . ":";
+    $dsn .= "host=" . $dbc->host() if $dbc->host();
+    $dsn .= ";sid=" . $dbc->dbname();
+    $dsn .= ";port=" . $dbc->port() if $dbc->port();
+
+    return $dsn;
 }
 
 1;

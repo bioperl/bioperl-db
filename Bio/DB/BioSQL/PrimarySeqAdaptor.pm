@@ -132,9 +132,8 @@ sub get_persistent_slots{
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
     my @vals = ($obj->display_id(),
-		($obj->primary_id() =~ /=(HASH|ARRAY)\(0x/) ||
-		($obj->primary_id() eq $obj->display_id()) ?
-		undef : $obj->primary_id(),
+		$obj->primary_id() =~ /=(HASH|ARRAY)\(0x/ ?
+		 "=".$obj->accession_number() : $obj->primary_id(),
 		$obj->accession_number(),
 		$obj->description(),
 		$obj->version() || 0);
@@ -323,7 +322,8 @@ sub populate_from_row{
     }
     if($rows && @$rows) {
 	$obj->display_id($rows->[1]) if $rows->[1];
-	$obj->primary_id($rows->[2]) if $rows->[2];
+	$obj->primary_id($rows->[2])
+	    if $rows->[2] && substr($rows->[2],0,1) != '=';
 	$obj->accession_number($rows->[3]) if $rows->[3];
 	$obj->desc($rows->[4]) if $rows->[4];
 	$obj->version($rows->[5]) if $rows->[5];

@@ -165,7 +165,7 @@ sub update_object{
 
 sub get_biosequence{
     my ($self,$adp,$bioentryid,$start,$end) = @_;
-    my ($sth, $cache_key, $i, $row);
+    my ($sth, $cache_key, $row);
     my $seqstr;
 
     if(defined($start)) {
@@ -180,22 +180,26 @@ sub get_biosequence{
 		$self->throw("no mapping for column seq in table $table");
 	    }
 	    my $ukname = $self->foreign_key_name("Bio::PrimarySeqI");
-	    my $sql = "SELECT SUBSTRING($seqcol, ?" .
-		(defined($end) ? ", ?" : "") .
-		") FROM $table WHERE $ukname = ?";
+	    my $sql = "SELECT DBMS_LOB.SUBSTR($seqcol, ";
+	    if(defined($end)) {
+		$sql .= "?, ?";
+	    } else {
+		$sql .= "DBMS_LOB.GETLENGTH($seqcol) - ?, ?";
+	    }
+	    $sql .= ") FROM $table WHERE $ukname = ?";
 	    $adp->debug("preparing SELECT statement: $sql\n");
 	    $sth = $adp->dbh()->prepare($sql);
 	    # and cache it
 	    $adp->sth($cache_key, $sth);
 	}
 	# bind parameters
-	$sth->bind_param(1, $start);
-	$i = 2;
 	if(defined($end)) {
-	    $sth->bind_param(2, $end-$start+1);
-	    $i = 3;
+	    $sth->bind_param(1, $end-$start+1);
+	} else {
+	    $sth->bind_param(1, $start-1);
 	}
-	$sth->bind_param($i, $bioentryid);
+	$sth->bind_param(2, $start);
+	$sth->bind_param(3, $bioentryid);
     } else {
 	# statement cached?
 	$cache_key = "SELECT BIOSEQ ".$adp;

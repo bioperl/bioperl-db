@@ -149,7 +149,7 @@ sub get_persistent_slots{
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
     my @vals = ($obj->display_name(),
-		$obj->can('rank') ? $obj->rank() : undef
+		$obj->can('rank') ? $obj->rank() || 0 : 0
 		);
     return \@vals;
 }
@@ -471,7 +471,9 @@ sub get_unique_key_query{
 		unless $sfkey->primary_key();
 	}
 	$uk_h->{'primary_tag'} = $sfkey ? $sfkey->primary_key() : undef;
-	$uk_h->{'rank'} = $obj->rank() if $obj->can('rank');
+	if($obj->can('rank') && defined($obj->rank())) {
+	    $uk_h->{'rank'} = $obj->rank();
+	}
     }
 
     return $uk_h;

@@ -80,6 +80,7 @@ Internal methods are usually preceded with a _
 package Bio::DB::BioSQL::Oracle::BasePersistenceAdaptorDriver;
 use vars qw(@ISA);
 use strict;
+use Data::Dumper;
 
 # Object preamble - inherits from Bio::Root::Root
 
@@ -163,7 +164,7 @@ my %slot_attribute_map = (
 	     "classification" => "full_lineage",
 	     "common_name"    => "common_name",
 	     "ncbi_taxid"     => "ncbi_taxon_id",
-	     "binomial"       => "binomial",
+	     "binomial"       => "name",
 	     "variant"        => "variant",
 	 },
 	 "BS_bioentry" => {
@@ -289,6 +290,31 @@ sub new {
     return $self;
 }
 
+=head2 insert_object
+
+ Title   : insert_object
+ Usage   :
+ Function: We override this here in order to set LongReadLen on the
+           database handle (in order to affect all statements created
+	   from it).
+ Example :
+ Returns : The primary key of the newly inserted record.
+ Args    : A Bio::DB::BioSQL::BasePersistenceAdaptor derived object
+           See L<Bio::DB::BioSQL::BaseDriver> for more arguments
+
+=cut
+
+sub insert_object{
+    my $self = shift;
+    my $adp = shift;
+    my $dbh = $adp->dbh();
+    # set LongReadLen in the database handle if not set already
+    if($dbh->{'LongReadLen'} < 0x1000) { # we want at least 4k
+	$dbh->{'LongReadLen'} = 0x20000; # if we got less we demand 128k
+    }
+    return $self->SUPER::insert_object($adp, @_);
+}
+
 =head2 primary_key_name
 
  Title   : primary_key_name
@@ -342,7 +368,7 @@ sub foreign_key_name{
     # default is to get the primary key of the respective table
     $table = $self->table_name($obj);
     if($table) {
-	$fk = $self->acronym_map($table) ."_oid";
+	$fk = $self->acronym_map->{$table} ."_oid";
     } elsif(! ref($obj)) {
 	my @comps = split(/::/, $obj);
 	my $slot = pop(@comps);
@@ -364,9 +390,6 @@ sub foreign_key_name{
  Function: Returns the name of the primary key generator (SQL sequence)
            for the given table.
 
-           In this implementation we always return the same name
-           regardless of table.
-
  Example :
  Returns : the name of the sequence (a string)
  Args    : The name of the table.
@@ -375,7 +398,8 @@ sub foreign_key_name{
 =cut
 
 sub sequence_name{
-    return shift->{'schema_sequence'};
+    my ($self,$table) = @_;
+    return $table . "_pk_seq";
 }
 
 =head2 acronym_map

@@ -252,18 +252,18 @@ sub get_DBAdaptor {
     if(! $dbc) {
 	return $self->get_DBContext()->dbadaptor();
     }
-    return Bio::DB::BioDB->new(-"database" => $self->database,
-			       -"dbcontext" => $dbc);
+    return Bio::DB::BioDB->new(-database => $self->database,
+			       -dbcontext => $dbc);
 }
 
 sub get_DBContext {
     my ($self) = @_;
-    my $dbc = Bio::DB::SimpleDBContext->new(-"driver" => $self->driver,
-					    -"dbname" => $self->dbname,
-					    -"host"   => $self->host,
-					    -"user"   => $self->user,
-					    -"pass"   => $self->password,
-					    -"port"   => $self->port);
+    my $dbc = Bio::DB::SimpleDBContext->new("-driver" => $self->driver,
+					    "-dbname" => $self->dbname,
+					    "-host"   => $self->host,
+					    "-user"   => $self->user,
+					    "-pass"   => $self->password,
+					    "-port"   => $self->port);
     my $dbadp = $self->get_DBAdaptor($dbc);
     $dbc->dbadaptor($dbadp);
     return $dbc;

@@ -95,20 +95,30 @@ sub new {
     my($class,@args) = @_;
 
     my $self = bless {}, ref($class) || $class;
-    my (
+    my ($dbc,
         $db,
         $host,
         $driver,
         $user,
         $password,
         $port,
-        ) = $self->_rearrange([qw(
+        ) = $self->_rearrange([qw(DBCONTEXT
 				  DBNAME
 				  HOST
 				  DRIVER
 				  USER
 				  PASS
-				  )],@args);
+				  PORT
+				  )], @args);
+    if($dbc) {
+	$db = $dbc->dbname() unless $db;
+	$host = $dbc->host() unless $host;
+	$driver = $dbc->driver() unless $driver;
+	$user = $dbc->username() unless $user;
+	$password = $dbc->password() unless $password;
+	$port = $dbc->port() unless $port;
+    }
+	
     $db   || $self->throw("Database object must have a database name");
     $user || $self->throw("Database object must have a user");
 

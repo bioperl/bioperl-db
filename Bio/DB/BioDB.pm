@@ -35,7 +35,7 @@ Bio::DB::BioDB - class providing the base adaptor for a particular database
 =head1 DESCRIPTION
 
 This object represents a database that is implemented somehow (you
-shouldn\'t care much as long as you can get the object). From the
+shouldn't care much as long as you can get the object). From the
 object you can pull out other adapters, such as the BioSeqAdapter etc.
 
 
@@ -76,6 +76,27 @@ BEGIN {
     %LOADED = ();
 }
 
+=head2 new
+
+ Title   : new
+ Usage   : $db = Bio::DB::BioDB->new(-database => 'biosql');
+ Function: Load and instantiate the encapsulating adaptor for the given
+           database.
+
+           This module acts as a factory, similar in spirit to
+           Bio::SeqIO, but instead of a sequence stream it returns the
+           adaptor object for the specified database.
+
+ Example :
+ Returns : a Bio::DB::DBAdaptorI implementing object
+ Args    : Named parameters. Currently recognized are
+             -database    the name of the database for which the
+                          encapsulating adaptor is sought (biosql|markerdb)
+             =dbcontext   a Bio::DB::DBContextI implementing object
+
+
+=cut
+
 sub new {
     my($pkg, @args) = @_;
     
@@ -94,9 +115,9 @@ sub new {
     }
     my $mydbc = $dbc || Bio::DB::SimpleDBContext->new(@args);
     my $dbadp = $dbadp_class->new(-dbcontext => $mydbc);
-    # store the adaptor in the context if we created it ourselve, and the
+    # store the adaptor in the context if we created it ourselves, and the
     # adaptor hasn't set it itself 
-    $mydbc->dbadaptor($dbadp) if (! $dbc) && (! $mydbc->adaptor()); 
+    $mydbc->dbadaptor($dbadp) if (! $dbc) && (! $mydbc->dbadaptor()); 
     return $dbadp;
 }
 

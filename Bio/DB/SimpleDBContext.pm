@@ -26,7 +26,7 @@
 
 =head1 NAME
 
-SimpleDBContext - a base implementation of Bio::DB::DBContextI
+Bio::DB::SimpleDBContext - a base implementation of Bio::DB::DBContextI
 
 =head1 SYNOPSIS
 
@@ -92,11 +92,17 @@ use Bio::DB::DBI;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new SimpleDBContext();
- Function: Builds a new SimpleDBContext object 
- Returns : an instance of SimpleDBContext
- Args    :
-
+ Usage   : my $obj = new Bio::DB::SimpleDBContext();
+ Function: Builds a new Bio::DB::SimpleDBContext object 
+ Returns : an instance of Bio::DB::SimpleDBContext
+ Args    : Named parameters. Currently recognized are
+             -dbname    the name of the schema
+             -host      the database host (to which to connect)
+             -port      the port on the host to which to connect (optional)
+             -driver    the DBI driver name for the RDBMS (e.g., mysql,
+                        oracle, or Pg)
+             -user      the username for connecting
+             -pass      the password for the user
 
 =cut
 

@@ -74,10 +74,10 @@ sub new {
 }
 
 
-=head2 get_markers
+=head2 get_Markers
 
- Title   : get_markers
- Usage   : my @markers = $markeradaptor->get_markers(-ids => \@ids );
+ Title   : get_Markers
+ Usage   : my @markers = $markeradaptor->get_Markers(-ids => \@ids );
  Function: gets a list of Bio::DB::Map::Marker objects based on
            the list of queries
  Returns : list of Bio::DB::Map::Marker objects
@@ -87,7 +87,7 @@ sub new {
            -names=> array ref of marker names
 =cut
 
-sub get_markers {
+sub get_Markers {
     my ($self, @args) = @_;
     my ($id, $ids, $name,$names) = $self->_rearrange( [qw(ID IDS NAME NAMES)], 
 						     @args );

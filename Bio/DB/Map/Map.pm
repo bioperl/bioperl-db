@@ -65,22 +65,21 @@ use strict;
 # Object preamble - inherits from Bio::Root::RootI
 
 use Bio::Root::RootI;
+use Bio::DB::Map::MapI;
 
 @ISA = qw(Bio::DB::Map::MapI Bio::Root::RootI );
 
 sub new {
     my($class,@args) = @_;
         my $self = $class->SUPER::new(@args);
-    my ($mapname,$mapunits,$maplength,
+    my ($mapname,$mapunits,
 	$id, $adaptor) = $self->_rearrange([qw(NAME 
 					       UNITS 
-					       LENGTH 
 					       ID
 					       ADAPTOR)],@args);
 
     $self->adaptor($adaptor);
     $self->id     ($id);
-    $self->length ($maplength);
     $self->units  ($mapunits);
     $self->name   ($mapname);
 
@@ -110,7 +109,7 @@ sub get_markers_for_region{
 
    $start = 0 unless defined $start;
    if( !defined $end ) {
-       $end = $self->length();
+       $end = $self->chrom_length($self->id, $chrom);
    }
 
    my @markers = $self->adaptor->get_markers_for_region('-id'    => $self->id,
@@ -143,6 +142,24 @@ sub get_next_marker{
 
 }
 
+=head2 chrom_length
+
+ Title   : chrom_length
+ Usage   : my $len = $map->chrom_length()
+ Function: Returns the length of a chromosome in a Map in the map\'s units
+ Returns : float
+ Args    : none
+
+=cut
+
+sub chrom_length{
+   my ($self,$chrom) = @_;
+   return 0 unless defined $chrom;
+   $chrom =~ s/(chr)?(X|Y|\d+)/$2/;
+   $chrom =~ s/X/23/;
+   $chrom =~ s/Y/24/;   
+   return $self->adaptor->get_Chrom_length($self->id, $chrom);
+}
 
 =head2 Get/Set Methods
 
@@ -165,9 +182,6 @@ sub id {
     return $obj->{'_id'};
 }
 
-# could deffer to a call to adaptor object to get this but
-# let's not worry about it
-
 =head2 name
 
  Title   : name
@@ -176,7 +190,6 @@ sub id {
  Example : 
  Returns : value of name
  Args    : newvalue (optional)
-
 
 =cut
 
@@ -188,9 +201,6 @@ sub name{
     return $obj->{'name'};
 }
 
-# could deffer to a call to adaptor object to get this but
-# let's not worry about it
-
 =head2 units
 
  Title   : units
@@ -200,7 +210,6 @@ sub name{
  Returns : value of units
  Args    : newvalue (optional)
 
-
 =cut
 
 sub units{
@@ -209,30 +218,6 @@ sub units{
       $obj->{'units'} = $value;
     }
     return $obj->{'units'};
-
-}
-
-# could deffer to a call to adaptor object to get this but
-# let's not worry about it
-
-=head2 length
-
- Title   : length
- Usage   : $obj->length($newval)
- Function: 
- Example : 
- Returns : value of length
- Args    : newvalue (optional)
-
-
-=cut
-
-sub length{
-   my ($obj,$value) = @_;
-   if( defined $value) {
-      $obj->{'length'} = $value;
-    }
-    return $obj->{'length'};
 
 }
 

@@ -62,9 +62,64 @@ use vars qw(@ISA);
 use strict;
 
 use Bio::DB::SQL::BaseAdaptor;
-use Bio::DB::Map::MapI;
+use Bio::DB::Map::Map;
 
 @ISA = qw(Bio::DB::SQL::BaseAdaptor);
+
+
+=head2 get_Map
+
+ Title   : get_Map
+ Usage   : my $map = $adaptor->get_Map(-id => $mapid); OR
+           my $map = $adaptor->get_Map(-name => $name); 
+ Function: finds the map based on a criteria
+ Returns : Bio::DB::Map::MapI object
+ Args    : -id => mapid OR
+           -name => mapname
+
+=cut
+
+sub get_Map{
+   my ($self,@args) = @_;
+   my ($id,$name) = $self->_rearrange([qw(ID NAME)], @args);
+
+   if( $id && $name ) {
+       $self->warn("Requesting map by both id and name, will only use id");
+   }
+   if( ! $id && ! $name ) {
+       $self->warn("Requested map without id or name, cannot proceed");
+       return undef;
+   }
+   my $map;
+   eval {
+       my $SQL = q(SELECT 
+		   mapid as '-id',
+		   name  as '-name',
+		   units as '-units'
+		   FROM map WHERE );
+       if( $id ) {
+	   $SQL .= 'mapid = ?';
+       } else { 
+	   $SQL .= 'name = ?';
+       }
+       my $sth = $self->prepare($SQL); 
+       $sth->execute($id || $name);
+       
+       my $row;
+       # only want the first hit, plus name and mapid are both unique fields
+       if( defined($row = $sth->fetchrow_hashref ) ){ 
+	   $map = new Bio::DB::Map::Map( '-adaptor' => $self,
+					 %{$row} );
+       } else { 
+	   $self->warn("Searching for " . $id || $name . " did not find any maps");
+       }
+       $sth->finish();
+   };
+   if($@ ) {
+       $self->warn($@);
+   }
+   return $map;
+}
 
 
 =head2 write
@@ -169,7 +224,7 @@ sub get_markers_for_region{
        }
    };
    if( $@ ) {  $self->throw($@); }
-   my @markers = $marker_adaptor->get_markers('-ids' => \@m);   
+   my @markers = $marker_adaptor->get_Markers('-ids' => \@m);   
    return @markers;
 }
 
@@ -197,28 +252,27 @@ sub get_next_marker{
 
 }
 
+=head2 get_Chrom_length
 
-
-=head2 map_length
-
- Title   : map_length
- Usage   : my $len = $map->map_length()
- Function: Returns the length of the Map in the map\'s units
+ Title   : get_Chrom_length
+ Usage   : my $len = $map->get_Chrom_Length()
+ Function: Returns the length of a chromosome for a Map in the map\'s units
  Returns : float
- Args    : map id
-
+ Args    : map id, chromsome
 
 =cut
 
-sub map_length{
-   my ($self,$id) = @_;
+sub get_Chrom_length{
+   my ($self,$id,$chrom) = @_;
    
-   my $SQL = sprintf("SELECT max(position) from map_position where mapid = %d",
-		     $id);
+   my $SQL = q(SELECT max(position) 
+	       FROM map_position p, marker m
+	       WHERE m.chrom = ? AND p.mapid = ? AND 
+	       m.markerid = p.markerid);
    my ($len);
    eval { 
        my $sth = $self->prepare($SQL);
-       $sth->execute();
+       $sth->execute($chrom,$id);
        ($len) = $sth->fetchrow_array;
        $sth->finish();
    };
@@ -226,33 +280,6 @@ sub map_length{
        $self->throw($@);
    }
    return $len || '0';
-}
-
-=head2 map_units
-
- Title   : map_units
- Usage   : my $units = $map->map_units()
- Function: Returns the map\'s unit system (cM, cR, MB, ...)
- Returns : string
- Args    : map id
-
-=cut
-
-sub map_units{
-   my ($self,$id) = @_;
-   my $SQL = sprintf("SELECT units from map where mapid = %d", $id);
-   
-    my ($units);
-   eval { 
-       my $sth = $self->prepare($SQL);
-       $sth->execute();
-       ($units) = $sth->fetchrow_array;
-       $sth->finish();
-   };
-   if( $@ ) {
-       $self->throw($@);
-   }
-   return $units;
 }
 
 1;

@@ -103,18 +103,18 @@ sub get_next_marker {
     $_[0]->_abstractDeath();
 }
 
-=head2 map_length
+=head2 chrom_length
 
- Title   : map_length
- Usage   : my $len = $map->map_length()
- Function: Returns the length of the Map in the map\'s units
+ Title   : chrom_length
+ Usage   : my $len = $map->chrom_length()
+ Function: Returns the length of a chromosome in a Map in the map\'s units
  Returns : float
  Args    : none
 
 
 =cut
 
-sub map_length{
+sub chrom_length{
    my ($self) = @_;
    $self->_abstractDeath();
 }
@@ -134,6 +134,55 @@ sub map_units{
    $self->_abstractDeath();
 }
 
+=head2 id
+
+ Title   : id
+ Usage   : $obj->id($newval)
+ Function: 
+ Example : 
+ Returns : value of id
+ Args    : newvalue (optional)
+
+=cut
+
+sub id {
+ my ($self) = @_;
+ $self->_abstractDeath();
+}
+
+=head2 name
+
+ Title   : name
+ Usage   : $obj->name($newval)
+ Function: 
+ Example : 
+ Returns : value of name
+ Args    : newvalue (optional)
+
+
+=cut
+
+sub name{
+    my ($self) = @_;
+    $self->_abstractDeath();
+}
+
+=head2 units
+
+ Title   : units
+ Usage   : $obj->units($newval)
+ Function: 
+ Example : 
+ Returns : value of units
+ Args    : newvalue (optional)
+
+
+=cut
+
+sub units{
+    my ($self) = @_;
+    $self->_abstractDeath();
+}
 
 sub _abstractDeath {
   my $self = shift;

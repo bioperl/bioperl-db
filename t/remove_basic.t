@@ -27,7 +27,7 @@ BEGIN { $| = 1; print "1..3\n";
 
 END {print "not ok 1\n" unless $loaded;}
 
-use Bio::EnsemblLite::UpdateableDB;
+use Bio::DB::BasicUpdateableDB;
 use Bio::SeqIO;
 
 $loaded = 1;
@@ -52,6 +52,7 @@ close PWD;
 my ( $user, $pass,$dbname, $host) = ( $hash{USER}, $hash{PASS},
 				      $hash{DB}, $hash{HOST});
 
+$dbname = 'seqdb';
 print "ok 2\n";
 eval {
     my $seqio = new Bio::SeqIO(-format=>'GenBank', -file=>"t/AP000868.gb");
@@ -59,7 +60,7 @@ eval {
 
     my @seqs;
 
-    my $seqdb = new Bio::EnsemblLite::UpdateableDB(-dbname=>$dbname, 
+    my $seqdb = new Bio::DB::BasicUpdateableDB(-dbname=>$dbname, 
 						   -host=>$host, 
 						   -user=>$user,
 						   -pass=>$pass);

@@ -39,15 +39,30 @@ $Bio::DB::BasicUpdateableDB::CENTERCODE = 'CHG';
 ## Insert additional test code below but remember to change
 ## the print "1..x\n" in the BEGIN block to reflect the
 ## total number of tests that will be run. 
+open(PWD, "PWD") or die("must have a PWD file");
+my ( %hash);
 
+while(<PWD>) {
+    chomp;
+    my ($key,$val) = split(/:/, $_);
+    $hash{uc $key} = $val;
+}
+close PWD;
+my ( $user, $pass,$dbname, $host) = ( $hash{USER}, $hash{PASS},
+				      $hash{DB}, $hash{HOST});
+
+$dbname = 'seqdb';
+print "ok 2\n";
 eval {
     my $seqio = new Bio::SeqIO(-format=>'GenBank', -file=>"t/AP000868.gb");
     my @seqs;
     while( my $seq = $seqio->next_seq() ) {
 	push @seqs,$seq;
     }
-    my $seqdb = new Bio::DB::BasicUpdateableDB(-dbname=>'seqdb', 
-	-user=>'jason');
+    my $seqdb = new Bio::DB::BasicUpdateableDB(-dbname=>$dbname, 
+						   -user=>$user,
+						   -host=>$host, 
+						   -pass=>$pass);
     $seqdb->write_seqs( undef, \@seqs);
     $seqdb->DESTROY;
 						   
@@ -56,6 +71,6 @@ eval {
 if ($@) {
 	warn "$@";
 } else {
-	print "ok 2\n";
+	print "ok 3\n";
 }
 

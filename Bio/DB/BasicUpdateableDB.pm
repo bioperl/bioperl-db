@@ -1,5 +1,5 @@
 #
-# BioPerl module for Bio::EnsemblLite::UpdateableDB
+# BioPerl module for Bio::DB::BasicUpdateableDB
 #
 # Cared for by Jason Stajich <jason@chg.mc.duke.edu>
 #
@@ -11,23 +11,23 @@
 # July 1, 2000 - module begun
 #
 # POD Doc - main docs before code
-# $Log$
+#  $Log$
 
 =head1 NAME
 
-Bio::EnsemblLite::UpdateableDB - Manages writing to an ensemble-lite database.
+Bio::DB::BasicUpdateableDB - Manages writing to an basic seq database as defined in the sql/basicseqdb-mysql.sql.
 
 =head1 SYNOPSIS 
 
-    use Bio::EnsemblLite::UpdateableDB;
+    use Bio::DB::BasicUpdateableDB;
 
-    my $ensembl = Bio::EnsemblLite::UpdateableDB->new(-host=>$host, 
+    my $db = Bio::DB::BasicUpdateableDB->new(-host=>$host, 
 					    -user=>$user,
 					    -pass=>$pass);
-    my $seq = $ensembl->get_Seq_by_id('some-id');
+    my $seq = $db->get_Seq_by_id('some-id');
     $seq->desc('new desc');
     eval { 	
-	$ensembl->write_seq( [ $seq ], undef, undef);
+	$db->write_seq( [ $seq ], undef, undef);
     };
     if( $@ ) {
 	print STDERR "an error when trying to write seq : $@\n";
@@ -35,7 +35,9 @@ Bio::EnsemblLite::UpdateableDB - Manages writing to an ensemble-lite database.
 
 =head1 DESCRIPTION
 
-This module provides read/write access to an ensembl-lite database.
+This module provides an implementation of Bio::DB::UpdateableSeqI for
+a basic mysql sequence database as defined in the sql/basicseqdb-mysql.sql.
+
 
 =head1 AUTHOR
 
@@ -58,7 +60,7 @@ Internal methods are usually preceded with a _
 =cut
 #Lets start some code
 
-package Bio::EnsemblLite::UpdateableDB;
+package Bio::DB::BasicUpdateableDB;
 
 use strict;
 
@@ -182,7 +184,7 @@ sub write_seqs {
 sub _add_seq {
     my ($self, $seq) = @_;
 
-    my ($rv, $sth, $rows, $SQL, $dnainsertid, $contigid);
+    my ($rv, $sth, $rows, $SQL, $dnainsertid);
     $SQL = 'SELECT ' . $DBQUERY{identity}->{$self->_driver};
     my $idensth = $self->prepare($SQL);
     eval { 
@@ -214,19 +216,6 @@ sub _add_seq {
 	    $seq->display_id($seq->accession_number) if( !defined $seq->display_id);
 	}
 	# insert the sequence
-
-	# can't have two with the same name
-	$SQL = qq(SELECT distinct seqid from dna_description where name = ?);
-	$sth = $self->prepare($SQL);
-
-	$sth->execute($seq->display_id);
-	my $data = $sth->fetchall_arrayref;
-	if( $sth->rows > 0 ) { 
-	    $self->throw("seq with name '" . $seq->display_id. 
-			 "' already exists for seqid '" . @$data[0]->[0] .
-			 "', cannot have duplicated names"); 
-	}
-
 	$SQL = qq( INSERT INTO dna ( sequence,created ) VALUES ( ?,NOW()));
 	$sth = $self->prepare( $SQL);
 	
@@ -234,6 +223,7 @@ sub _add_seq {
 
 	$idensth->execute();
 	($dnainsertid) =  $idensth->fetchrow_array;
+	$seq->primary_id(join($IDSEP, ($dnainsertid . '0')));
 	# insert information about the sequence
 	$SQL = sprintf('INSERT INTO dna_description ( seqid, name, accession, 
                                                       tech ) 
@@ -242,27 +232,10 @@ sub _add_seq {
 		       
 	$sth = $self->prepare($SQL);
 	$sth->execute($seq->display_id, $seq->accession_number);
-	# now lets add it to clone/contig
-	$SQL = sprintf("INSERT INTO clone ( id, embl_id, version, embl_version,
-                                            created, modified, stored) 
-                        VALUES ( ?, ?, 0, 0, NOW(), NOW() , NOW() )");
-
-	$sth = $self->prepare($SQL);
-	$sth->execute($seq->accession_number, $seq->accession_number);	
-
-	$SQL = sprintf("INSERT INTO contig ( id, clone, length, dna, chromosomeId) 
-                        VALUES ( ?, ?, ?, ?, ? )");
-	$sth = $self->prepare($SQL);
-	$sth->execute($seq->accession_number, $seq->accession_number, $seq->length, 
-		      $dnainsertid, 0);
 	
-	$idensth->execute();
-	($contigid) =  $idensth->fetchrow_array;
-	$seq->primary_id(join($IDSEP, ($contigid, '0')));
- 
-       # now lets add the features
+        # now lets add the features
 	my @features = $seq->all_SeqFeatures();
-	$SQL = qq(INSERT INTO generic_feature ( contigid, name, strand,source,
+	$SQL = qq(INSERT INTO generic_feature ( seqid, name, strand,source,
 					seq_start, seq_end)
 		  VALUES ( $dnainsertid, ?, ?, ?, ?, ?));
 	my $fsth = $self->prepare($SQL);
@@ -311,36 +284,34 @@ sub _add_seq {
 
 sub _remove_seq {
     my ($self, $seq) = @_;
-    my ( $contigid, $ver) = split(/:/,$seq->primary_id);
+    my ( $id, $ver) = split(/:/,$seq->primary_id);
     my $SQL;
     eval { 
-	$SQL = qq( SELECT clone, dna, internal_id, version 
-		   FROM contig c, clone cl 
-		   WHERE internal_id = ? AND cl.id = c.clone );
+	$SQL = qq( SELECT seqid, version FROM dna_description 
+		   WHERE seqid = ?);
 	my $sth = $self->prepare( $SQL );
-	$sth->execute($contigid);
-	my ( $clone, $seqid, $contigid_r, $ver_r, $data);
-	$data = $sth->fetchrow_arrayref;
+	$sth->execute($id);
+	my ( $id_r, $ver_r, $data);
+	$data = $sth->fetchall_arrayref;
  	if( $sth->rows == 0 ) {
 	    $self->throw("id does not exist");
 	} elsif ( $sth->rows > 1 ) {
 	    $self->throw("more than one seq exists for id: corrupted db");
 	}
 	
-	( $clone, $seqid, $contigid_r, $ver_r) = @$data;
+	( $id_r, $ver_r) = @$data->[0]->[0];
 	if( $ver_r > $ver ) {
 	    $self->throw("seq out of sync");
 	}
-	print STDERR "seqid is $seqid\n";
 	$SQL = qq(DELETE FROM dna_description WHERE seqid = ?);
 	$sth = $self->prepare($SQL);
-	$sth->execute($seqid);
+	$sth->execute($id);
 	
 	$SQL = qq(SELECT distinct f.detailid FROM feature_detail_association f, generic_feature g
-		  WHERE g.featureid = f.featureid AND g.contigid = ?);
+		  WHERE g.featureid = f.featureid AND g.seqid = ?);
 
 	$sth = $self->prepare($SQL);
-	$sth->execute($contigid);
+	$sth->execute($id);
 	my $rows = $sth->fetchall_arrayref;
 
 	$SQL = qq(DELETE FROM feature_detail_association WHERE detailid = ?);
@@ -353,23 +324,13 @@ sub _remove_seq {
 	    $sth->execute(@$row[0]);	    
 	    $dsth->execute(@$row[0]);
 	}
-	$SQL = qq(DELETE from generic_feature WHERE contigid = ?);
+	$SQL = qq(DELETE from generic_feature WHERE seqid = ?);
 	$sth = $self->prepare($SQL);
-	$sth->execute($contigid);
+	$sth->execute($id);
 	
 	$SQL = qq(DELETE FROM dna WHERE id = ?);
 	$sth = $self->prepare($SQL);
-	$sth->execute($seqid);	
-
-	$SQL = qq(DELETE FROM clone WHERE id = ?);
-	$sth = $self->prepare($SQL);
-	$sth->execute($clone);	
-
-
-	$SQL = qq(DELETE FROM contig WHERE internal_id = ?);
-	$sth = $self->prepare($SQL);
-	$sth->execute($contigid);	
-
+	$sth->execute($id);	
 	$self->commit;
     };
     if( $@ ) {
@@ -418,20 +379,20 @@ sub  get_Seq_by_id {
     }
     my $seqid;
     eval { 	
-	my $SQL = qq(SELECT seqid FROM dna_description WHERE name = ? );
+	my $SQL = qq(SELECT seqid FROM dna_description 
+		  WHERE name = ? );
 	my $sth = $self->prepare($SQL);	
 	$sth->execute($id);
 	my $data = $sth->fetchall_arrayref;
-	return undef if( @$data == 0 );
 	$seqid = @$data[0]->[0];
 	if( $sth->rows > 1 ) {
-	    $self->warn("more than one seq exists for id, returning first one");	    
+	    $self->throw("more than one seq exists for id");
+	    return undef;
 	} elsif( $sth->rows == 0 && !defined $seqid) {
 	    $self->throw("id, $id, does not exist");
 	    return undef;
 	} 	
     };
-    if( $@ ) {$self->throw($@);}
     return ( defined $seqid && $seqid ne '' ) ? 
 	$self->_build_seq_by_seqid($seqid) : undef;
 }
@@ -508,8 +469,9 @@ sub get_all_primary_ids {
     my $self = shift;
 
     my @ids;
-    my $SQL = qq(SELECT distinct id,version 
-		 FROM contig );
+    my $SQL = qq(SELECT distinct seqid,version 
+		 FROM dna_description 
+		 ORDER BY accession);
     
     eval { 
 	my $sth = $self->prepare($SQL);
@@ -545,9 +507,9 @@ sub get_all_primary_ids {
 
 sub get_Seq_by_primary_id {
     my ( $self, $id ) = @_;
-    my ($contigid,$version) = split($IDSEP, $id);
-    return undef if( !defined $contigid || $contigid eq '' );
-    return $self->_build_seq_by_seqid($contigid);    
+    my ($seqid,$version) = split($IDSEP, $id);
+    return undef if( !defined $seqid || $seqid eq '' );
+    return $self->_build_seq_by_seqid($seqid);    
 }
 
 =head2 UpdateableDB specific helper functions
@@ -721,29 +683,28 @@ sub prepare {
 
 =cut 
 sub _build_seq_by_seqid {
-    my ($self,$contigid) = @_;
+    my ($self,$seqid) = @_;
     my $seq = new Bio::Seq;
     my ( $sth, $data );
     eval { 
-	my $SQL = qq(SELECT cl.version, f.name,f.accession,
-		     d.sequence 
-		     FROM dna_description f, dna d, contig c, clone cl
-		     WHERE f.seqid = d.id AND c.internal_id = ? AND c.dna = d.id 
-		     AND cl.id = c.clone);
+	my $SQL = qq(SELECT f.version,f.name,f.accession,
+		  d.sequence 
+		  FROM dna_description f, dna d
+		  WHERE f.seqid = d.id AND f.seqid = ? );
 	$sth = $self->prepare($SQL);	
-	$sth->execute($contigid);
+	$sth->execute($seqid);
 	$data = $sth->fetchall_arrayref;
 	if( $sth->rows > 1 ) {
-	    $self->throw("primary key violation, more than one seq exists for contigid $contigid");
+	    $self->throw("primary key violation, more than one seq exists for seqid $seqid");
 	    return undef;
 	} elsif( $sth->rows == 0 ) {
-	    $self->throw("id, $contigid, does not exist");
+	    $self->throw("id, $seqid, does not exist");
 	    return undef;
 	}	
 
 	my $row = shift @$data;
 	my ( $version,$name,$accession,$sequence) = @$row;
-	$seq->primary_id("$contigid:$version");	
+	$seq->primary_id("$seqid:$version");	
 	$seq->accession_number($accession);
 	$name = $accession if( !defined $name );
 	$seq->display_id($name);
@@ -753,7 +714,7 @@ sub _build_seq_by_seqid {
 		  f.source as source, f.seq_start as seq_start, 
 		  f.seq_end as seq_end
 		  FROM generic_feature f 
-		  WHERE f.contigid = ? );		  
+		  WHERE f.seqid = ? );		  
 	$sth = $self->prepare($SQL);
 
 	$SQL = qq(SELECT d.tag as tag, d.value as value 
@@ -761,7 +722,7 @@ sub _build_seq_by_seqid {
 		  WHERE a.featureid = ? AND a.detailid = d.detailid );
 	my $feat_sth = $self->prepare($SQL);
 
-	$sth->execute($contigid);
+	$sth->execute($seqid);
 	my $feature;
 	while( defined( $feature = $sth->fetchrow_hashref ) ) { 
 	    my $sf = new Bio::SeqFeature::Generic;

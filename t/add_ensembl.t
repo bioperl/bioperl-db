@@ -40,17 +40,32 @@ $Bio::EnsemblLite::UpdateableDB::CENTERCODE = 'CHG';
 ## the print "1..x\n" in the BEGIN block to reflect the
 ## total number of tests that will be run. 
 
+open(PWD, "PWD") or die("must have a PWD file");
+my ( %hash);
+
+while(<PWD>) {
+    chomp;
+    my ($key,$val) = split(/:/, $_);
+    $hash{uc $key} = $val;
+}
+close PWD;
+my ( $user, $pass,$dbname, $host) = ( $hash{USER}, $hash{PASS},
+				      $hash{DB}, $hash{HOST});
+
+print "ok 2\n";
 eval {
-    my $seqio = new Bio::SeqIO(-format=>'GenBank', -file=>"t/parkin.gb");
+    my $seqio = new Bio::SeqIO(-format=>'GenBank', -file=>"t/AP000868.gb");
     my @seqs;
     while( my $seq = $seqio->next_seq() ) {
 	push @seqs,$seq;
     }
-    my $seqdb = new Bio::EnsemblLite::UpdateableDB(-dbname=>'seqdb', -user=>'jason',
-						   -host=>'genemap', -pass=>'superman');
+    my $seqdb = new Bio::EnsemblLite::UpdateableDB(-dbname=>$dbname, 
+						   -user=>$user,
+						   -host=>$host, 
+						   -pass=>$pass);
     $seqdb->write_seqs( undef, \@seqs);
     foreach my $seq ( @seqs ) {
-	print "id is ", $seq->primary_id, ", display is ", $seq->display_id, 
+	print "id is ", $seq->primary_id(), ", display is ", $seq->display_id, 
 	", accession is ", $seq->accession_number, "\n";
     }
     $seqdb->DESTROY;
@@ -60,6 +75,6 @@ eval {
 if ($@) {
 	warn "$@";
 } else {
-	print "ok 2\n";
+	print "ok 3\n";
 }
 

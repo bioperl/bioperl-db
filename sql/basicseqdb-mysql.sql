@@ -1,20 +1,18 @@
 #
 # Table structure for table 'dna'
 #
-drop table dna;
 
 CREATE TABLE dna (
-  sysdnaid  int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
+  id  int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
   sequence  mediumtext NOT NULL,
   created   datetime DEFAULT '0000-00-00 00:00:00' NOT NULL
 );
 
 
-# an add on to support needed fields
-drop table dna_description;
+# basic dna description storage
 
 CREATE TABLE dna_description (
-       sysdnaid int(10) unsigned NOT NULL PRIMARY KEY,
+       seqid int(10) unsigned NOT NULL PRIMARY KEY,
        version	int(7) default '0' NOT NULL,
        name  varchar(40) NOT NULL,
        accession char(12) NOT NULL,       
@@ -28,50 +26,48 @@ CREATE TABLE dna_description (
 #
 # Table structure for table 'feature'
 #
-drop table feature;
-CREATE TABLE feature (
-  sysfeature    int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
-  sysdnaid      int(10) unsigned NOT NULL,
+
+CREATE TABLE generic_feature (
+  featureid    int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
+  seqid        int(10) unsigned NOT NULL,
   name		varchar(40) NOT NULL,
   strand	tinyint default '1' NOT NULL,
   source	varchar(40) NOT NULL,
   seq_start     int(10) NOT NULL,
   seq_end       int(10) NOT NULL,  
-  KEY overlap (sysfeature,sysdnaid,seq_start,seq_end),
-  KEY dna (sysdnaid)
+  KEY overlap (featureid,seqid,seq_start,seq_end),
+  KEY dna (seqid)
 );
 
 #
 # Table structure for table 'fset'
 #
-drop table fset;
-CREATE TABLE fset (
-  sysfset   int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
+
+CREATE TABLE feature_detail (
+  detailid   int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
   tag	    varchar(20) NOT NULL,
   value     text	NOT NULL,
-  KEY i_tag ( tag )
+  KEY i_tag ( tag )  
 );
 
 
 #
 # Table structure for table 'fset_feature'
 #
-drop table fset_feature;
-CREATE TABLE fset_feature (
-  sysfeature   int(10) unsigned NOT NULL,
-  sysfset      int(10) unsigned NOT NULL,
+
+CREATE TABLE feature_detail_association (
+  featureid   int(10) unsigned NOT NULL,
+  detailid      int(10) unsigned NOT NULL,
   rank	       int(11) NOT NULL,
   
-  PRIMARY KEY (sysfeature,sysfset,rank),
-  KEY fset (sysfset)
+  PRIMARY KEY (featureid,detailid,rank),
+  KEY fset (detailid)
 );
 
-drop table local_accession_num;
 create table local_accession_num (
        used_num int(10) unsigned NOT NULL auto_increment PRIMARY KEY
 );
 
-drop table listval;
 create table listval ( 
        listname char(16) not null,
        val      smallint unsigned not null,

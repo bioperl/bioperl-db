@@ -3,3 +3,10 @@ Sequence DBs
 
 Bio::EnsemblLite - an ensembl lite implementation
                    of an updateable sequence database 
+
+Bio::DB::BasicUpdateableDB - a very basic structure for storing
+sequences and their annotations.  This currently only supports the
+MySQL language scheme.
+
+
+See TODO list for status of things

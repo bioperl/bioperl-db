@@ -22,14 +22,14 @@ CREATE TABLE dna_description (
 # drop table generic_feature;
 CREATE TABLE generic_feature (
   featureid    int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
-  seqid         int(10) unsigned NOT NULL,
+  contigid      int(10) unsigned NOT NULL,
   name		varchar(40) NOT NULL,
   strand	tinyint default '1' NOT NULL,
   source	varchar(40) NOT NULL,
   seq_start     int(10) NOT NULL,
   seq_end       int(10) NOT NULL,  
-  KEY overlap (featureid,seqid,seq_start,seq_end),
-  KEY dna (seqid)
+  KEY overlap (featureid,contigid,seq_start,seq_end),
+  KEY dna (contigid)
 );
 
 #

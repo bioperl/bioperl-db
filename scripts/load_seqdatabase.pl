@@ -334,9 +334,9 @@ sub setup_pipeline{
 	    @modargs = split(/,/, $2);
 	}
 	$loader->_load_module($modname);
-	my $proc = $mod->new(@modargs);
+	my $proc = $modname->new(@modargs);
 	if(! $proc->isa("Bio::Factory::SequenceProcessorI")) {
-	    die "Pipeline processing module $mod does not implement ".
+	    die "Pipeline processing module $modname does not implement ".
 		"Bio::Factory::SequenceProcessorI. Bummer.\n";
 	}
 	$proc->source_stream($pipemods[$#pipemods]) if @pipemods;

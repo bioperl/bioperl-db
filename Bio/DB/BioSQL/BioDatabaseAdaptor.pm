@@ -142,6 +142,9 @@ sub fetch_BioSeqDatabase_by_name{
    my $db = Bio::DB::BioSeqDatabase->new( -adaptor => $self,
 					  -dbid    => $id);
 
+   $db->name($name);
+
+   return $db;
 }
 
 
@@ -194,6 +197,35 @@ sub fetch_Seq_by_accession{
    }
    return $self->db->get_SeqAdaptor->fetch_by_dbID($dbid);
 }
+
+=head2 list_biodatabase_ids
+
+ Title   : list_biodatabase_ids
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub list_biodatabase_names{
+
+   my ($self) = @_;
+
+   my $sth = $self->prepare("select name from biodatabase");
+   $sth->execute;
+   
+   my @out;
+   while( (my $ref = $sth->fetchrow_arrayref()) ) {
+       push(@out,shift @{$ref});
+   }
+	  
+   return @out;
+
+}
+
 
 
 =head2 list_bioentry_ids

@@ -206,6 +206,29 @@ sub get_Seq_by_primary_id {
 }
 
 
+
+=head2 name
+
+ Title   : name
+ Usage   : $obj->name($newval)
+ Function: 
+ Example : 
+ Returns : value of name
+ Args    : newvalue (optional)
+
+
+=cut
+
+sub name{
+   my ($obj,$value) = @_;
+   if( defined $value) {
+      $obj->{'name'} = $value;
+    }
+    return $obj->{'name'};
+
+}
+
+
 =head2 _adaptor
 
  Title   : _adaptor

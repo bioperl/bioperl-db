@@ -3,15 +3,7 @@ Changes
 MANIFEST
 Makefile.PL
 PWD.basic
-t/add_basic.t
-t/remove_basic.t
-t/add_ensembl.t
-t/remove_ensembl.t
 t/parkin.gb
 t/AP000868.gb
 t/test.genbank
-Bio/EnsemblLite/UpdateableDB.pm
-Bio/DB/BasicUpdateableDB.pm
-sql/ensembl-lite-mysql.sql
-sql/ensembl-lite-mysql-addon.sql
 sql/basicseqdb-mysql.sql

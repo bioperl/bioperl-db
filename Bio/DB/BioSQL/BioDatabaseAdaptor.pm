@@ -276,56 +276,66 @@ sub list_biodatabase_names{
 =head2 list_bioentry_ids
 
  Title   : list_bioentry_ids
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
+ Usage   : $dbadaptor->list_bioentry_ids($dbid)
+ Function: Will return all the ids in a biodatabase - if no dbid is specified 
+           will return all available in all biodatabases
+ Returns : List of ids
+ Args    : db id
 
 
 =cut
 
-sub list_bioentry_ids {
+sub list_bioentry_ids{
    my ($self,$dbid) = @_;
 
-   my $sth = $self->prepare("select bioentry_id from bioentry where biodatabase_id = $dbid");
+   my $sth;
+   if ($dbid) {
+       $sth = $self->prepare("select bioentry_id  from bioentry where biodatabase_id = $dbid");
+   } else {
+       $sth = $self->prepare("select bioentry_id  from bioentry");
+   }
    $sth->execute;
    
    my @out;
    while( (my $ref = $sth->fetchrow_arrayref()) ) {
        push(@out,@{$ref});
    }
-	  
+
    return @out;
 }
 
 
 =head2 list_bioentry_accessions
 
- Title   : list_bioentry_accessions
- Usage   :
- Function:
- Example :
- Returns : 
- Args    :
+ Title   : list_bioentry_ids
+ Usage   : $dbadaptor->list_bioentry_ids($dbid)
+ Function: Will return all the accessions in a biodatabase - 
+           if no dbid is specified will return all available 
+           in all biodatabases
+ Returns : List of accessions
+ Args    : db id
 
 
 =cut
 
-sub list_bioentry_accessions {
-   my ($self,$dbid) = @_;
 
-   my $sth = $self->prepare("select accession from bioentry where biodatabase_id = $dbid");
+sub list_bioentry_accession {
+   my ($self,$dbid) = @_;
+   my $sth;
+   if ($dbid) {
+       $sth = $self->prepare("select accession  from bioentry where biodatabase_id = $dbid");
+   } else {
+       $sth = $self->prepare("select accession  from bioentry");
+   }
    $sth->execute;
    
    my @out;
    while( (my $ref = $sth->fetchrow_arrayref()) ) {
        push(@out,@{$ref});
    }
-	  
+
    return @out;
 }
-
 
 =head2 store
 

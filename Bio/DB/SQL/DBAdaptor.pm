@@ -364,7 +364,7 @@ sub get_SeqFeatureAdaptor{
 sub get_CommentAdaptor{
    my ($self) = @_;
 
-   if( !defined $self->{'_commet_adaptor'} ) {
+   if( !defined $self->{'_comment_adaptor'} ) {
        $self->{'_comment_adaptor'} = Bio::DB::SQL::CommentAdaptor->new($self);
    }
 
@@ -387,7 +387,7 @@ sub get_CommentAdaptor{
 sub get_ReferenceAdaptor{
    my ($self) = @_;
 
-   if( !defined $self->{'_commet_adaptor'} ) {
+   if( !defined $self->{'_reference_adaptor'} ) {
        $self->{'_reference_adaptor'} = Bio::DB::SQL::ReferenceAdaptor->new($self);
    }
 

@@ -273,12 +273,31 @@ sub new {
 sub primary_key_name{
     my ($self,$table) = @_;
 
+#################################################################
+# use this version if you run the view-based API to the biosql  #
+# naming convention - in that case foreign key and primary key  #
+# names are identical to the mysql/Pg version.                  #
+#################################################################
+#     if($table eq "biosequence") {
+# 	$table = $self->table_name("Bio::BioEntry");
+#     } elsif($table eq "taxon_name") {
+# 	$table = $self->table_name("TaxonNode");
+#     }
+#     return $self->SUPER::primary_key_name($table);
+#################################################################
+
+#################################################################
+# use this version if you run the alias-based API to the biosql #
+# naming convention - in that case foreign key and primary key  #
+# names are different from the mysql/Pg version                 #
+#################################################################
     if($table eq "biosequence") {
 	return $self->foreign_key_name("Bio::BioEntry");
     } elsif($table eq "taxon_name") {
 	return $self->foreign_key_name("TaxonNode");	
     }
     return "oid";
+#################################################################
 }
 
 =head2 _build_foreign_key_name

@@ -458,6 +458,17 @@ foreach $file ( @files ) {
         # increment entry counter
         $n_entries++;
 
+        # report progress if enabled
+        if (($logchunk > 0) && (($n_entries % $logchunk) == 0)) {
+            my $elapsed = time() - $time;
+            printf STDERR 
+                "\t... loaded $n_entries entries "
+                . "(in %.2d:%.2d:%.2d, %5.2f entries/s)\n",
+                $elapsed/3600, ($elapsed % 3600)/60, $elapsed % 60,
+                $logchunk / $elapsed;
+            $time = time();
+        }
+
         # we can't store the structure for structured values yet, so
         # flatten them
         if($seq->isa("Bio::AnnotatableI")) {
@@ -516,16 +527,6 @@ foreach $file ( @files ) {
             &$throw($msg);
         }
 
-        # report progress if enabled
-        if (($logchunk > 0) && (($n_entries % $logchunk) == 0)) {
-            my $elapsed = time() - $time;
-            printf STDERR 
-                "\t... loaded $n_entries entries "
-                . "(in %.2d:%.2d:%.2d, %5.2f entries/s)\n",
-                $elapsed/3600, ($elapsed % 3600)/60, $elapsed % 60,
-                $logchunk / $elapsed;
-            $time = time();
-        }
     }
     $seqin->close();
 }

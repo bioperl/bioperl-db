@@ -224,6 +224,11 @@ If supplied with an integer argument n greater than zero, progress
 will be logged to stderr every n entries of the input file(s). Default
 is no progress logging.
 
+=item -u, -z, or --uncompress
+
+Uncompress the input file(s) on-the-fly by piping them through
+gunzip. Gunzip must be in your path for this option to work.
+
 =item more args
 
 The remaining arguments will be treated as files to parse and load. If

@@ -94,11 +94,11 @@ sub fetch_by_dbID{
 
    #print STDERR "select en.display_id,en.accession,en.entry_version,length(bs.biosequence_str),bs.molecule,en.division from bioentry en,biosequence bs where bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id\n";
 
-   my $sth = $self->prepare("select en.display_id,en.accession,en.entry_version,length(bs.biosequence_str),bs.molecule,en.division,bed.description from bioentry en,biosequence bs,bioentry_description bed where bed.bioentry_id=en.bioentry_id and bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
+   my $sth = $self->prepare("select en.display_id,en.accession,en.entry_version,bs.molecule,en.division,bed.description from bioentry en,bioentry_description bed where bed.bioentry_id=en.bioentry_id and bs.bioentry_id = en.bioentry_id and bs.bioentry_id = $id");
 
    $sth->execute;
 
-   my ($display,$acc,$version,$len,$mol,$div,$desc) = $sth->fetchrow_array;
+   my ($display,$acc,$version,$mol,$div,$desc) = $sth->fetchrow_array;
 
    if( !defined $display ) {
        $self->throw("Bioentry id $id does not have a biosequence or bioentry ");
@@ -108,7 +108,6 @@ sub fetch_by_dbID{
 			     '-display_id' => $display,
 			     '-accession'  => $acc,
 			     '-version'    => $version,
-			     '-length'   => $len,
 			     '-alphabet' => $mol,
 			     '-division'   => $div,
 			     '-desc'       => $desc,
@@ -753,6 +752,30 @@ sub get_taxa_id{
 
    my ($taxa) = $sth->fetchrow_array();
    return $taxa;
+}
+
+
+=head2 get_length
+
+ Title   : get_length
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_length{
+   my ($self,$id) = @_;
+
+   my $sth = $self->prepare("select length(bs.biosequence_str) from bioentry en,biosequence bs bs.bioentry_id = en.bioentry_id and en.bioentry_id = $id");
+   $sth->execute();
+
+   my ($length) = $sth->fetchrow_array();
+
+   return $length;
 }
 
 =head2 get_keywords

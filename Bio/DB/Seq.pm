@@ -559,11 +559,16 @@ sub keywords{
 =cut
 
 sub length{
-   my ($obj,$value) = @_;
+   my ($self,$value) = @_;
    if( defined $value) {
-      $obj->{'length'} = $value;
+      $self->{'length'} = $value;
     }
-    return $obj->{'length'};
+
+   if( !defined $self->{'length'} ) {
+     $self->{'length'} = $self->adaptor->get_length($self->primary_id);
+   }
+
+   return $self->{'length'};
 
 }
 

@@ -21,7 +21,7 @@
 # Swissprot), we always update the entry in order not to miss any
 # cumulative updates until release.
 #
-# We use Date::Time for parsing the date string, so you will need to
+# We use Date::Parse for parsing the date string, so you will need to
 # install that before you can use this piece of code.
 sub {
     my ($old,$new,$db) = @_;

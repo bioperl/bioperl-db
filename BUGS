@@ -1,0 +1,3 @@
+Locations partially in a different sequence still don't work well. 
+Some descriptions with offending special characters are not backslashed correctly, and break the mysql insert statement. 
+If loading a large database in its entirety, and are tehrefore likely to encounter one of these crazy entries, use the safe option for loading them into the database

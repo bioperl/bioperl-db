@@ -90,7 +90,7 @@ sub new {
         $host = 'localhost';
     }
     if ( ! $port ) {
-        $port = 3306;
+        $port = '';
     }
 
     my $dsn = "DBI:$driver:database=$db;host=$host;port=$port";
@@ -201,8 +201,6 @@ sub get_SeqAdaptor{
    }
 
    return $self->{'_seqadaptor'}
-
-
 }
 
 =head2 get_BioDatabaseAdaptor

@@ -79,8 +79,11 @@ sub new {
 
     my($adaptor,$dbid) = $self->_rearrange(['ADAPTOR','DBID'],@args);
     
-    if( !defined $adaptor || !defined $dbid) {
-	$self->throw("No adaptor!");
+    if( !defined $adaptor) {
+      $self->throw("No BioDatabase adaptor!");
+    }
+    elsif (! defined $dbid) {
+      $self->throw("No database id given!");
     }
 
     $self->_adaptor($adaptor);

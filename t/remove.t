@@ -14,7 +14,6 @@ use Bio::DB::SQL::DBAdaptor;
 use Bio::SeqIO;
 
 $harness = DBTestHarness->new();
-open SOME, ">somef.txt"; 
 
 
 ok $harness;
@@ -65,7 +64,6 @@ $seq_feature_ids = join ",",$sth->fetchrow_array();
 ok ($seq_feature_ids); 
 
 eval ("\$seqadaptor->remove_by_dbID($dbID)"); 
-print SOME !$@,"\n"; 
 ok (!$@); 
 
 

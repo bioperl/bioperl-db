@@ -105,8 +105,8 @@ my %object_entity_map = (
 		# TaxonNode is a hack: there is no such object, but we need it
 		# to distinguish between the node and the name table
 		"TaxonNode"                           => "taxon",
-		"Bio::LocationI"                      => "seqfeature_location",
-		"Bio::DB::BioSQL::LocationAdaptor"    => "seqfeature_location",
+		"Bio::LocationI"                      => "location",
+		"Bio::DB::BioSQL::LocationAdaptor"    => "location",
 		"Bio::DB::BioSQL::BioNamespaceAdaptor"=> "biodatabase",
 		"Bio::DB::Persistent::BioNamespace"   => "biodatabase",
 		"Bio::Annotation::DBLink"             => "dbxref",
@@ -115,11 +115,11 @@ my %object_entity_map = (
 		"Bio::DB::BioSQL::CommentAdaptor"     => "comment",
 		"Bio::Annotation::Reference"          => "reference",
 		"Bio::DB::BioSQL::ReferenceAdaptor"   => "reference",
-		"Bio::Annotation::SimpleValue"        => "ontology_term",
-		"Bio::DB::BioSQL::SimpleValueAdaptor" => "ontology_term",
-		"Bio::Annotation::OntologyTerm"       => "ontology_term",
-		"Bio::Ontology::TermI"                => "ontology_term",
-		"Bio::DB::BioSQL::TermAdaptor"        => "ontology_term",
+		"Bio::Annotation::SimpleValue"        => "term",
+		"Bio::DB::BioSQL::SimpleValueAdaptor" => "term",
+		"Bio::Annotation::OntologyTerm"       => "term",
+		"Bio::Ontology::TermI"                => "term",
+		"Bio::DB::BioSQL::TermAdaptor"        => "term",
                 "Bio::Ontology::OntologyI"            => "ontology",
 		"Bio::DB::BioSQL::OntologyAdaptor"    => "ontology",
 		   );
@@ -127,28 +127,28 @@ my %association_entity_map = (
 	 "bioentry" => {
 	     "dbxref"         => "bioentry_dbxref",
 	     "reference"      => "bioentry_reference",
-	     "ontology_term"  => "bioentry_qualifier_value",
+	     "term"           => "bioentry_qualifier_value",
 	     "bioentry"       => {
-		 "ontology_term" => "bioentry_relationship",
+		 "term"       => "bioentry_relationship",
 	     }
 	 },
 	 "seqfeature" => {
-	     "ontology_term"  => "seqfeature_qualifier_value",
-	     "dbxref"         => undef,
+	     "term"           => "seqfeature_qualifier_value",
+	     "dbxref"         => "seqfeature_dbxref",
 	     "reference"      => undef,
 	     "seqfeature"     => {
-		 "ontology_term" => "seqfeature_relationship",
+		 "term"       => "seqfeature_relationship",
 	     }
 	 },
 	 "dbxref"   => {
 	     "bioentry"       => "bioentry_dbxref",
-	     "seqfeature"     => undef,
+	     "seqfeature"     => "seqfeature_dbxref",
 	 },
 	 "reference"   => {
 	     "bioentry"       => "bioentry_reference",
 	     "seqfeature"     => undef,
 	 },
-	 "ontology_term" => {
+	 "term" => {
 	     "bioentry"       => "bioentry_qualifier_value",
 	     "seqfeature"     => "seqfeature_qualifier_value",
 	 },
@@ -226,12 +226,12 @@ my %slot_attribute_map = (
 	     "end"            => "end_pos",
 	     "rank"           => "rank",
 	 },
-	 "comment"            => {
+	 "comment" => {
 	     "text"           => "comment_text",
 	     "rank"           => "rank",
 	     "Bio::DB::BioSQL::SeqFeatureAdaptor" => undef,
 	 },
-         "ontology_term"      => {
+         "term" => {
 	     "identifier"     => "identifier",
              "name"           => "name",
 	     "tagname"        => "name",
@@ -240,7 +240,7 @@ my %slot_attribute_map = (
 	     "value"          => "=>{bioentry_qualifier_value,seqfeature_qualifier_value}.value",
 	     "ontology"       => "ontology_id",
 	 },
-         "ontology"           => {
+         "ontology" => {
              "name"           => "name",
              "definition"     => "definition",
 	 },
@@ -248,7 +248,7 @@ my %slot_attribute_map = (
 	     "value"          => "value",
 	     "rank"           => "rank",
 	 },
-	 "seqfeature"         => {
+	 "seqfeature" => {
 	     "display_name"   => "display_name",
 	     "rank"           => "rank",
 	     "primary_tag"    => "type_term_id",
@@ -257,7 +257,10 @@ my %slot_attribute_map = (
 	     "parent"         => "parent_seqfeature_id",
 	     "child"          => "child_seqfeature_id",
 	 },
-	 "seqfeature_location" => {
+	 "seqfeature_dbxref" => {
+	     "rank"           => "rank",
+	 },
+	 "location" => {
 	     "start"          => "start_pos",
 	     "end"            => "end_pos",
 	     "strand"         => "strand",

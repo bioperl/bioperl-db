@@ -117,10 +117,10 @@ $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
 ok ($sql,
     "SELECT * ".
-    "FROM bioentry, ontology_term, bioentry_qualifier_value ".
+    "FROM bioentry, term, bioentry_qualifier_value ".
     "WHERE bioentry.bioentry_id = bioentry_qualifier_value.bioentry_id ".
-    "AND ontology_term.ontology_term_id = bioentry_qualifier_value.ontology_term_id ".
-    "AND (bioentry.bioentry_id = 10 AND ontology_term.ontology_id = 3)");
+    "AND term.term_id = bioentry_qualifier_value.term_id ".
+    "AND (bioentry.bioentry_id = 10 AND term.ontology_id = 3)");
 
 $query->datacollections(
 		  ["Bio::PrimarySeqI e",
@@ -132,9 +132,9 @@ $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
 ok ($sql,
     "SELECT * ".
-    "FROM bioentry e, ontology_term sv, bioentry_qualifier_value esva ".
+    "FROM bioentry e, term sv, bioentry_qualifier_value esva ".
     "WHERE e.bioentry_id = esva.bioentry_id ".
-    "AND sv.ontology_term_id = esva.ontology_term_id ".
+    "AND sv.term_id = esva.term_id ".
     "AND (e.bioentry_id = 10 AND sv.ontology_id = 3)");
 
 $query->datacollections(
@@ -147,9 +147,9 @@ $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
 ok ($sql,
     "SELECT * ".
-    "FROM bioentry, ontology_term sv, bioentry_qualifier_value ".
+    "FROM bioentry, term sv, bioentry_qualifier_value ".
     "WHERE bioentry.bioentry_id = bioentry_qualifier_value.bioentry_id ".
-    "AND sv.ontology_term_id = bioentry_qualifier_value.ontology_term_id ".
+    "AND sv.term_id = bioentry_qualifier_value.term_id ".
     "AND (bioentry.bioentry_id = 10 AND sv.ontology_id = 3)");
 
 $query->datacollections(
@@ -162,11 +162,11 @@ $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
 ok ($sql,
     "SELECT * ".
-    "FROM bioentry c, bioentry p, ontology_term, bioentry_relationship ".
+    "FROM bioentry c, bioentry p, term, bioentry_relationship ".
     "WHERE c.bioentry_id = bioentry_relationship.child_bioentry_id ".
     "AND p.bioentry_id = bioentry_relationship.parent_bioentry_id ".
-    "AND ontology_term.ontology_term_id = bioentry_relationship.ontology_term_id ".
-    "AND (p.accession = 'Hs.2' AND ontology_term.name = 'cluster member')");
+    "AND term.term_id = bioentry_relationship.term_id ".
+    "AND (p.accession = 'Hs.2' AND term.name = 'cluster member')");
 
 # this must also work with different objects in the association that map
 # to the same tables though
@@ -180,8 +180,8 @@ $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
 ok ($sql,
     "SELECT * ".
-    "FROM bioentry c, bioentry p, ontology_term, bioentry_relationship ".
+    "FROM bioentry c, bioentry p, term, bioentry_relationship ".
     "WHERE c.bioentry_id = bioentry_relationship.child_bioentry_id ".
     "AND p.bioentry_id = bioentry_relationship.parent_bioentry_id ".
-    "AND ontology_term.ontology_term_id = bioentry_relationship.ontology_term_id ".
-    "AND (p.accession = 'Hs.2' AND ontology_term.name = 'cluster member')");
+    "AND term.term_id = bioentry_relationship.term_id ".
+    "AND (p.accession = 'Hs.2' AND term.name = 'cluster member')");

@@ -145,11 +145,11 @@ sub resolve_query {
     
     my $qc = $query->where;
     my @wh = $self->resolve_constraint($query, $qc, $sqlq);
-    if (@wh, @extra_where) {
+    if (@wh && @extra_where) {
 	if (@wh > 1) {
 	    warn("not what i expected.... @wh");
 	}
-	$sqlq->where( [@wh, @extra_where] );
+	$sqlq->where( [(@wh, @extra_where)] );
     }
 }
 

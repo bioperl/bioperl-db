@@ -111,6 +111,8 @@ sub new {
     my $self = $pkg->SUPER::new(@args);
 
     my ($biodb, $dbc) = $self->_rearrange([qw(DATABASE DBCONTEXT)], @args);
+
+    $self->throw("you must provide the database (schema)") unless $biodb;
     if(exists($db_map{lc($biodb)})) {
 	$biodb = $db_map{lc($biodb)};
     } else {

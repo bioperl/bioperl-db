@@ -71,8 +71,8 @@ end of each test.
 5) Do the following from this directory:
 
 	$ cd t
-	$ cp DBTestHarness.conf.example DBTestHarness.biosql.conf
-	$ cp DBTestHarness.conf.example DBTestHarness.markerdb.conf
+	$ cp DBHarness.conf.example DBHarness.biosql.conf
+	$ cp DBHarness.conf.example DBHarness.markerdb.conf
 
 and edit both new files appropriately to reflect your setup.
 

@@ -123,16 +123,11 @@ sub new {
 				  PASS
 				  PORT
 				  )],@args);
-    $db   || $self->throw("Database object must have a database name");
-    $user || $self->throw("Database object must have a user");
-    if( ! $driver ) {
-        $driver = 'mysql';
-    }
 
     $self->username( $user );
     $self->host( $host ) if defined($host);
     $self->dbname( $db );
-    $self->driver($driver);
+    $self->driver($driver || 'mysql');
     $self->password($password) if defined($password);
     $self->port($port) if defined($port);
     return $self;

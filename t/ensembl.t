@@ -9,7 +9,7 @@ BEGIN {
     use Test;    
     plan tests => 14;
 }
-
+END { unlink( 't/ensembl_test.gb') }
 use DBTestHarness;
 use Bio::DB::SQL::DBAdaptor;
 use Bio::SeqIO;

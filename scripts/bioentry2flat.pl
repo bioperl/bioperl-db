@@ -8,7 +8,8 @@ my $dbuser = "root";
 my $dbpass = undef;
 my $dbname = 'embl';
 my $acc;
-my $format='fasta';
+my $stdout=0;
+my $format='embl';
 my $file;
 
 &GetOptions( 'host:s' => \$host,
@@ -18,26 +19,33 @@ my $file;
 	     'dbname:s' => \$format,
 	     'accession:s' => \$acc,
 	     'format:s' => \$format,
-	     'file:s' => \$file
+	     'file:s' => \$file,
+	     'stdout' => \$stdout
 	     );
-
 if (!$file) { 
     $file="$acc.$format";
 }
 $file = ">$file";
+
 $db = Bio::DB::SQL::DBAdaptor->new( -host => $host,
 				    -dbname => $sqlname,
 				    -user => $dbuser,
 				    -pass => $dbpass
 				    );
-
-my $seqio = Bio::SeqIO->new('-format' => $format,-file => $file);
-
 my $seqadaptor = $db->get_SeqAdaptor;
-
-# assumme bioentry_id is 1 - probably safe ;)
 my $dbseq = $seqadaptor->fetch_by_db_and_accession("embl",$acc);
-$seqio->write_seq($dbseq);
+
+my $seqio;			
+if ($stdout) {
+    #$seqio = Bio::SeqIO->new('format' => $format,-fh => '>\*STDOUT');
+    $out = Bio::SeqIO->newFh('-format' => 'EMBL'); 
+    print $out $dbseq;
+}
+else {
+    $seqio = Bio::SeqIO->new('-format' => $format,-file => $file);
+    $seqio->write_seq($dbseq);
+}
+
 
 
 

@@ -496,7 +496,7 @@ sub length{
 }
 
 sub DESTROY {
-    print STDERR "Releasing seq object\n!";
+    #print STDERR "Releasing seq object\n!";
 }
 
 

@@ -218,8 +218,16 @@ sub store{
    my $rdp = $self->db->get_ReferenceAdaptor();
    foreach my $ref ( $seq->annotation->each_Reference ) {
        my $rid = $rdp->store_if_needed($ref);
-       $sth = $self->prepare("insert into bioentry_reference(bioentry_id,reference_id,reference_rank) values($id,$rid,$rank)");
-       print STDERR "insert into bioentry_reference(bioentry_id,reference_id,reference_rank) values($id,$rid,$rank)\n";
+       my $start='NULL';
+       my $end='NULL';
+       if ($ref->start) {
+	   $start=$ref->start;
+       }
+       if ($ref->end) {
+	   $end=$ref->end;
+       }
+       $sth = $self->prepare("insert into bioentry_reference(bioentry_id,reference_id,reference_start,reference_end,reference_rank) values($id,$rid,$start,$end,$rank)");
+       #print STDERR "insert into bioentry_reference(bioentry_id,reference_id,reference_rank) values($id,$rid,$rank)\n";
        $sth->execute;
        $rank++;
    }

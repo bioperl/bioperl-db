@@ -28,16 +28,19 @@ use Bio::SeqIO;
 
 
 my $host = "localhost";
-my $sqlname = "bioperl_db";
+my $sqlname = "external_dbs";
 my $dbuser = "root";
 my $dbpass = undef;
 my $format = 'embl';
+#If safe is turned on, the script doesn't die because of one bad entry..
+my $safe = 0;
 
 &GetOptions( 'host:s' => \$host,
 	     'sqldb:s'  => \$sqlname,
 	     'dbuser:s' => \$dbuser,
 	     'dbpass:s' => \$dbpass,
 	     'format:s' => \$format,
+	     'safe'     => \$safe
 	     );
 
 my $dbname = shift;
@@ -59,10 +62,21 @@ my $seqadp = $dbadaptor->get_SeqAdaptor;
 
 foreach $file ( @files ) {
 
+    print STDERR "Reasing $file\n";
     my $seqio = Bio::SeqIO->new(-file => $file,-format => $format);
 
     while( $seq = $seqio->next_seq ) {
-	$seqadp->store($dbid,$seq);
+	if ($safe) {
+	    eval {
+		$seqadp->store($dbid,$seq);
+	    };
+	    if ($@) {
+		print STDERR "Could not store ".$seq->accession." because of $@\n";
+	    }
+	}
+	else {
+	    $seqadp->store($dbid,$seq);
+	}
     }
 }
 

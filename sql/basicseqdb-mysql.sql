@@ -106,8 +106,6 @@ CREATE TABLE bioentry_direct_links (
 
 CREATE TABLE reference (
   reference_id       int(10) unsigned NOT NULL PRIMARY KEY auto_increment,
-  reference_start    int(10),
-  reference_end      int(10),
   reference_location varchar(255) NOT NULL,
   reference_title    mediumtext NOT NULL,
   reference_authors  mediumtext NOT NULL,
@@ -119,9 +117,12 @@ CREATE TABLE reference (
 CREATE TABLE bioentry_reference (
   bioentry_id int(10) unsigned NOT NULL,
   reference_id int(10) unsigned NOT NULL,
+  reference_start    int(10),
+  reference_end      int(10),
   reference_rank int(5) unsigned NOT NULL,
 
-  PRIMARY KEY(bioentry_id,reference_id),
+  PRIMARY KEY(bioentry_id,reference_id,reference_rank),
+  KEY (bioentry_id),
   KEY (reference_rank)
 );
 

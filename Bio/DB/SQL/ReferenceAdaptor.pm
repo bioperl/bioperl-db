@@ -81,10 +81,10 @@ use Bio::DB::SQL::BaseAdaptor;
 sub fetch_by_dbID {
    my ($self,$referenceid) = @_;
 
-   my $sth = $self->prepare("select reference_start,reference_end,reference_authors,reference_title,reference_location,reference_medline from reference where reference_id = $referenceid");
+   my $sth = $self->prepare("select reference_authors,reference_title,reference_location,reference_medline from reference where reference_id = $referenceid");
 
    $sth->execute;
-   my ($start,$end,$authors,$title,$loc,$med) = $sth->fetchrow_array();
+   my ($authors,$title,$loc,$med) = $sth->fetchrow_array();
 
    my $ref = Bio::Annotation::Reference->new(
 					     -title => $title,
@@ -92,8 +92,7 @@ sub fetch_by_dbID {
 					     -location => $loc,
 					     -medline => $med
 					     );
-   $ref->start($start);
-   $ref->end($end);
+
 
    return $ref;
 }
@@ -116,13 +115,16 @@ sub fetch_by_bioentry_id{
    my ($self,$bioentry_id) = @_;
 
    # yes - not optimised. We could removed quite a few nested gets here
-   my $sth = $self->prepare("select reference_id from bioentry_reference where bioentry_id = $bioentry_id order by reference_rank");
+   my $sth = $self->prepare("select reference_id,reference_start,reference_end from bioentry_reference where bioentry_id = $bioentry_id order by reference_rank");
    $sth->execute;
 
    my @out;
    while( my $arrayref = $sth->fetchrow_arrayref )  {
-       my ($biodblink_id) = @{$arrayref};
-       push(@out,$self->fetch_by_dbID($biodblink_id));
+       my ($biodblink_id,$start,$end) = @{$arrayref};
+       my $ref=$self->fetch_by_dbID($biodblink_id);
+       $ref->start($start);
+       $ref->end($end);
+       push(@out,$ref);
    }
 
    
@@ -147,14 +149,6 @@ sub store_if_needed{
 
    $reference || $self->throw("Need a reference to store, doh...");
 
-   my $start='NULL';
-   my $end='NULL';
-   if ($reference->start) {
-       $start=$reference->start;
-   }
-   if ($reference->end) {
-       $end=$reference->end;
-   }
    my $authors=$reference->authors;
    my $location=$reference->location;
    my $title=$reference->title;
@@ -174,13 +168,12 @@ sub store_if_needed{
        $sth->execute();
        my ($id) = $sth->fetchrow_array();
        if ($id) {
-	   print STDERR "Returning id $id\n";
 	   return $id;
        }
    }
 
-   my $sth = $self->prepare("insert into reference (reference_id,reference_start,reference_end,reference_authors,reference_title,reference_location,reference_medline) values (NULL,$start,$end,'$authors','$title','$location',$med)");
-   print STDERR "insert into reference (reference_id,reference_start,reference_end,reference_authors,reference_title,reference_location,reference_medline) values (NULL,$start,$end,'$authors','$title','$location',$med)\n";
+   my $sth = $self->prepare("insert into reference (reference_id,reference_authors,reference_title,reference_location,reference_medline) values (NULL,'$authors','$title','$location',$med)");
+   #print STDERR "insert into reference (reference_id,reference_start,reference_end,reference_authors,reference_title,reference_location,reference_medline) values (NULL,$start,$end,'$authors','$title','$location',$med)\n";
    $sth->execute();
    return $sth->{'mysql_insertid'};
 }

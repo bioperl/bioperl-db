@@ -331,6 +331,40 @@ sub remove_children{
     return 1;
 }
 
+=head2 remove_members
+
+ Title   : remove_members
+ Usage   :
+ Function: Dissociates all cluster members from this cluster. 
+
+           Note that this method does not delete the members
+           themselves, it only removes the association between them
+           and this cluster.
+
+ Example :
+ Returns : TRUE on success and FALSE otherwise
+ Args    : The persistent object for which to remove the members
+
+
+=cut
+
+sub remove_members{
+    my $self = shift;
+    my $obj = shift;
+
+    my $assoctype = $self->_ontology_term('cluster member',
+					  'Relationship Type Ontology',
+					  'FIND IT');
+    my $ok = 1;
+    # if the association type isn't known yet, there can't be any
+    # members either
+    if($assoctype) {
+	$ok = $self->remove_association(-objs => [$obj,"Bio::SeqI",$assoctype],
+					-contexts => ["parent","child",undef]);
+    }
+    return $ok;
+}
+
 =head2 attach_children
 
  Title   : attach_children

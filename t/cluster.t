@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;
-    plan tests => 162;
+    plan tests => 160;
 }
 
 use DBTestHarness;
@@ -96,13 +96,7 @@ eval {
     }
 
     # test cluster member association removal
-    my $assoctype = $adp->_ontology_term('cluster member',
-					 'Relationship Type Ontology',
-					 'FIND IT');
-    ok $assoctype;
-    ok $assoctype->primary_key;
-    ok $adp->remove_association(-objs => [$dbclu, "Bio::SeqI", $assoctype],
-				-contexts => ["parent","child",undef]);
+    ok $adp->remove_members($dbclu);
     # re-fetch and test members
     $dbclu = $adp->find_by_primary_key($dbid);
     ok $dbclu;

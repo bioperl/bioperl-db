@@ -92,10 +92,6 @@ use Bio::PrimarySeq;
  Function: Get the slots of the object that map to attributes in its respective
            entity in the datastore.
 
-           Slots should be methods callable without an argument.
-
-           This is a strictly abstract method. A derived class MUST override
-           it to return something meaningful.
  Example :
  Returns : an array of method names constituting the serializable slots
  Args    : the object about to be inserted or updated
@@ -105,8 +101,8 @@ use Bio::PrimarySeq;
 
 sub get_persistent_slots{
     my ($self,@args) = @_;
-
-    return ("seq_version", "length", "alphabet", "seq", "crc");
+    
+    return ("seq_version", "length", "alphabet", "crc", "seq");
 }
 
 =head2 get_persistent_slot_values
@@ -116,15 +112,6 @@ sub get_persistent_slots{
  Function: Obtain the values for the slots returned by get_persistent_slots(),
            in exactly that order.
 
-           The reason this method is here is that sometimes the actual slot
-           values need to be post-processed to yield the value that gets
-           actually stored in the database. E.g., slots holding arrays
-           will need some kind of join function applied. Another example is if
-           the method call needs additional arguments. Supposedly the
-           adaptor for a specific interface knows exactly what to do here.
-
-           Since there is also populate_from_row() the adaptor has full
-           control over mapping values to a version that is actually stored.
  Example :
  Returns : A reference to an array of values for the persistent slots of this
            object. Individual values may be undef.
@@ -137,18 +124,16 @@ sub get_persistent_slots{
 
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
-    my @vals;
-    if($obj->isa("Bio::Seq::RichSeqI")) {
-	@vals = ($obj->seq_version());
-    } else {
-	@vals = (undef);
-    }
+    my @vals = (undef);
+    $vals[0] = $obj->seq_version() if $obj->isa("Bio::Seq::RichSeqI");
+    $self->warn("seq_version is an empty string") if
+        defined($vals[0]) && (!$vals[0]);
     my $seq = $obj->seq_has_changed() ? $obj->seq() : undef;
     push(@vals,
 	 $obj->length(),
 	 $obj->alphabet(),
-	 $seq,
-         defined($seq) ? $self->crc64($seq) : undef);
+         defined($seq) ? $self->crc64($seq) : undef,
+	 $seq);
     return \@vals;
 }
 
@@ -250,7 +235,7 @@ sub populate_from_row{
 	}
 	$obj->length($rows->[2]) if $rows->[2];
 	$obj->alphabet($rows->[3]) if $rows->[3];
-	$obj->seq($rows->[4]) if $rows->[4];
+	$obj->seq($rows->[5]) if $rows->[5];
 	if($obj->isa("Bio::DB::PersistentObjectI") &&
 	   (! $obj->isa("Bio::PrimarySeqI"))) {
 	    $obj->primary_key($rows->[0]);

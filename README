@@ -1,5 +1,10 @@
 # $Id$
 
+
+This code currently works properly with the bioperl 0.7.x series of
+stable releases and should not be used with the "live" (main-trunk)
+code.
+
 This directory contains code from the bioperl-db CVS repository. 
 ===================================================================
 There are currently 2 logical projects contained within here, a system

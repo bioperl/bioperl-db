@@ -1,5 +1,5 @@
 # Adaptor for Multiple BioSQL databases.
-# 
+# By Juguang Xiao <juguang@tll.org.sg> 
 
 =head1 NAME
 
@@ -73,8 +73,12 @@ sub new{
 sub _namespace_dbs{
     my ($self, $key, $value) = @_;
     $self->{_namespace_dbs} = {} unless $self->{_namespace_dbs};
-    return $self->{_namespace_dbs}->{$key} 
-        if exists $self->{_namespace_dbs}->{$key};
+    if (exists $self->{_namespace_dbs}->{$key}){
+		return $self->{_namespace_dbs}->{$key};
+	}elsif(!defined $value){
+		$self->throw("Cannot find \'$key\' as namespace. It may not regiested");
+	}
+
     return $self->{_namespace_dbs}->{$key} = $value if $value;
 
 }

@@ -171,5 +171,21 @@ sub _load_dbadaptor {
     return $LOADED{$db};
 }
 
+=head2 add_db_mapping
+
+ Title   : add_db_mapping
+ Usage   : $self->add_db_mapping(key, value)
+ Function: Adds another package path mapping to the static private hash %db_map.
+ Example :  add_db_mapping("FastBioSQL", "Bio::Das::BioSQL::");
+ Returns : None
+ Args    : key - arbitrary identifier, value - Perl package path ending in "::"
+
+=cut
+
+sub add_db_mapping {
+      my ($self, $key, $value) = @_;
+      $db_map{lc $key} = $value;
+}
+
 
 1;

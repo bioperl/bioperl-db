@@ -291,8 +291,8 @@ sub store_children{
 	    }
 	}
 	# associate the cluster with the member
-	$mem->adaptor->add_association(-objs => [$obj, $mem, $assoctype],
-				       -contexts => ["parent","child",undef]);
+	$mem->adaptor->add_association(-objs =>    [$obj, $mem, $assoctype],
+				       -contexts =>["subject","object",undef]);
     }
     # done
     return $ok;
@@ -360,7 +360,7 @@ sub remove_members{
     # members either
     if($assoctype) {
 	$ok = $self->remove_association(-objs => [$obj,"Bio::SeqI",$assoctype],
-					-contexts => ["parent","child",undef]);
+					-contexts=>["subject","object",undef]);
     }
     return $ok;
 }
@@ -441,9 +441,9 @@ sub attach_children{
 	# obtain adaptor for desired type
 	my $adp = $self->db->get_object_adaptor($memtype);
 	# setup the query
-	my $qres = $adp->find_by_association(-objs     => [$memtype, $obj,
+	my $qres = $adp->find_by_association(-objs     => [$memtype, $obj, 
 							   $assoctype],
-					     -contexts => ["child","parent",
+					     -contexts => ["object", "subject",
 							   undef]);
 	while(my $mem = $qres->next_object()) {
 	    $obj->add_member($mem);

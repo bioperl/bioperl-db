@@ -6,11 +6,16 @@ load_seqdatabase.pl
 
 =head1 SYNOPSIS
 
-   load_seqdatabase.pl -host somewhere.edu -sqldb bioperl swiss_sptrembl swiss.dat primate.dat 
+   load_seqdatabase.pl -host somewhere.edu -sqldb bioperl -format swiss swiss_sptrembl swiss.dat primate.dat 
 
 =head1 DESCRIPTION
 
-This script loads a bioperl-db with sequences.
+This script loads a bioperl-db with sequences. There are a number of
+options to do with where the bioperl-db database is (ie, hostname,
+user for database, password, database name) followed by the database
+name you wish to load this into and then any number of files. The
+files are assummed to be SeqIO formatted files with the format given
+in the -format flag
 
 =cut
 
@@ -19,6 +24,8 @@ This script loads a bioperl-db with sequences.
 
 use Getopt::Long;
 use Bio::DB::SQL::DBAdaptor;
+use Bio::SeqIO;
+
 
 my $host = "localhost";
 my $sqlname = "bioperl";
@@ -29,7 +36,8 @@ my $format = 'fasta';
 &GetOptions( 'host:s' => \$host,
 	     'sqldb:s'  => \$sqlname,
 	     'dbuser:s' => \$dbuser,
-	     'dbpass:s' => \$dbpass
+	     'dbpass:s' => \$dbpass,
+	     'format:s' => \$format,
 	     );
 
 my $dbname = shift;
@@ -42,7 +50,7 @@ if( !defined $dbname || scalar(@files) == 0 ) {
 
 $dbadaptor = Bio::DB::SQL::DBAdaptor->new( -host => $host,
 					   -dbname => $sqlname,
-					   -dbuser => $dbuser,
+					   -user => $dbuser,
 					   -pass => $dbpass
 					   );
 
@@ -54,9 +62,15 @@ foreach $file ( @files ) {
     my $seqio = Bio::SeqIO->new(-file => $file,-format => $format);
 
     while( $seq = $seqio->next_seq ) {
-	$seqadp->store($seq);
+	$seqadp->store($dbid,$seq);
     }
 }
+
+
+
+
+
+
 
 
 

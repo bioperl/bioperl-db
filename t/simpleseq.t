@@ -8,7 +8,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 13;
+    plan tests => 14;
 }
 
 use DBTestHarness;
@@ -35,8 +35,11 @@ $seqadaptor = $db->get_SeqAdaptor;
 
 ok $seqadaptor;
 
-# 1 is the dbid - completely made up here
-$seqadaptor->store(1,$seq);
+$biodbadaptor = $db->get_BioDatabaseAdaptor;
+
+$id = $biodbadaptor->fetch_by_name_store_if_needed('genbank');
+
+$seqadaptor->store($id,$seq);
 
 # assumme bioentry_id is 1 - probably safe ;)
 $dbseq = $seqadaptor->fetch_by_dbID(1);
@@ -61,4 +64,13 @@ my $test_desc = $seq->desc;
 $test_desc =~ s/\s+$//g;
 
 ok ($dbseq->desc       eq $test_desc);
+
+#$harness->pause;
+
+$dbseq = $seqadaptor->fetch_by_db_and_accession("genbank",$seq->accession);
+
+ok $dbseq;
+
+
+
 

@@ -46,6 +46,8 @@ use strict;
 use Bio::Root::RootI;
 use Bio::DB::SQL::SeqAdaptor;
 use Bio::DB::SQL::PrimarySeqAdaptor;
+use Bio::DB::SQL::BioDatabaseAdaptor;
+
 
 use DBI;
 
@@ -186,12 +188,37 @@ sub get_PrimarySeqAdaptor{
 sub get_SeqAdaptor{
    my ($self,@args) = @_;
 
-   if( !defined $self->{'_primaryseqadaptor'} ) {
+   if( !defined $self->{'_seqadaptor'} ) {
        $self->{'_seqadaptor'} = Bio::DB::SQL::SeqAdaptor->new($self);
    }
 
    return $self->{'_seqadaptor'}
 
+
+}
+
+=head2 get_BioDatabaseAdaptor
+
+ Title   : get_BioDatabaseAdaptor
+ Usage   :
+ Function:
+ Example :
+ Returns : 
+ Args    :
+
+
+=cut
+
+sub get_BioDatabaseAdaptor{
+   my ($self) = @_;
+
+
+
+   if( !defined $self->{'_biodbadaptor'} ) {
+       $self->{'_biodbadaptor'} = Bio::DB::SQL::BioDatabaseAdaptor->new($self);
+   }
+
+   return $self->{'_biodbadaptor'}
 
 }
 

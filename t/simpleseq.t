@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 27;
+    plan tests => 59;
 }
 
 use DBTestHarness;
@@ -19,7 +19,6 @@ use Bio::Root::IO;
 $biosql = DBTestHarness->new("biosql");
 $db = $biosql->get_DBAdaptor();
 ok $db;
-$db->verbose(1) if $ENV{HARNESS_VERBOSE};
 
 my $seqio = Bio::SeqIO->new('-format' => 'fasta',
 			    '-file' => Bio::Root::IO->catfile('t','data',
@@ -36,6 +35,28 @@ $pseq->namespace("mytestnamespace");
 $pseq->store();
 my $dbid = $pseq->primary_key();
 ok $dbid;
+
+# test long sequence
+$seqio->close();
+$seqio = Bio::SeqIO->new('-format' => 'fasta',
+                         '-file' => 
+                         "gzip -d -c "
+                         . Bio::Root::IO->catfile('t','data','Titin.fasta.gz')
+                         . '|');
+my $lseq = $seqio->next_seq();
+$seqio->close();
+$lseq->namespace("mytestnamespace");
+my ($acc) = grep { /^NM/ } split(/\|/, $lseq->primary_id);
+$acc =~ s/\.(\d+)$//;
+$lseq->version($1);
+$lseq->accession_number($acc);
+$lseq->primary_id(undef);
+$lseq->display_id($acc);
+ok ($lseq->accession_number, "NM_003319");
+ok ($lseq->version, 2);
+ok ($lseq->length, 82027);
+my $plseq = $db->create_persistent($lseq);
+$plseq->create();
 
 my $adp = $db->get_object_adaptor($seq);
 ok $adp;
@@ -68,11 +89,71 @@ eval {
     ok $dbseq;
     ok ($dbseq->primary_key, $pseq->primary_key());
 
+    # test correct retrieval of long sequence
+    $sequk = Bio::PrimarySeq->new(-accession_number =>$lseq->accession_number,
+                                  -version => $lseq->version,
+                                  -namespace => $lseq->namespace);
+    $dbseq = $db->get_object_adaptor($sequk)->find_by_unique_key($sequk);
+    ok $dbseq;
+    ok ($dbseq->accession_number, $lseq->accession_number);
+    ok ($dbseq->length, $lseq->length);
+    ok ($dbseq->namespace, $lseq->namespace);
+    ok ($dbseq->version, $lseq->version);
+    ok ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
+    ok ($dbseq->seq, $lseq->seq);
+
+    # test correct update of properties if seq object is updated (but
+    # not the sequence)
+    $dbseq->version($lseq->version() + 1);
+    ok $dbseq->store();
+    $sequk = Bio::PrimarySeq->new(-accession_number =>$lseq->accession_number,
+                                  -version => $lseq->version() + 1,
+                                  -namespace => $lseq->namespace);
+    $dbseq = $db->get_object_adaptor($sequk)->find_by_unique_key($sequk);
+    ok ($dbseq->length, $lseq->length);
+    ok ($dbseq->version, $lseq->version() + 1);
+    ok ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
+    ok ($dbseq->seq, $lseq->seq);
+
+    # test correct update of properties if seq object is not updated
+    ok !$dbseq->is_dirty;
+    ok $dbseq->store();
+    $sequk = Bio::PrimarySeq->new(-accession_number =>$lseq->accession_number,
+                                  -version => $lseq->version() + 1,
+                                  -namespace => $lseq->namespace);
+    $dbseq = $db->get_object_adaptor($sequk)->find_by_unique_key($sequk);
+    ok ($dbseq->length, $lseq->length);
+    ok ($dbseq->version, $lseq->version() + 1);
+    ok ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
+    ok ($dbseq->seq, $lseq->seq);
+
+    # test whether a null sequence will not clobber the sequence in
+    # the database
+    $dbseq->seq(undef);
+    ok ($dbseq->length, 0);
+    ok ($dbseq->seq, undef);
+    $dbseq->length($lseq->length);
+    ok ($dbseq->seq, undef);
+    ok ($dbseq->length, $lseq->length);
+    ok $dbseq->is_dirty;
+    ok $dbseq->store;
+    # re-retrieve and test
+    $sequk = Bio::PrimarySeq->new(-accession_number =>$lseq->accession_number,
+                                  -version => $lseq->version() + 1,
+                                  -namespace => $lseq->namespace);
+    $dbseq = $db->get_object_adaptor($sequk)->find_by_unique_key($sequk);
+    ok ($dbseq->length, $lseq->length);
+    ok ($dbseq->version, $lseq->version() + 1);
+    ok ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
+    ok ($dbseq->seq, $lseq->seq);
+
+    # remove the long sequence ...
+    ok $plseq->remove;
 };
 
 print STDERR $@ if $@;
 
-# delete seq
+# delete seq and namespace
 ok ($pseq->remove(), 1);
 my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pseq);
 ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);

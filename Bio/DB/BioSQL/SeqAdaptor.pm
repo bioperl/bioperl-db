@@ -855,7 +855,7 @@ sub get_seq_lengths {
 	if ($seqs[0]){
 		my $seqlist = join ",", map {qq("$_")} @seqs;
 		#print "\nSEQLIST $seqlist\n";
-		$query .= "and be.display_id in ($seqlist)"
+		$query .= "and be.accession in ($seqlist)"
 	}
 
 	my $sth = $self->prepare($query);

@@ -205,8 +205,8 @@ sub build_dsn{
            the DBContextI object, passing additional args to the DBI->connect()
            method if a new connection is created.
            
-           Contrary to new_connection(), this method may return shared
-           connections from a pool. The implementation should make sure though
+           Contrary to new_connection(), this method will return shared
+           connections from a pool. The implementation makes sure though
            that the returned handle was opened with the given parameters.
 
            In addition, the caller must not disconnect the obtained handle

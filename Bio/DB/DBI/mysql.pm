@@ -115,7 +115,7 @@ sub new {
  Title   : next_id_value
  Usage   : $pk = $obj->next_id_value("bioentry");
  Function: This implementation uses standard MySQL only and hence cannot
-           implement this method. It will hence throw an exception if called.
+           implement this method. It will throw an exception if called.
  Example :
  Returns : a value suitable for use as a primary key
  Args    : The database connection handle to use for retrieving the next primary

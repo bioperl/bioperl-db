@@ -128,6 +128,10 @@ sub new {
 Contact Hilmar Lapp <hlapp at gmx.net> for questions, bugs, flames,
 praises etc.
 
+Off records, this implementation has grown hideous. It needs to be
+rewritten. The problem is, it''s not an easy task, and it works
+currently as far as I can tell ...
+
 =cut
 
 sub translate_query{
@@ -137,13 +141,21 @@ sub translate_query{
     my $tquery = {};
     %$tquery = %$self;
     bless $tquery, ref($self);
+    #
     # initialize some variables
-    $entitymap = {} unless $entitymap;
+    #
+    # maps relational entity (table) to one or more aliases (each value is
+    # an array ref)
+    $entitymap = {} unless $entitymap; 
+    # aliasmap maps alias to table (alias being a SQL tables alias as well
+    # as an object entity)
     my $aliasmap = {};
     my @joins = ();
     my @tablelist = ();
     my $tbl;
+    #
     # determine the tables, and simultaneously the necessary joins
+    #
     foreach (@{$tquery->datacollections()}) {
 	# it may (hopefully does) come with an alias
 	my ($entity,$alias) = split(/\s+/, $_);
@@ -151,8 +163,9 @@ sub translate_query{
 	if($entity =~ /<=>/) {
 	    # it's an association
 	    my @entities = split(/<=>/, $entity);
-	    my %ent_counts = map { ($_,0); } @entities;
-	    #foreach (@entities) { $ent_counts{$_}++; }
+	    # initialize count table for how often a particular table is in an
+	    # association
+	    my %ent_counts = ();
 	    # determine the association table
 	    my $assoc = $mapper->association_table_name(\@entities);
 	    if(! $assoc) {
@@ -162,36 +175,55 @@ sub translate_query{
 	    # record the association table alias
 	    $entitymap->{$assoc} = [$alias || $assoc];
 	    # resolve all participating entities to table names; at the same
-	    # time we need foreign keys to all participating entities
+	    # time we need foreign keys and joins to all participating entities
 	    for(my $i = 0; $i < @entities; $i++) {
+		# resolve table name
 		$tbl = $mapper->table_name($entities[$i]);
  		$self->throw("failed to map $entities[$i] to a table")
 		    unless $tbl;
-		$ent_counts{$entities[$i]}++;
+		# increase counter for the participating table
+		$ent_counts{$tbl}++;
 		# record alias and add entity to the datacollections if it
 		# hasn't been done yet
-		$entitymap->{$tbl} = [] unless exists($entitymap->{$tbl});
-		if(! exists($aliasmap->{$entities[$i]})) {
-		    push(@{$entitymap->{$tbl}}, $tbl);
+		if(! (exists($aliasmap->{$entities[$i]}) ||
+		      exists($entitymap->{$tbl}))) {
+		    # add the table to the list of the table's aliases
+		    # (in fact, there was none before)
+		    $entitymap->{$tbl} = [$tbl];
+		    # record the mapping of both the object entity and
+		    # the alias to the table
 		    $aliasmap->{$entities[$i]} = $tbl;
 		    $aliasmap->{$tbl} = $tbl;
+		    # add the participating table to the list of data
+		    # collections (note: there's no alias if we get here)
 		    push(@tablelist, $tbl);
 		}
 		# add join to association table
+		# 1) primary key for the participating table
 		my $pk = $mapper->primary_key_name($tbl);
  		$self->throw("failed to map $tbl to primary key") unless $pk;
+		# 2) foreign key to table in the association table
+		# note that this may need context to resolve correctly
 		my @tblalias =
 		    split(/::/,
-			  $entitymap->{$tbl}->[$ent_counts{$entities[$i]}-1]);
+			  # use the next alias in the list as we encountered
+			  # them (the counter will have increased every time
+			  # we see the same entity in the association again)
+			  $entitymap->{$tbl}->[$ent_counts{$tbl}-1]);
+		# we need the object entity for foreign key resolution, not
+		# the alias
 		my $fkent = $entities[$i];
+		# but append the context if there was one given in the alias
 		$fkent .= "::".$tblalias[1] if @tblalias > 1;
+		# resolve foreign key
 		my $fk = $mapper->foreign_key_name($fkent);
  		$self->throw("failed to map $fkent to a FK") unless $fk;
+		# add join (don't include the context in the alias)
 		push(@joins,
 		     $tblalias[0] .".". $pk ." = ".
 		     $entitymap->{$assoc}->[0] .".". $fk);
 	    }
-	    # and finally add association table
+	    # and finally add association table with its possible alias
 	    push(@tablelist, $assoc . ($alias ? " $alias" : ""));
  	} elsif($entity =~ /[<=>]{2}/) {
 	    # it's a FK relationship
@@ -216,9 +248,14 @@ sub translate_query{
 		$entitymap->{$tbl} = [] unless exists($entitymap->{$tbl});
 		$aliases{$ent} = $tbl unless $aliases{$ent};
 		if(! exists($aliasmap->{$ent})) {
+		    # add this alias to the table's aliases
 		    push(@{$entitymap->{$tbl}}, $aliases{$ent});
+		    # record the mapping of both the object entity and
+		    # the alias to the table
 		    $aliasmap->{$ent} = $aliases{$ent};
 		    $aliasmap->{$aliases{$ent}} = $tbl;
+		    # add table and alias to data colletions, omit alias if
+		    # identical to table
 		    push(@tablelist,
 			 $tbl .
 			 ($aliases{$ent} ne $tbl ? ' '.$aliases{$ent} : ""));
@@ -237,23 +274,27 @@ sub translate_query{
 	    $self->throw("failed to map $entity to a table") unless $tbl;
 	    # add to data collections while preventing duplicates
 	    $entitymap->{$tbl} = [] unless exists($entitymap->{$tbl});
-	    $alias = $tbl unless $alias;
+	    $alias = $tbl unless $alias; # default is table
 	    if(! exists($aliasmap->{$alias})) {
+		# add this alias to the table's aliases
 		push(@{$entitymap->{$tbl}}, $alias);
+		# record the mapping of both the object entity and the alias
+		# to the table
 		$aliasmap->{$entity} = $alias unless $aliasmap->{$entity};
 		$aliasmap->{$alias} = $tbl;
+		# check whether a context was added to the alias, and if so
+		# also record the alias without the context
 		if($alias && (index($alias, '::') >= 0)) {
 		    ($alias) = split(/::/, $alias);
 		    $aliasmap->{$alias} = $tbl;
 		}
+		# add table and alias to the list of data collections, but
+		# omit the alias if it's the same as the table
 		push(@tablelist, $tbl . ($alias ne $tbl ? " $alias" : ""));
 	    }
 	    # we don't need a join here
 	}
     }
-    # Entity map maps tables to their aliases. For translating column names
-    # we need the reverse map alias->table.
-    #while(my @pair = each %$entitymap) { $aliasmap->{$pair[1]} = $pair[0]; }
     # map the slots to columns in the constraints and prepend joins to WHERE
     if($tquery->where()) {
 	# map slots to columns

@@ -86,6 +86,11 @@ use Bio::Cluster::UniGene;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
+my %member_type_map = (
+		       "Bio::Cluster::UniGene" => "Bio::SeqI",
+		       "Bio::Cluster::SequenceFamily" => "Bio::SeqI",
+		       );
+
 # new inherited from base adaptor.
 #
 # if we wanted caching we'd have to override new here
@@ -244,7 +249,8 @@ sub store_children{
     # is a SimpleValue annotation
     my $sizeann = $self->_object_slot('cluster size',$obj->size());
     $ok = $sizeann->store() && $ok;
-    $ok = $sizeann->adaptor->add_association(-objs => [$sizeann, $obj]) && $ok;
+    $ok = $sizeann->adaptor->add_association(-objs => [$sizeann, $obj],
+					     -values => {"rank" => 1}) && $ok;
     # we need to store the annotations, and associate ourselves with them
     if($obj->can('annotation')) {
 	my $ac = $obj->annotation();
@@ -260,7 +266,8 @@ sub store_children{
     #
     # obtain the type term for the association upfront
     my $assoctype = $self->_ontology_term('cluster member',
-					  'Relationship Types','FIND IT');
+					  'Relationship Type Ontology',
+					  'FIND IT');
     $assoctype->create() unless $assoctype->primary_key();
     foreach my $mem ($obj->get_members()) {
 	# each member needs to be persistent object
@@ -272,7 +279,7 @@ sub store_children{
 	    if(my $found = $mem->adaptor->find_by_unique_key($mem)) {
 		$mem->primary_key($found->primary_key());
 	    } else {
-		$mem->create();
+		$ok = $mem->create() && $ok;
 	    }
 	}
 	# associate the cluster with the member
@@ -360,6 +367,7 @@ sub attach_children{
 	# clean up the annotation collection from object slots
 	$ac->remove_Annotations('Object Slots');
     }
+    #
     # find the tag/value pairs corresponding to object slots
     my $slotval = $self->_object_slot('dummy');
     # The SimpleValue object in the association list must not be persistent
@@ -371,6 +379,33 @@ sub attach_children{
     while($slotval = $qres->next_object()) {
 	if($slotval->tagname() eq 'cluster size') {
 	    $obj->size($slotval->value());
+	}
+    }
+    #
+    # find and attach the cluster members
+    my $assoctype;
+    if($obj->can('add_member') &&
+       # if the association type isn't known yet, there won't be any
+       # members either
+       ($assoctype = $self->_ontology_term('cluster member',
+					   'Relationship Type Ontology',
+					   'FIND IT'))) {
+	# pre-determine type of member - we need this to determine the adaptor
+	my $memtype = $member_type_map{ref($obj->obj)};
+	if(! $memtype) {
+	    $self->warn("type of members for ".ref($obj->obj)." not mapped - ".
+			"assuming Bio::SeqI as the default");
+	    $memtype = "Bio::SeqI";
+	}
+	# obtain adaptor for desired type
+	my $adp = $self->db->get_object_adaptor($memtype);
+	# setup the query
+	my $qres = $adp->find_by_association(-objs     => [$memtype, $obj,
+							   $assoctype],
+					     -contexts => ["child","parent",
+							   undef]);
+	while(my $mem = $qres->next_object()) {
+	    $obj->add_member($mem);
 	}
     }
     # done

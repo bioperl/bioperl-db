@@ -325,7 +325,7 @@ sub remove{
                -contexts optional; if given it denotes a reference
                        to an array of context keys (strings), which
                        allow the foreign key name to be determined
-                       through the association map rather than through
+                       through the slot-to-column map rather than through
                        foreign_key_name().  This may be necessary if
                        more than one object of the same type takes
                        part in the association. The array must be in
@@ -707,6 +707,16 @@ sub find_by_unique_key{
  Args    : Named parameters. At least the following must be recognized:
                -objs   a reference to an array of objects to be associated with
                        each other
+               -contexts optional; if given it denotes a reference
+                       to an array of context keys (strings), which
+                       allow the foreign key name to be determined
+                       through the slot-to-column map rather than through
+                       foreign_key_name().  This may be necessary if
+                       more than one object of the same type takes
+                       part in the association. The array must be in
+                       the same order as -objs, and have the same
+                       number of elements. Put undef for objects
+                       for which there are no multiple contexts.
                -obj_factory the factory to use for instantiating object from
                        the found rows
                -constraints  a reference to an array of additional
@@ -724,8 +734,9 @@ sub find_by_association{
     my $i;
 
     # get arguments
-    my ($objs,$fact,$constr,$values) =
-	$self->_rearrange([qw(OBJS OBJ_FACTORY CONSTRAINTS VALUES)], @args);
+    my ($objs,$contexts,$fact,$constr,$values) =
+	$self->_rearrange([qw(OBJS CONTEXTS OBJ_FACTORY CONSTRAINTS VALUES)],
+			  @args);
     # have we been called in error? If so, be graceful and return an error.
     return undef unless $objs && @$objs;
     # the schema may not necessarily support this association, check this
@@ -746,18 +757,23 @@ sub find_by_association{
     my $sth = $self->sth($cache_key);
     if(! $sth) {
 	# no, we need to prepare this one
-	# first, gather the object entities, their associations, and pre-set
-	# aliases t<n> for the entities
-	my @objnames = map { ref($_) ?
-				 ($_->isa("Bio::DB::PersistentObjectI") ?
-				  ref($_->adaptor()) : ref($_)) :
-				  $_;
-			 } @$objs;
-	$i = 0;
-	my @entities = map { ++$i; $_ ." t$i"; } @objnames;
-	for($i = 1; $i < @objnames; $i++) {
-	    push(@entities, $objnames[$i-1] ."<=>". $objnames[$i]);
+	# first, translate the objects to entity names (in object space, not
+	# relational space)
+	my @objnames = map {
+	    ref($_) ? ($_->isa("Bio::DB::PersistentObjectI") ?
+		       ref($_->adaptor()) : ref($_)) :
+		       $_;
+	} @$objs;
+	# pre-set aliases t<n> for the entities, and append context if it
+	# is provided
+	my @entities = ();
+	for($i = 0; $i < @objnames; $i++) {
+	    push(@entities,
+		 $objnames[$i]." t".($i+1).
+		 ($contexts && $contexts->[$i] ? "::".$contexts->[$i] : ""));
 	}
+	# add the association between the object entities
+	push(@entities, join("<=>",@objnames));
 	# now create a query object, and set object entities and associations
 	my $query = Bio::DB::Query::BioQuery->new();
 	$query->datacollections(\@entities);

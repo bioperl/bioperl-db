@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;
-    plan tests => 66;
+    plan tests => 153;
 }
 
 use DBTestHarness;
@@ -90,6 +90,8 @@ eval {
     $i = 0;
     while(($i < @mems) && ($i < @dbmems)) {
 	ok ($dbmems[$i]->accession_number, $mems[$i]->accession_number);
+	ok ($dbmems[$i]->display_id, $mems[$i]->display_id);
+	ok ($dbmems[$i]->namespace, $mems[$i]->namespace);
 	$i++;
     }
 };

@@ -84,8 +84,7 @@ eval {
     # add a tag value and update
     $dbf->add_tag_value('tag13','value for tag13');
     $dbf->attach_seq($pseq); # we need a FK seq to successfully update
-    ok ! $dbf->store(); # this works but still should return FALSE due to
-                        # caught UK violations (only 1 tag/value is new!)
+    ok $dbf->store();
     # re-retrieve by seq
     my $dbseq = $db->get_object_adaptor("Bio::SeqI")->find_by_primary_key(
 						           $pseq->primary_key);

@@ -32,5 +32,7 @@
 
     #'dbname'        => 'biosql',
 
-    'module'        => 'Bio::DB::BioSQL::DBAdaptor',
+    # The name of the database within bioperl-db
+    'database'      => 'biosql',
+
 }

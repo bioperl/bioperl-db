@@ -14,7 +14,7 @@ BEGIN {
 
 
 use DBTestHarness;
-use Bio::DB::Map::SQL::DBAdaptor;
+use Bio::DB::Map::DBAdaptor;
 use Bio::DB::Map::Marker;
 use Bio::DB::Map::Map;
 

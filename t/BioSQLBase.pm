@@ -1,10 +1,18 @@
 # $Id$
 
-# Copyright Hilmar Lapp, hlapp@gnf.org, 2002.
+#
+# (c) Hilmar Lapp, hlapp at gnf.org, 2002.
+# (c) GNF, Genomics Institute of the Novartis Research Foundation, 2002.
 #
 # You may distribute this module under the same terms as perl itself.
-# Refer to the Perl Artistic License for the terms under which you may
-# use, modify, and redistribute this module.
+# Refer to the Perl Artistic License (see the license accompanying this
+# software package, or see http://www.perl.com/language/misc/Artistic.html)
+# for the terms under which you may use, modify, and redistribute this module.
+# 
+# THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
+# MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+#
 
 =head1 NAME - BioSQL-base.pm
 
@@ -20,7 +28,7 @@ entities.
 
 =head1 AUTHOR Hilmar Lapp 
 
-Email hlapp@gnf.org
+Email hlapp at gnf.org
 
 =cut
 
@@ -30,6 +38,7 @@ use lib 't';
 
 use strict;
 use vars qw(@ISA $VERSION);
+
 use Bio::Root::Root;
 use DBTestHarness;
 

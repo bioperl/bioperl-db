@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl -w
 use strict;
 
-use Bio::DB::Map::SQL::DBAdaptor;
+use Bio::DB::Map::DBAdaptor;
 use Bio::DB::Map::Marker;
 use Bio::DB::Map::Map;
 use Bio::SeqIO;
@@ -33,7 +33,7 @@ my $port   = 3306;
 my $dbname = 'markerdb';
 my $dbuser = 'root';
 my $dbpass = 'undef';
-my $module = 'Bio::DB::Map::SQL::DBAdaptor';
+my $module = 'Bio::DB::Map::DBAdaptor';
 
 &GetOptions( 
 	     'online'          => \$ONLINE,
@@ -54,7 +54,7 @@ if( defined $dbpass ) {
     $props{'-dbpass'} = $dbpass;
 }
 
-my $db = Bio::DB::Map::SQL::DBAdaptor->new( %props );
+my $db = Bio::DB::Map::DBAdaptor->new( %props );
 
 my $mapadaptor = $db->get_MapAdaptor();
 

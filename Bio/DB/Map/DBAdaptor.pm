@@ -1,6 +1,6 @@
 # $Id$
 #
-# BioPerl module for Bio::DB::Map::SQL::DBAdaptor
+# BioPerl module for Bio::DB::Map::DBAdaptor
 #
 # Cared for by Jason Stajich <jason@chg.mc.duke.edu>
 #
@@ -12,13 +12,13 @@
 
 =head1 NAME
 
-Bio::DB::Map::SQL::DBAdaptor - Object representing an instance of a
+Bio::DB::Map::DBAdaptor - Object representing an instance of a
                                bioperl Map Database
 
 =head1 SYNOPSIS
 
-    use Bio::DB::Map::SQL::DBAdaptor;
-    my $db = new Bio::DB::Map::SQL::DBAdaptor 
+    use Bio::DB::Map::DBAdaptor;
+    my $db = new Bio::DB::Map::DBAdaptor 
     ( -user   => 'user',
       -dbname => 'markermap',
       -host   => 'localhost',
@@ -65,7 +65,7 @@ methods. Internal methods are usually preceded with a _
 # Let the code begin...
 
 
-package Bio::DB::Map::SQL::DBAdaptor;
+package Bio::DB::Map::DBAdaptor;
 use vars qw(@ISA);
 use strict;
 
@@ -79,9 +79,9 @@ use DBI;
 =head2 new
 
  Title   : new
- Usage   : my $db = new Bio::DB::Map::SQL::DBAdaptor(%params);
+ Usage   : my $db = new Bio::DB::Map::DBAdaptor(%params);
  Function: instantiates a new DBAdaptor object
- Returns : new Bio::DB::Map::SQL::DBAdaptor object
+ Returns : new Bio::DB::Map::DBAdaptor object
  Args    : -user   => username
            -pass   => password to use
            -dbname => database name to use

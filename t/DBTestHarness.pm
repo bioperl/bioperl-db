@@ -37,6 +37,7 @@ use Sys::Hostname 'hostname';
 
 use DBI;
 use Carp;
+use Bio::DB::BioDB;
 
 #Package variable for unique database name
 my $counter=0;
@@ -49,6 +50,7 @@ my $dflt = {
     'port'          => undef,
     'password'      => undef,
     'schema_sql'    => ['../biosql-schema/sql/biosqldb-mysql.sql'],
+    'database'      => 'biosql',
     'module'        => 'Bio::DB::BioSQL::DBAdaptor'
     };
 
@@ -63,6 +65,7 @@ my $dflt = {
         password
         schema_sql
 	dbname
+        database
         module
         );
     
@@ -155,15 +158,26 @@ sub dbname {
     return $self->{'dbname'};
 }
 
+sub database {
+    my( $self, $value ) = @_;
+
+    if($value && (! exists($self->{'database'}))) {
+	$self->{'database'} = $value;
+    }
+    $self->{'database'} = $self->_create_db_name()
+	unless exists($self->{'database'});
+    return $self->{'database'};
+}
+
 # convenience method: by calling it, you get the name of the database,
 # which  you can cut-n-paste into another window for doing some mysql
 # stuff interactively
 sub pause {
     my ($self) = @_;
     my $db = $self->{'_dbname'};
-    print STDERR "pausing to inspect database; name of databse is:  $db\n";
+    print STDERR "pausing to inspect database; name of database is:  $db\n";
     print STDERR "press ^D to continue\n";
-    `cat `;
+    while(<>) { 1; }
 }
 
 sub module {
@@ -233,9 +247,8 @@ sub db_handle {
 sub get_DBAdaptor {
     my( $self ) = @_;
     
-    my $module = $self->module;
-
-    return $module->new( 
+    return Bio::DB::BioDB->new(
+			 -"database" => $self->database,
                          -"driver" => $self->driver,
 			 -"dbname" => $self->dbname,
 			 -"host"   => $self->host,

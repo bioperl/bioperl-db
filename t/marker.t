@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;
-    plan test => 20;
+    plan test => 28;
 }
 
 
@@ -71,6 +71,11 @@ $marker->add_alias('LOCAL0010101', 'localmap' );
 
 $marker->add_alias('RH15245', 'genemap99gb4' );
 #$marker->add_alias('stSG729', 'stanford' );
+ok($marker->is_alias('LOCAL0010101'));
+ok($marker->is_alias('RH15245'));
+
+ok($marker->get_source_for_alias('LOCAL0010101'), 'localmap');
+ok($marker->get_source_for_alias('RH15245'), 'genemap99gb4');
 
 $markeradaptor->write($marker);
 ok($marker->id,1);
@@ -78,3 +83,7 @@ my ($markercopy) = $markeradaptor->get('RH15245');
 ok($markercopy->id, $marker->id);
 ok($markercopy->get_position('marshfield') ==
    $marker->get_position('marshfield'));
+ok($markercopy->is_alias('RH15245'));
+ok($markercopy->is_alias('LOCAL0010101'));
+ok($markercopy->get_source_for_alias('LOCAL0010101'), 'localmap');
+ok($markercopy->get_source_for_alias('RH15245'), 'genemap99gb4');

@@ -112,7 +112,7 @@ by the shell, so surround it with double or single quotes.
 
 Examples:
 
-    # turn parser exceptions into warnings (don't try this at home)"
+    # turn parser exceptions into warnings (don't try this at home)
     --fmtargs "-verbose,-1"
     # verbose parser with an additional path argument
     --fmtargs "-verbose,1,-indexpath,/home/luke/warp"
@@ -451,7 +451,7 @@ sub parse_code{
 
     # file or subroutine?
     if(-r $src) {
-	if(! (($code = do $src)) && (ref($code) eq "CODE")) {
+	if(! (($code = do $src) && (ref($code) eq "CODE"))) {
 	    die "error in parsing code block $src: $@" if $@;
 	    die "unable to read file $src: $!" if $!;
 	    die "failed to run $src, or it failed to return a closure";

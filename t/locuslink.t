@@ -59,7 +59,15 @@ eval {
     my %dbcounts = map { ($_->database(),0) } @dblinks;
     foreach (@dblinks) { $dbcounts{$_->database()}++; }
 
-    my @links = $seq->annotation->get_Annotations('dblink');
+    # We need to remove duplicated dblinks as neither in bioperl nor in biosql
+    # we have context for dblinks. The problem is that the locuslink
+    # parser currently adds the value for the ASSEMBLY tag as a dblink, and
+    # that one might occur later, too (as a real dbxref).
+    my @links = $seq->annotation->remove_Annotations('dblink');
+    my %xrefs = map { ($_->database .":". $_->primary_id, $_); } @links;
+    @links = values %xrefs;
+    foreach (@links) { $seq->annotation->add_Annotation($_); }
+    # now count ...
     my %counts = map { ($_->database(),0) } @links;
     foreach (@links) { $counts{$_->database()}++; }
 

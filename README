@@ -54,11 +54,9 @@ MySQL, Oracle, and Postgres (coming, ask if you need this).
 schemas. See the RDBMS's instructions or your DBA if you don't have
 such privileges.
 
-3) You need the latest revision of bioperl for the whole functionality
-to work. The last development release 1.1.1 will _not_ suffice. Sorry
-about this, but this code exposed a number of bugs and deficiencies in
-the bioperl codebase which were continuously fixed, some only after
-1.1.1 was released.
+3) You need at least the latest bioperl release of the 1.2.x series
+for the whole functionality to work. The previous stable branch 1.0.x
+or the development series 1.1.1 will _not_ suffice.
 
 4) Download biosql-schema from open-bio.org. Instantiate the schema
 appropriate for your RDBMS. The Oracle version of the schema is in
@@ -76,16 +74,13 @@ end of each test.
 
 and edit both new files appropriately to reflect your setup.
 
-After that running 'make test' should work fine. There is one test in
-fuzzy2.t which is known to fail because optional_id() in
-Bio::Annotation::DBLink is not supported yet. Chances are you do not
-need this.
+After that running 'make test' should work fine.
 
 6) For the real stuff you want to instantiate the schema. If you
 haven't done this already, do it now. As an example, assuming MySQL
 and you downloaded biosql-schema next to bioperl-db:
 
-   % mysql -u someone -D sqldbname < ../biosql-schema/sql/biosqldb-mysql.sql
+   % mysql -u someone -p -D sqldbname < ../biosql-schema/sql/biosqldb-mysql.sql
 
 7) Use scripts/load_seqdatabase.pl to upload sequences from
 flatfiles. See its POD (--help option) for the available options.
@@ -139,15 +134,15 @@ find_by_association(), and find_by_query(). The latter allows you to
 formulate object queries as Bio::DB::Query::BioQuery objects and
 retrieve the matching objects.
 
-5) The guiding principle for the redesign of the adaptors was separate
-business logic from schema logic. While business logic is largely
-driven by the object model (hence, by the bioperl object model) and
-therefore is mostly independent from the schema, but specific to the
-object model, the schema logic is driven by and specific to the
-relational model. The schema logic will therefore need to differ from
-one schema to another and even from one schema flavor to another for
-very similar relational models, whereas the business logic is
-unaffected by this. 
+5) The guiding principle for the redesign of the adaptors was to
+separate business logic from schema logic. While business logic is
+largely driven by the object model (hence, by the bioperl object
+model) and therefore is mostly independent from the schema, but
+specific to the object model, the schema logic is driven by and
+specific to the relational model. The schema logic will therefore need
+to differ from one schema to another and even from one schema flavor
+to another for very similar relational models, whereas the business
+logic is unaffected by this.
 
 This had two consequences. First, the user interacts with the adaptors
 without knowing anything about the specific schema behind it. All

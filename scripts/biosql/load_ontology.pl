@@ -510,8 +510,11 @@ while( my $ont = $ontin->$nextobj ) {
 	    $adp->commit() unless $testonly_flag;
 	};
 	if ($@) {
-	    my $msg = "Could not store ".$term->object_id().
-		" (".$term->name()."):\n$@\n";
+	    my $msg = "Could not store term ";
+            if (defined($term->object_id())) {
+                $msg .= $term->object_id().", name ";
+            }
+            $msg .= "'".$term->name()."':\n$@\n";
 	    $adp->rollback();
 	    &$throw($msg);
 	}

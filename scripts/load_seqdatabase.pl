@@ -38,6 +38,13 @@ in the -format flag.
   -namespace $namesp   : the namespace under which the sequences in the
                          input files are to be created in the database 
                          [bioperl]
+  -seqfilter filter.pl : The sequence filtering function. This is either
+                         a string or a file defining a closure to be used
+                         as sequence filter. The value is interpreted as 
+                         a file if it refers to a readable file, and a
+                         string otherwise. Cf. Bio::Seq::SeqBuilder for
+                         more information about what the code will be used
+                         for.
   -remove              : flag to remove sequences before actually adding
                          them
   -safe                : flag to continue despite errors when loading
@@ -59,9 +66,10 @@ my $host = "localhost";
 my $dbname = "biosql";
 my $dbuser = "root";
 my $driver = 'mysql';
-my $dbpass = undef;
+my $dbpass;
 my $format = 'genbank';
 my $namespace = "bioperl";
+my $seqfilter;
 # flags
 my $remove_flag = 0;
 my $help = 0;
@@ -78,6 +86,7 @@ my $ok = GetOptions( 'host:s'   => \$host,
 		     'dbuser:s' => \$dbuser,
 		     'dbpass:s' => \$dbpass,
 		     'format:s' => \$format,
+		     'seqfilter:s' => \$seqfilter,
 		     'namespace:s' => \$namespace,
 		     'safe'     => \$safe_flag,
 		     'remove'   => \$remove_flag,
@@ -94,13 +103,27 @@ if((! $ok) || $help) {
     exit($ok ? 0 : 2);
 }
 
+my $condition;
+if($seqfilter) {
+    # file or subroutine?
+    if(-r $seqfilter) {
+	if(! (($condition = do $seqfilter)) && (ref($condition) eq "CODE")) {
+	    die "error in parsing seq filter $seqfilter: $@" if $@;
+	    die "unable to read file $seqfilter: $!" if $!;
+	    die "failed to run $seqfilter, or it failed to return a closure";
+	}
+    } else {
+	$condition = eval $seqfilter;
+	die "error in parsing seq filter \"$seqfilter\": $@" if $@;
+	die "\"$seqfilter\" fails to return a closure"
+	    unless ref($condition) eq "CODE";
+    }
+}
+
 my @files = @ARGV;
 # if no files, assume stdin
 if(! @files) {
     push(@files, \*STDIN);
-}
-
-if( scalar(@files) == 0 ) {
 }
 
 my $db = Bio::DB::BioDB->new(-database => "biosql",
@@ -122,6 +145,10 @@ foreach $file ( @files ) {
 	print STDERR "Loading $file\n";
 	$seqin = Bio::SeqIO->new(-file => $file,
 				 $format ? (-format => $format) : ());
+    }
+    # establish filter if provided
+    if($condition) {
+	$seqin->sequence_builder->add_object_condition($condition);
     }
 
     while( my $seq = $seqin->next_seq ) {

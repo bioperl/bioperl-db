@@ -57,18 +57,17 @@ Report bugs to the Bioperl bug tracking system to help us keep track
  Bug reports can be submitted via email or the web:
 
   bioperl-bugs@bio.perl.org
-  http://bio.perl.org/bioperl-bugs/
+  http://bugzilla.bioperl.org/
 
 =head1 AUTHOR - Ewan Birney, Hilmar Lapp
 
 Email birney@ebi.ac.uk
 Email hlapp at gmx.net
 
-Describe contact details here
-
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object
+methods. Internal methods are usually preceded with a _
 
 =cut
 
@@ -82,6 +81,7 @@ use strict;
 
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
 use Bio::DB::Persistent::BioNamespace;
+use Bio::Ontology::Ontology;
 use Bio::Cluster::UniGene;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
@@ -611,8 +611,9 @@ sub _object_slot{
     }
 
     if(! exists($self->{'_object_slots'}->{$slot})) {
+	my $ont = Bio::Ontology::Ontology->new(-name => 'Object Slots');
 	my $term = Bio::Ontology::Term->new(-name     => $slot,
-					    -category => 'Object Slots');
+					    -ontology => $ont);
 	$svann = Bio::Annotation::SimpleValue->new(-tag_term => $term);
 	$self->{'_object_slots'}->{$slot} = $svann;
     } else {

@@ -34,7 +34,7 @@ ok $pseq->isa("Bio::DB::PersistentObjectI");
 ok $pseq->isa("Bio::SeqI");
 
 $pseq->namespace("mytestnamespace");
-$pseq->store();
+$pseq->create();
 my $dbid = $pseq->primary_key();
 ok $dbid;
 

@@ -246,9 +246,9 @@ sub populate_from_row{
 		shift(@$clf);
 	    }
 	    # in the species object we store the species element without the
-	    # genus, and similary for the sub-species and variant
+	    # genus, and similarly for the sub-species and variant
 	    for(my $i = scalar(@$clf)-2; $i >= 0; $i--) {
-		# is this node's name matches the start of the previous one,
+		# if this node's name matches the start of the previous one,
 		# remove this portion from the previous one's name
 		if(index($clf->[$i+1]->[0], $clf->[$i]->[0]) == 0) {
 		    $clf->[$i+1]->[0] = substr($clf->[$i+1]->[0],
@@ -268,12 +268,22 @@ sub populate_from_row{
 	    $obj->classification([reverse(map { $_->[0]; } @$clf)]);
 	}
 	if($rows->[4] && (! $obj->classification)) {
+	    # poor man's binomial
 	    my @clf = split(' ',$rows->[4]);
 	    $obj->classification([$clf[1],$clf[0]], "FORCE");
+	    # remove genus and species
 	    splice(@clf,0,2);
+	    # what remains goes under variant
 	    $obj->variant(join(" ",@clf)) if @clf;
 	}
+	# an explicit variant overwrites
 	$obj->variant($rows->[5]) if $rows->[5] && ($rows->[5] ne "-");
+	# check for common name if not already in the result
+	if(! $obj->common_name()) {
+	    my $cname = $self->get_common_name($rows->[0]);
+	    $obj->common_name($cname) if $cname;
+	}
+	# primary key
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($rows->[0]);
 	}
@@ -309,10 +319,12 @@ sub get_unique_key_query{
     # UKs for species are full binomial with variant, and ncbi_taxid
     if($obj->ncbi_taxid()) {
 	$uk_h->{'ncbi_taxid'} = $obj->ncbi_taxid();
+	$uk_h->{'name_class'} = "scientific name";
     } elsif($obj->binomial()) {
 	$uk_h->{'binomial'} = $obj->binomial('full');
 	$uk_h->{'binomial'} .= " ".$obj->variant() if $obj->variant();
-    } 
+	$uk_h->{'name_class'} = "scientific name";
+    }
     
     return $uk_h;
 }
@@ -355,6 +367,24 @@ sub remove_children{
 sub get_classification{
     my $self = shift;
     return $self->dbd->get_classification($self,@_);
+}
+
+=head2 get_common_name
+
+ Title   : get_common_name
+ Usage   :
+ Function: Get the common name for a taxon as identified by its primary
+           key.
+ Example :
+ Returns : a string denoting the common name
+ Args    : the primary key of the taxon
+
+
+=cut
+
+sub get_common_name{
+    my $self = shift;
+    return $self->dbd->get_common_name($self,@_);
 }
 
 1;

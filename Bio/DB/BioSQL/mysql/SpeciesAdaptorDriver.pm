@@ -119,25 +119,32 @@ sub new {
  Args    : The Bio::DB::BioSQL::BasePersistenceAdaptor derived object 
            (basically, it needs to implement dbh() and get_persistent_slots()).
            A reference to an array of foreign key slots (class names).
+           The name class for the taxon name table (default is
+           'scientific name').
 
 
 =cut
 
 sub prepare_findbypk_sth{
-    my ($self,$adp,$fkslots) = @_;
+    my ($self,$adp,$fkslots,$nameclass) = @_;
 
+    # defaults
+    $nameclass = "scientific name" unless $nameclass;
     # get table name and the primary key name
     my $table = $self->table_name($adp);
     my $node_table = $self->table_name("TaxonNode");
     my $pkname = $self->primary_key_name($table);
     my $fkname = $self->foreign_key_name("TaxonNode");
+    my $slotmap = $self->slot_attribute_map($table);
     # gather attributes
     my @attrs = $self->_build_select_list($adp,$fkslots);
     # create the sql statement
     my $sql = "SELECT " .
 	join(", ", @attrs) .
 	" FROM $node_table, $table".
-	" WHERE $node_table.$pkname = $table.$fkname".
+	" WHERE".
+	" $node_table.$pkname = $table.$fkname".
+	" AND $table.".$slotmap->{"name_class"}." = '$nameclass'".
 	" AND $node_table.$pkname = ?";
     $adp->debug("preparing PK select statement: $sql\n");
     # prepare statement and return
@@ -479,6 +486,7 @@ sub get_classification{
 	    " WHERE name.$fkname = node.$pkname AND".
 	    " taxon.left_value BETWEEN node.left_value AND node.right_value".
 	    " AND taxon.$pkname = ?".
+	    " AND name.".$slotmap->{"name_class"}." = 'scientific name'".
 	    " ORDER BY node.left_value";
 	$adp->debug("prepare SELECT CLASSIFICATION: $sql\n");
 	# prepare the query
@@ -494,6 +502,53 @@ sub get_classification{
 	}
     }
     return \@clf;
+}
+
+=head2 get_common_name
+
+ Title   : get_common_name
+ Usage   :
+ Function: Get the common name for a taxon as identified by its primary
+           key.
+ Example :
+ Returns : a string denoting the common name
+ Args    : the calling adaptor, and the primary key of the taxon
+
+
+=cut
+
+sub get_common_name{
+    my ($self,$adp,$pk) = @_;
+
+    # statement cached?
+    my $cache_key = "SELECT COMMON_NAME ".ref($adp);
+    my $sth = $adp->sth($cache_key);
+    # if not cached we have to build it
+    if(! $sth) {
+	# get table names, primary and foreign key names, slot/attribute map
+	my $name_table = $self->table_name($adp);
+	my $fkname = $self->foreign_key_name("TaxonNode");
+	my $slotmap = $self->slot_attribute_map($name_table);
+	# prepare sql
+	my $sql =
+	    "SELECT $name_table.".$slotmap->{"binomial"}.
+	    " FROM $name_table".
+	    " WHERE $name_table.$fkname = ?".
+	    " AND $name_table.".$slotmap->{"name_class"}." = 'common_name'";
+	$adp->debug("preparing SELECT COMMON_NAME: ",$sql,"\n");
+	$sth = $adp->dbh->prepare($sql);
+	# and cache
+	$adp->sth($cache_key, $sth);
+    }
+    my $rv = $sth->execute($pk);
+    my $cname;
+    if($rv) {
+	while(my $row = $sth->fetchrow_arrayref()) {
+	    # the last one overwrites
+	    $cname = $row->[0];
+	}
+    }
+    return $cname;
 }
 
 1;

@@ -172,9 +172,10 @@ sub get_persistent_slot_values {
            therefore need to be referenced as foreign keys in the
            datastore.
 
-           Bio::Annotation::DBLink has a virtual dbxref as foreign
-           key. Virtual means that in the object model there is no
-           such reference, but there is in the BioSQL schema.
+           Bio::Annotation::Reference has a virtual dbxref (e.g., the
+           MEDLINE link) as foreign key. Virtual means that in the
+           object model there is no such reference, but there is in
+           the BioSQL schema.
 
  Example :
  Returns : an array of Bio::DB::PersistentObjectI implementing objects
@@ -192,12 +193,12 @@ sub get_persistent_slot_values {
 sub get_foreign_key_objects{
     my $self = shift;
     my $obj = shift;
-    my $fk = "Bio::Annotation::DBLink";
+    my $fk;
 
     if($obj) {
-	$fk = Bio::Annotation::DBLink->new(-database => "MEDLINE",
-					   -primary_id => $obj->medline);
+	$fk = $self->_dblink_fk($obj);
     }
+    $fk = "Bio::Annotation::DBLink" unless $fk;
     return $fk;
 }
 
@@ -211,9 +212,10 @@ sub get_foreign_key_objects{
            This method is called after find_by_XXX() queries, not for INSERTs
            or UPDATEs.
 
-           Bio::Annotation::DBLink has a dbxref as virtual foreign key
-           Virtual means that in the object model there is no such
-           reference, but there is in the BioSQL schema.
+           Bio::Annotation::Reference has a virtual dbxref (e.g., the
+           MEDLINE link) as foreign key. Virtual means that in the
+           object model there is no such reference, but there is in
+           the BioSQL schema.
 
  Example :
  Returns : TRUE on success, and FALSE otherwise.
@@ -493,6 +495,34 @@ sub _dbxref_adaptor{
 	    $self->db()->get_object_adaptor("Bio::Annotation::DBLink");
     }
     return $self->{'_dbxref_adaptor'};
+}
+
+=head2 _dblink_fk
+
+ Title   : _dblink_fk
+ Usage   : $fk_dbl = $obj->_dblink_fk()
+ Function: Get the L<Bio::Annotation::DBLink> object representing 
+           the foreign key of references to their db_xref, if there
+           is a medline ID.
+ Example : 
+ Returns : A persistent Bio::Annotation::DBLink object
+ Args    : The Bio::Annotation::Reference object for which to emulate
+           the foreign key object
+
+
+=cut
+
+sub _dblink_fk{
+    my $self = shift;
+    my $obj = shift;
+    my $dbl;
+
+    if($obj->medline()) {
+	$dbl = Bio::Annotation::DBLink->new(-database => "MEDLINE",
+					    -primary_id => $obj->medline);
+	$dbl = $self->_dbxref_adaptor->create_persistent($dbl);
+    }
+    return $dbl;
 }
 
 =head2 _crc64

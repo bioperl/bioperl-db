@@ -56,14 +56,12 @@ Report bugs to the Bioperl bug tracking system to help us keep track
  Bug reports can be submitted via email or the web:
 
   bioperl-bugs@bio.perl.org
-  http://bio.perl.org/bioperl-bugs/
+  http://bugzilla.bioperl.org/
 
 =head1 AUTHOR - Ewan Birney, Hilmar Lapp
 
 Email birney@ebi.ac.uk
 Email hlapp at gmx.net
-
-Describe contact details here
 
 =head1 APPENDIX
 
@@ -164,7 +162,7 @@ sub get_foreign_key_objects{
     my ($fkobjs) = $self->_rearrange([qw(FKOBJS)], @args);
     if($fkobjs && @$fkobjs) {
 	($annotatable) = grep {
-	    $_->isa("Bio::SeqI") || (! ref($_));
+	    $_->isa("Bio::AnnotatableI") || (! ref($_));
 	} @$fkobjs;
     } else {
 	$annotatable = "Bio::SeqI";
@@ -637,21 +635,21 @@ sub _anntype_assoc_args{
 
     if($anntype eq "Bio::Annotation::OntologyTerm") {
 	# exclude the SimpleValue annotation
-	my $term = $self->{'_category_fk'};
-	if(! $term) {
-	    $term = Bio::Ontology::Term->new(-name => "Annotation Tags");
+	my $ont = $self->{'_ontology_fk'};
+	if(! $ont) {
+	    $ont = Bio::Ontology::Ontology->new(-name => "Annotation Tags");
 	}
-	if(! $term->isa("Bio::DB::PersistentObjectI")) {
-	    $term = $self->db()->create_persistent($term);
-	    $self->{'_category_fk'} = $term;
+	if(! $ont->isa("Bio::DB::PersistentObjectI")) {
+	    $ont = $self->db()->create_persistent($ont);
+	    $self->{'_ontology_fk'} = $ont;
 	}
-	$term = $term->adaptor->find_by_unique_key($term);
-	if($term) {
+	$ont = $ont->adaptor->find_by_unique_key($ont);
+	if($ont) {
 	    my $qc = Bio::DB::Query::QueryConstraint->new($anntype.
-							  "::category != ?");
+							  "::ontology != ?");
 	    push(@typeargs,
 		 -constraints => [$qc],
-		 -values => { $qc => $term->primary_key() });
+		 -values => { $qc => $ont->primary_key() });
 	}
     }
     return @typeargs;

@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 63;
+    plan tests => 65;
 }
 
 use DBTestHarness;
@@ -71,6 +71,8 @@ if($dbobj2) {
 
 ok ($p_s->remove(), 1);
 $p_s->ncbi_taxid(9606);
+$p_s->common_name("human");
+$p_s->variant("sapiens");
 ok ($p_s->create());
 $dbobj2 = $adp->find_by_unique_key($s);
 ok $dbobj2;
@@ -81,6 +83,8 @@ if($dbobj2) {
     ok ($dbobj2->genus, $s->genus);
     ok ($dbobj2->binomial, $s->binomial);
     ok ($dbobj2->ncbi_taxid, $s->ncbi_taxid);
+    ok ($dbobj2->common_name, "human");
+    ok ($dbobj2->variant, "sapiens");
     ok (scalar($dbobj2->classification), scalar($s->classification));
     @dbclf = $dbobj->classification();
     @clf = $s->classification();
@@ -88,7 +92,7 @@ if($dbobj2) {
 	ok (shift(@dbclf), shift(@clf));
     }
 } else {
-    for (1..6) { skip("fetch by UK failed", 0); }
+    for (1..8) { skip("fetch by UK failed", 0); }
 }
 
 ok ($p_s->remove(), 1);

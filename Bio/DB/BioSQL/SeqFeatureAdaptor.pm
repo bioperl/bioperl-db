@@ -57,18 +57,17 @@ Report bugs to the Bioperl bug tracking system to help us keep track
  Bug reports can be submitted via email or the web:
 
   bioperl-bugs@bio.perl.org
-  http://bio.perl.org/bioperl-bugs/
+  http://bugzilla.bioperl.org/
 
 =head1 AUTHOR - Ewan Birney, Hilmar Lapp
 
 Email birney@ebi.ac.uk
 Email hlapp at gmx.net
 
-Describe contact details here
-
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object
+methods. Internal methods are usually preceded with a _
 
 =cut
 
@@ -90,8 +89,8 @@ use Bio::Ontology::Term;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
-our %slot_cat_map = ("primary_tag" => "SeqFeature Keys",
-		     "source_tag"  => "SeqFeature Sources");
+my %slot_cat_map = ("primary_tag" => "SeqFeature Keys",
+		    "source_tag"  => "SeqFeature Sources");
 
 # new inherited from base adaptor.
 #
@@ -446,7 +445,7 @@ sub populate_from_row{
 	$self->throw("\"$obj\" is not an object. Probably internal error.");
     }
     if($rows && @$rows) {
-	$obj->display_id($rows->[1]) if $rows->[1];
+	$obj->display_name($rows->[1]) if $rows->[1];
 	$obj->rank($rows->[2]) if $rows->[2] && $obj->can('rank');
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($rows->[0]);
@@ -667,8 +666,9 @@ sub _ontology_term_fk{
     }
 
     if(! exists($self->{'_ontology_term_fks'}->{$slot})) {
+	my $ont = Bio::Ontology::Ontology->new(-name => $slot_cat_map{$slot});
 	$term = Bio::Ontology::Term->new(-name => "dummy",
-					 -category => $slot_cat_map{$slot});
+					 -ontology => $ont);
 	$self->{'_ontology_term_fks'}->{$slot} = $term;
     } else {
 	$term = $self->{'_ontology_term_fks'}->{$slot};

@@ -102,7 +102,7 @@ my %object_entity_map = (
 		"Bio::DB::BioSQL::SeqFeatureAdaptor"  => "seqfeature",
 		"Bio::Species"                        => "taxon_name",
 		"Bio::DB::BioSQL::SpeciesAdaptor"     => "taxon_name",
-		# TaxonNode is hack: there is no such object, but we need it
+		# TaxonNode is a hack: there is no such object, but we need it
 		# to distinguish between the node and the name table
 		"TaxonNode"                           => "taxon",
 		"Bio::LocationI"                      => "seqfeature_location",
@@ -120,6 +120,8 @@ my %object_entity_map = (
 		"Bio::Annotation::OntologyTerm"       => "ontology_term",
 		"Bio::Ontology::TermI"                => "ontology_term",
 		"Bio::DB::BioSQL::TermAdaptor"        => "ontology_term",
+                "Bio::Ontology::OntologyI"            => "ontology",
+		"Bio::DB::BioSQL::OntologyAdaptor"    => "ontology",
 		   );
 my %association_entity_map = (
 	 "bioentry" => {
@@ -233,9 +235,14 @@ my %slot_attribute_map = (
 	     "identifier"     => "identifier",
              "name"           => "name",
 	     "tagname"        => "name",
+	     "is_obsolete"    => "is_obsolete",
              "definition"     => "definition",
-             #"category"       => "category_id",
 	     "value"          => "=>{bioentry_qualifier_value,seqfeature_qualifier_value}.value",
+	     "ontology"       => "ontology_id",
+	 },
+         "ontology"           => {
+             "name"           => "name",
+             "definition"     => "definition",
 	 },
          "bioentry_qualifier_value" => {
 	     "value"          => "value",

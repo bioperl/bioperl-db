@@ -41,7 +41,7 @@ and other Bioperl modules. Send your comments and suggestions preferably
  to one of the Bioperl mailing lists.
 Your participation is much appreciated.
 
-  bioperl-l@bio.perl.org
+  bioperl-l@bioperl.org
 
 =head2 Reporting Bugs
 
@@ -50,7 +50,7 @@ Report bugs to the Bioperl bug tracking system to help us keep track
  Bug reports can be submitted via email or the web:
 
   bioperl-bugs@bio.perl.org
-  http://bio.perl.org/bioperl-bugs/
+  http://bugzilla.bioperl.org/
 
 =head1 AUTHOR - Ewan Birney, Hilmar Lapp
 
@@ -124,7 +124,7 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("identifier", "name", "definition");
+    return ("identifier", "name", "definition","is_obsolete");
 }
 
 =head2 get_persistent_slot_values
@@ -134,15 +134,18 @@ sub get_persistent_slots{
  Function: Obtain the values for the slots returned by get_persistent_slots(),
            in exactly that order.
 
-           The reason this method is here is that sometimes the actual slot
-           values need to be post-processed to yield the value that gets
-           actually stored in the database. E.g., slots holding arrays
-           will need some kind of join function applied. Another example is if
-           the method call needs additional arguments. Supposedly the
-           adaptor for a specific interface knows exactly what to do here.
+           The reason this method is here is that sometimes the actual
+           slot values need to be post-processed to yield the value
+           that gets actually stored in the database. E.g., slots
+           holding arrays will need some kind of join function
+           applied. Another example is if the method call needs
+           additional arguments. Supposedly the adaptor for a specific
+           interface knows exactly what to do here.
 
-           Since there is also populate_from_row() the adaptor has full
-           control over mapping values to a version that is actually stored.
+           Since there is also populate_from_row() the adaptor has
+           full control over mapping values to a version that is
+           actually stored.
+
  Example :
  Returns : A reference to an array of values for the persistent slots of this
            object. Individual values may be undef.
@@ -157,7 +160,8 @@ sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
     my @vals = ($obj->identifier(),
 		$obj->name(),
-		$obj->definition()
+		$obj->definition(),
+		$obj->is_obsolete()
 		);
     return \@vals;
 }
@@ -172,40 +176,39 @@ sub get_persistent_slot_values {
            Note that the objects are expected to implement
            Bio::DB::PersistentObjectI.
 
-           An implementation may obtain the values either through the object
-           to be serialized, or through the additional arguments. An
-           implementation should also make sure that the order of foreign key
-           objects returned is always the same.
+           An implementation may obtain the values either through the
+           object to be serialized, or through the additional
+           arguments. An implementation should also make sure that the
+           order of foreign key objects returned is always the same.
 
-           Note also that in order to indicate a NULL value for a nullable
-           foreign key, either put an object returning undef from 
-           primary_key(), or put the name of the class instead. DO NOT SIMPLY
-           LEAVE IT OUT.
+           Note also that in order to indicate a NULL value for a
+           nullable foreign key, either put an object returning undef
+           from primary_key(), or put the name of the class
+           instead. DO NOT SIMPLY LEAVE IT OUT.
 
  Example :
  Returns : an array of Bio::DB::PersistentObjectI implementing objects
  Args    : The object about to be inserted or updated, or undef if the call
            is for a SELECT query. In the latter case return class or interface
            names that are mapped to the foreign key tables.
-           Optionally, additional named parameters. A common parameter will
-           be -fkobjs, with a reference to an array of foreign key objects
-           that are not retrievable from the persistent object itself.
+
+           Optionally, additional named parameters. A common parameter
+           will be -fkobjs, with a reference to an array of foreign
+           key objects that are not retrievable from the persistent
+           object itself.
 
 =cut
 
 sub get_foreign_key_objects{
     my ($self,$obj,$fkobjs) = @_;
-    my $cat;
+    my $ont;
 
-    if(ref($obj) && $obj->category()) {
-	$cat = $obj->category();
-	if($cat->isa("Bio::DB::PersistentObjectI")) {
-	    $cat->foreign_key_slot(ref($self)."::category");
-	}
+    if(ref($obj) && $obj->ontology()) {
+	$ont = $obj->ontology();
     } else {
-	$cat = ref($self)."::category";
+	$ont = "Bio::Ontology::OntologyI";
     }
-    return ($cat);
+    return ($ont);
 }
 
 =head2 attach_foreign_key_objects
@@ -232,10 +235,10 @@ sub attach_foreign_key_objects{
     my $ok = 1;
     
     if($fks && @$fks) {
-	# the foreign key to category is optional
+	# the foreign key to ontology is optional
 	if($fks->[0]) {
-	    if(my $cat_term = $self->find_by_primary_key($fks->[0])) {
-		$obj->category($cat_term);
+	    if(my $ont = $self->_ont_adaptor->find_by_primary_key($fks->[0])) {
+		$obj->ontology($ont);
 	    } else {
 		$ok = 0;
 	    }
@@ -271,15 +274,18 @@ sub remove_children{
  Function: Instantiates the class this object is an adaptor for, and populates
            it with values from columns of the row.
 
-           This implementation call populate_from_row() to do the real job.
+           This implementation calls populate_from_row() to do the
+           real job.
+
  Example :
  Returns : An object, or undef, if the row contains no values
  Args    : A reference to an array of column values. The first column is the
            primary key, the other columns are expected to be in the order 
            returned by get_persistent_slots().
-           Optionally, the object factory to be used for instantiating the
-           proper class. The adaptor must be able to instantiate a default
-           class if this value is undef.
+
+           Optionally, the object factory to be used for instantiating
+           the proper class. The adaptor must be able to instantiate a
+           default class if this value is undef.
 
 
 =cut
@@ -309,9 +315,10 @@ sub instantiate_from_row{
  Example :
  Returns : An object, or undef, if the row contains no values
  Args    : The object to be populated.
-           A reference to an array of column values. The first column is the
-           primary key, the other columns are expected to be in the order 
-           returned by get_persistent_slots().
+
+           A reference to an array of column values. The first column
+           is the primary key, the other columns are expected to be in
+           the order returned by get_persistent_slots().
 
 
 =cut
@@ -326,6 +333,7 @@ sub populate_from_row{
 	$obj->identifier($rows->[1]) if $rows->[1];
 	$obj->name($rows->[2]) if $rows->[2];
 	$obj->definition($rows->[3]) if $rows->[3];
+	$obj->is_obsolete($rows->[4]) if $rows->[4];
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($rows->[0]);
 	}
@@ -358,18 +366,18 @@ sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
     my $uk_h = {};
 
-    # UKs for ontology terms are identifier and (name,category)
+    # UKs for ontology terms are identifier and (name,ontology)
     if($obj->identifier()) {
 	$uk_h->{'identifier'} = $obj->identifier();
     } elsif($obj->name()) {
 	$uk_h->{'name'} = $obj->name();
-	if(my $cat = $obj->category()) {
-	    if($cat->isa("Bio::DB::PersistentObjectI")) {
-		$cat->store() unless $cat->primary_key();
+	if(my $ont = $obj->ontology()) {
+	    if($ont->isa("Bio::DB::PersistentObjectI")) {
+		$ont->create() unless $ont->primary_key();
 	    } else {
-		$cat = $self->find_by_unique_key($cat);
+		$ont = $self->_ont_adaptor->find_by_unique_key($ont);
 	    }
-	    $uk_h->{'category'} = $cat->primary_key() if $cat;
+	    $uk_h->{'ontology'} = $ont->primary_key() if $ont;
 	}
     }
     
@@ -379,5 +387,35 @@ sub get_unique_key_query{
 =head1 Methods overriden from BasePersistenceAdaptor
 
 =cut
+
+=head1 Private methods
+
+  These are mostly convenience and/or shorthand methods.
+
+=cut
+
+=head2 _ont_adaptor
+
+ Title   : _ont_adaptor
+ Usage   : $obj->_ont_adaptor($newval)
+ Function: Get/set the ontology persistence adaptor. 
+ Example : 
+ Returns : value of _ont_adaptor (a Bio::DB::PersistenceAdaptorI object)
+ Args    : on set, new value (a Bio::DB::PersistenceAdaptorI object
+           or undef, optional)
+
+
+=cut
+
+sub _ont_adaptor{
+    my $self = shift;
+
+    return $self->{'_ont_adaptor'} = shift if @_;
+    if(! exists($self->{'_ont_adaptor'})) {
+	$self->{'_ont_adaptor'} =
+	    $self->db->get_object_adaptor("Bio::Ontology::OntologyI");
+    }
+    return $self->{'_ont_adaptor'};
+}
 
 1;

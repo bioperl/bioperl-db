@@ -7,9 +7,9 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 14;
+    plan tests => 21;
 }
-#END { unlink( 't/ensembl_test.gb') }
+END { unlink( 't/revomp_mrna_test.gb') }
 use DBTestHarness;
 use Bio::DB::SQL::DBAdaptor;
 use Bio::SeqIO;
@@ -19,13 +19,11 @@ $harness = DBTestHarness->new();
 
 ok $harness;
 
-
 $db = $harness->get_DBAdaptor();
 
 ok $db;
 
-
-$seqio = Bio::SeqIO->new('-format' => 'GenBank',-file => Bio::Root::IO->catfile('t','data','AP000868.gb'));
+$seqio = Bio::SeqIO->new('-format' => 'GenBank',-file => Bio::Root::IO->catfile('t','data','revcomp_mrna.gb'));
 
 $seq = $seqio->next_seq();
 
@@ -65,12 +63,35 @@ $test_desc =~ s/\s+$//g;
 
 ok ($dbseq->desc       eq $test_desc);
 
+my ($sf) = $dbseq->top_SeqFeatures;
+my $location = $sf->location;
+#$location->verbose(-1); # silence the warning of undef seq_id()
+printf "[%d, %d] %s\n",
+  $location->start,
+  $location->end,
+  $location->strand;
+#ok($location->strand, -1);
+#ok($location->start, );
+#ok($location->end, );
+
+my @sublocs = $location->sub_Location();
+
+ok(@sublocs, 4);
+my $loc = shift @sublocs;
+ok($loc->start, 3261);
+ok($loc->end, 4308);
+ok($loc->strand, -1);
+
+$loc = pop @sublocs;
+ok($loc->start, 13603);
+ok($loc->end, 13879);
+ok($loc->strand,-1);
+
 
 #$harness->pause;
 
-$out = Bio::SeqIO->new( -file => '>t/ensembl_test.gb' , -"format" => 'GenBank');
-
+$out =
+  Bio::SeqIO->new( -file => '>t/revomp_mrna_test.gb' , -"format" => 'GenBank');
 
 $out->write_seq($dbseq);
-
 ok $out;

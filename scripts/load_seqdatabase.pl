@@ -52,6 +52,8 @@ my $dbuser = "root";
 my $driver = 'mysql';
 my $dbpass = undef;
 my $format = 'genbank';
+my $newonly;
+my $logf;
 my $removeflag = '';
 my $transactional = 0;
 #If safe is turned on, the script doesn't die because of one bad entry..
@@ -64,9 +66,17 @@ my $safe = 0;
 	     'dbpass:s' => \$dbpass,
 	     'format:s' => \$format,
 	     'safe'     => \$safe,
+	     'log:s'     => \$log,
 	     'remove'     => \$remove,
              'transactional' => \$transactional,
+             'newonly' => \$newonly,
 	     );
+
+my $logfh = \*STDERR;
+
+if ($log) {
+    $logfh = FileHandle->new(">$log") || die("can't open $log");
+}
 
 my $dbname = shift;
 my @files = @ARGV;
@@ -79,6 +89,7 @@ the reason is that the adaptor code caches data/ids; if a transaction fails
 then the whole application must fail, otherwise we risk the cache and the
 database being out of sync, which could have very bad consequences
 EOM
+   exit 1;
 }
 
 if( !defined $dbname || scalar(@files) == 0 ) {
@@ -98,10 +109,24 @@ my $seqadp = $dbadaptor->get_SeqAdaptor;
 
 foreach $file ( @files ) {
 
-    print STDERR "Reading $file\n";
+    my $t = time;
+    my $ppt = localtime $t;
+    logmsg("Reading:$file");
     my $seqio = Bio::SeqIO->new(-file => $file,-format => $format);
 
     while( $seq = $seqio->next_seq ) {
+        logmsg("Got seq: %s [length %d]",
+               $seq->display_id,
+               $seq->length);
+        if ($newonly) {
+            my $oldseq =
+              $seqadp->fetch_by_db_and_accession($dbname, $seq->accession);
+            if ($oldseq) {
+                logmsg("ALREADY HAVE THIS SEQ (bioentry_id=%d) -- SKIPPING",
+                       $oldseq->primary_id);
+                next;
+            }
+        }
         $dbadaptor->begin_work if $transactional;
         if ($removeflag) {
             my $oldseq =
@@ -112,18 +137,35 @@ foreach $file ( @files ) {
 		$seqadp->store($dbid,$seq);
 	    };
 	    if ($@) {
-		print STDERR "Could not store ".$seq->accession." because of $@\n";
+		logmsg("Could not store ".$seq->accession." because of $@");
 	    }
 	}
 	else {
 	    $seqadp->store($dbid,$seq);
 	}
         $dbadaptor->commit if $transactional;
+        logmsg("loaded seq %s", $seq->display_id);
     }
 }
 
-$dbadaptor->disconnect;
+if ($log) {
+    $logfh->close;
+}
 
+$dbadaptor->disconnect;
+printf $logfh "Done!\n";
+print $logfh "Unixtime:$t\n";
+print $logfh "Date:$ppt\n";
+
+sub logmsg {
+    my $msg = sprintf(shift, @_);
+    my $t = time;
+    my $ppt = localtime $t;
+    print $logfh "\n$msg\n";
+    print $logfh "Unixtime:$t\n";
+    print $logfh "Date:$ppt\n\n";
+    
+}
 
 
 

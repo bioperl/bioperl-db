@@ -188,7 +188,7 @@ sub store_if_needed{
 	 $self->insert("reference",
 				   {reference_authors=>$authors,
 					reference_title=>$title,
-					reference_location=>$location,
+					reference_location=>$location || '',
 					reference_medline=>$med});
    return $rid;
 }

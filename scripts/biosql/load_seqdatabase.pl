@@ -46,6 +46,11 @@ the Oracle driver doesn't need (or may even get confused by) a host
 name if the local tnsnames.ora can properly resolve the SID, which
 would be specified using --dbname.
 
+=item --port $port
+
+the port to which to connect; usually the default port chosen by the
+driver will be appropriate. 
+
 =item --dbname $db_name
 
 the name of the schema [biosql]
@@ -271,7 +276,7 @@ use Bio::ClusterIO;
 ####################################################################
 # Defaults for options changeable through command line
 ####################################################################
-my $host;
+my ($host,$port);
 my $dbname = 'biosql';
 my $dbuser = 'root';
 my $driver = 'mysql';
@@ -316,6 +321,7 @@ my %nextobj_map = (
 # get options from commandline 
 #
 my $ok = GetOptions( 'host=s'         => \$host,
+                     'port=i'         => \$port,
                      'driver=s'       => \$driver,
                      'dbname=s'       => \$dbname,
                      'dbuser=s'       => \$dbuser,
@@ -420,6 +426,7 @@ if($pipeline) {
 my $db = Bio::DB::BioDB->new(-database   => "biosql",
                              -printerror => $printerror,
                              -host       => $host,
+                             -port       => $port,
                              -dbname     => $dbname,
                              -driver     => $driver,
                              -user       => $dbuser,

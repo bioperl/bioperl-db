@@ -288,9 +288,13 @@ my %slot_attribute_map = (
 	     "value"          => "=>{bioentry_qualifier_value,seqfeature_qualifier_value}.value",
 	     "ontology"       => "ontology_id",
 	     # these are for context-sensitive FK name resolution
+             # term relationships:
 	     "subject"        => "subject_term_id",
 	     "predicate"      => "predicate_term_id",
 	     "object"         => "object_term_id",
+             # seqfeatures:
+             "primary_tag"    => "type_term_id",
+             "source_tag"     => "source_term_id",
 	 },
 	 # term_synonym is more a hack - it doesn't correspond to an object
 	 # in bioperl, but this does let you specify your column naming

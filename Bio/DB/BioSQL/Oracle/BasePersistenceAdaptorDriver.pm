@@ -139,9 +139,13 @@ my %slot_attribute_map = (
          "term" => {
 	     "ontology"       => "ont_oid",
 	     # these are for context-sensitive FK name resolution
+             # term relationships:
 	     "subject"        => "subj_trm_oid",
 	     "predicate"      => "pred_trm_oid",
 	     "object"         => "obj_trm_oid",
+             # seqfeatures:
+             "primary_tag"    => "type_trm_oid",
+             "source_tag"     => "source_trm_oid",
 	 },
 	 # term_synonym is more a hack - it doesn't correspond to an object
 	 # in bioperl, but this does let you specify your column naming

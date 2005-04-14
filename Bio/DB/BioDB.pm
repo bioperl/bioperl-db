@@ -18,7 +18,7 @@
 
 =head1 NAME
 
-Bio::DB::BioDB - class providing the base adaptor for a particular database
+Bio::DB::BioDB - class creating the adaptor factory for a particular database
 
 =head1 SYNOPSIS
 
@@ -69,6 +69,7 @@ my %db_map = ("biosql" => "Bio::DB::BioSQL::",
 	      "map"    => "Bio::DB::Map::");
 
 my $default_prefix = "Bio::DB::";
+my $initrc_name = ".bioperldb";
 
 my @DBC_MODULES = ("DBAdaptor", "dbadaptor");
 
@@ -90,9 +91,27 @@ BEGIN {
  Example :
  Returns : a Bio::DB::DBAdaptorI implementing object
  Args    : Named parameters. Currently recognized are
+
              -database    the name of the database for which the
                           encapsulating adaptor is sought (biosql|markerdb)
+
              -dbcontext   a Bio::DB::DBContextI implementing object
+
+             -initrc      a scalar denoting a file which when
+                          evaluated by perl results in a hash
+                          reference or an array reference (to an array
+                          with an even number of elements)
+                          representing the arguments for this method
+                          and for creating an instance of
+                          Bio::DB::SimpleDBContext. The special value
+                          DEFAULT means to use the file .bioperldb in
+                          either the current directory or the home
+                          directory, in this order.
+
+             -printerror  whether or not the database and statement
+                          handles to be created when necessary should
+                          print all errors (the adaptor modules will
+                          handle errors themselves, too)
 
            Instead of -dbcontext, you can also pass all parameters
            accepted by Bio::DB::SimpleDBContext::new(), and this
@@ -102,6 +121,10 @@ BEGIN {
            dbadaptor() property will be changed by this method to
            reflect the created adaptor.
 
+           Note also that if using the -initrc argument any separately
+           supplied arguments will override and supplement the
+           arguments defined in that file.
+
 
 =cut
 
@@ -110,13 +133,61 @@ sub new {
     
     my $self = $pkg->SUPER::new(@args);
 
-    my ($biodb, $dbc, $prerr) = 
+    my ($biodb, $dbc, $prerr, $initrc) = 
         $self->_rearrange([qw(DATABASE 
                               DBCONTEXT
                               PRINTERROR
+                              INITRC
                               )
                            ], @args);
 
+    # first check whether we need to read an initialization record
+    if ($initrc && ($initrc eq "DEFAULT")) {
+        foreach my $dir (".",$ENV{HOME}) {
+            $initrc = Bio::Root::IO->catfile($dir,$initrc_name);
+            last if -e $initrc;
+            # the default behavior is to ignore if the file isn't
+            # present in any of the possible locations
+            $initrc = undef;
+        }
+    }
+    if ($initrc) {
+        eval {
+            $initrc = do $initrc;
+        };
+        $self->throw("error in evaluating '$initrc': $@") if $@;
+        $self->throw("unable to read file '$initrc': $!") if $!;
+        $self->throw("'$initrc' failed to return an array ref or hash ref")
+            unless $initrc || !ref($initrc);
+        if ($initrc->isa("Bio::DB::DBContextI")) {
+            # we allow this too
+            $dbc = $initrc;
+            $initrc = undef;
+        } else {
+            # if necessary convert to array reference
+            if (ref($initrc) eq "HASH") {
+                $initrc = [%$initrc];
+            }
+            # append explicitly supplied arguments
+            push(@$initrc, @args);
+            # build parameter hash while lower-casing all keys; this will
+            # also let supplied arguments override those read from file
+            my %params = ();
+            while (@$initrc) {
+                my $key = lc(shift(@$initrc));
+                $params{$key} = shift(@$initrc);
+            }
+            # check for our arguments; they may have come through the file
+            $biodb = $params{-database} unless $biodb;
+            $prerr = $params{-printerror} unless defined($prerr);
+            $self->verbose($params{-verbose}) 
+                unless defined($self->verbose) || !exists($params{-verbose});
+            # restore argument list from consolidated parameter map
+            @args = %params;
+        }
+    }
+
+    # all arguments should be there now
     $self->throw("you must provide the database (schema)") unless $biodb;
     if(exists($db_map{lc($biodb)})) {
 	$biodb = $db_map{lc($biodb)};

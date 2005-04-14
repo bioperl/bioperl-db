@@ -48,9 +48,13 @@ sub {
 
     # compare the last (most recent) dates, and compare against today
     my $time = time();
-    if((@olddates == 0) || (@newdates == 0) ||
-       ($olddates[-1] < $newdates[-1]) ||
-       (($olddates[-1] == $newdates[-1]) && ($olddates[-1] >= $time))) {
+    # convert the date strings to time values
+    my $oldtime = (@olddates == 0) ? 0 : str2time($olddates[-1]);
+    my $newtime = (@newdates == 0) ? 0 : str2time($newdates[-1]);
+    # now compare
+    if(($oldtime < $newtime)
+       || (($oldtime == $newtime) 
+           && (($oldtime == 0) || ($oldtime >= $time)))) {
 	# remove existing features
 	if($old->isa("Bio::FeatureHolderI")) {
 	    foreach my $fea ($old->get_all_SeqFeatures()) {

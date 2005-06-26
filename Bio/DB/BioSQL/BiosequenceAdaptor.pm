@@ -234,7 +234,10 @@ sub populate_from_row{
 	    $obj->seq_version($rows->[1]) if $rows->[1];
 	}
 	$obj->length($rows->[2]) if $rows->[2];
-	$obj->alphabet($rows->[3]) if $rows->[3];
+        # Note: Biojava uses upper-case terms for alphabet, so we
+        # need to change to all-lower in case the sequence was
+        # manipulated by Biojava.
+	$obj->alphabet(lc($rows->[3])) if $rows->[3];
 	$obj->seq($rows->[5]) if $rows->[5];
 	if($obj->isa("Bio::DB::PersistentObjectI") &&
 	   (! $obj->isa("Bio::PrimarySeqI"))) {

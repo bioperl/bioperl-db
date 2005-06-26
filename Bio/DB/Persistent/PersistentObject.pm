@@ -533,7 +533,7 @@ sub AUTOLOAD {
     # is the object set to which we delegate?
     $self->throw("Can't locate object method \"$meth\" via package ".
 		 ref($self))
-	unless $obj && ($obj ne $self);
+	unless $obj && ($obj != $self);
     # by default, we consider any arguments as a calling a setter and hence
     # the object becomes dirty
     $self->is_dirty(1) if @args;

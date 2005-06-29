@@ -637,7 +637,7 @@ sub _anntype_assoc_args{
     if($anntype eq "Bio::Annotation::OntologyTerm") {
 	# exclude the SimpleValue annotation
 	my $ont = $self->{'_ontology_fk'};
-	if(! $ont) {
+	if (! defined($ont)) {
 	    $ont = Bio::Ontology::Ontology->new(-name => "Annotation Tags");
 	}
 	if(! $ont->isa("Bio::DB::PersistentObjectI")) {
@@ -645,7 +645,7 @@ sub _anntype_assoc_args{
 	    $self->{'_ontology_fk'} = $ont;
 	}
 	$ont = $ont->adaptor->find_by_unique_key($ont);
-	if($ont) {
+	if (ref($ont)) {
 	    my $qc = Bio::DB::Query::QueryConstraint->new($anntype.
 							  "::ontology != ?");
 	    push(@typeargs,

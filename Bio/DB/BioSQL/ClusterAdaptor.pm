@@ -405,7 +405,8 @@ sub attach_children{
 	}
     }
     # remove the Annotation::OntologyTerm objects that are rather terms for
-    # object slots
+    # object slots (actually, there shouldn't be any because they
+    # should have been precluded by ontology constraint)
     $ac->remove_Annotations('Object Slots') if $ac;
     #
     # find the tag/value pairs corresponding to object slots
@@ -705,7 +706,7 @@ sub _ontology_term{
     if($find_it) {
 	my $adp = $self->db->get_object_adaptor($term);
 	my $found = $adp->find_by_unique_key($term);
-	if($found) {
+	if (ref($found)) {
 	    $term = $found;
 	} else {
 	    $term = $self->db()->create_persistent($term);

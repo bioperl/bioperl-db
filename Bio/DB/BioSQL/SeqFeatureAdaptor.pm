@@ -175,19 +175,19 @@ sub get_foreign_key_objects{
     my ($self,$obj) = @_;
     my ($bioentry,$sfkey, $sfsrc);
 
-    if($obj) {
+    if (defined($obj)) {
 	$bioentry = $obj->entire_seq();
 	if(! ($bioentry && $bioentry->isa("Bio::DB::PersistentObjectI") &&
 	      $bioentry->primary_key())) {
 	    $bioentry = "Bio::PrimarySeqI";
 	}
-	if($obj->primary_tag()) {
+	if ($obj->primary_tag()) {
 	    $sfkey = $self->_ontology_term_fk("primary_tag",
 					      $obj->primary_tag());
 	} else {
 	    $sfkey = ref($self)."::primary_tag";
 	}
-	if($obj->source_tag()) {
+	if ($obj->source_tag()) {
 	    $sfsrc = $self->_ontology_term_fk("source_tag",
 					      $obj->source_tag());
 	} else {
@@ -483,19 +483,19 @@ sub get_unique_key_query{
     my ($self,$obj,$fkobjs) = @_;
     my $uk_h = {};
 
-    # UKs for SeqFeatureIs are (sequence,feature key,feature source,rank),
+    # UKs for SeqFeatureIs are (sequence,feature key,feature source,rank)
     my ($seq,$sfkey);
-    if($obj->entire_seq()) {
+    if (defined($obj->entire_seq())) {
 	$seq = $obj->entire_seq();
     } elsif($fkobjs) {
 	($seq) = grep { $_->isa("Bio::PrimarySeqI"); } @$fkobjs;
     }
-    if($seq &&
+    if (ref($seq) &&
        (! ($seq->isa("Bio::DB::PersistentObjectI") && $seq->primary_key()))) {
 	$seq = $self->_seq_adaptor()->find_by_unique_key($seq);
     }
     # we only need to continue with the sequence FK in hand
-    if($seq) {
+    if (ref($seq)) {
 	$uk_h->{'entire_seq'} = $seq->primary_key();
 	# now look up the term for the seqfeature key and seqfeature source
 	my $fkterm;

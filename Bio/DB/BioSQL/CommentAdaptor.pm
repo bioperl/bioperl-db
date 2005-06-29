@@ -320,9 +320,8 @@ sub get_unique_key_query{
     my $uk_h = {};
 
     # UKs for Comments are (FK to bioentry,rank),
-    my ($seq);
-    ($seq) = grep { $_->isa("Bio::PrimarySeqI"); } @$fkobjs;
-    if($seq &&
+    my ($seq) = grep { $_->isa("Bio::PrimarySeqI"); } @$fkobjs;
+    if (defined($seq) &&
        (! ($seq->isa("Bio::DB::PersistentObjectI") && $seq->primary_key()))) {
 	$seq = $self->_seq_adaptor()->find_by_unique_key($seq);
     }

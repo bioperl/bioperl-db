@@ -450,7 +450,7 @@ sub add_association{
 	$svidx++;
     }
     # make sure we include the value for the association
-    if($obj) {
+    if (defined($obj)) {
 	# if there wasn't -values already we push it onto the arguments
 	if(! defined($values)) {
 	    $values = {};
@@ -516,7 +516,7 @@ sub find_by_association{
     # constrain by the ontology (there is a default if there is no live
     # annotation object)
     my $cat = $self->_ontology_fk($obj);
-    if($cat) {
+    if (defined($cat)) {
 	if(! $cat->primary_key()) {
 	    $cat = $cat->adaptor->find_by_unique_key($cat);
 	}
@@ -599,7 +599,7 @@ sub _ontology_fk{
     my ($self,$svann,$ont) = @_;
 
     # if the tag is in fact an ontology term, we simply return its ontology
-    if($svann && $svann->tag_term()) {
+    if(ref($svann) && $svann->tag_term()) {
 	$ont = $svann->tag_term->ontology();
 	if(! $ont->isa("Bio::DB::PersistentObjectI")) {
 	    $ont = $self->db()->create_persistent($ont);

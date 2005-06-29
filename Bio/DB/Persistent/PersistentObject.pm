@@ -104,6 +104,7 @@ Internal methods are usually preceded with a _
 package Bio::DB::Persistent::PersistentObject;
 use vars qw(@ISA);
 use strict;
+use Scalar::Util qw(refaddr);
 
 # Object preamble - inherits from Bio::Root::Root
 
@@ -134,10 +135,11 @@ sub new {
 
     my %params = @args;
     # obtain object to be wrapped and adaptor for datastore
-    my $obj = $params{'-object'} || $params{'-OBJECT'};
+    my $obj = $params{'-object'};
+    $obj = $params{'-OBJECT'} unless defined($obj);
 
     # if this package then try to load a specialized wrapper if one available
-    if($obj && $class eq "Bio::DB::Persistent::PersistentObject") {
+    if(defined($obj) && $class eq "Bio::DB::Persistent::PersistentObject") {
 	my $wclass = $class->_load_persistence_wrapper(ref($obj) || $obj,
 						      "Bio::DB::Persistent::");
 	return $wclass->new(@args) if $wclass;
@@ -147,8 +149,8 @@ sub new {
     # obtain adaptor for datastore
     my $adp = $params{'-adaptor'} || $params{'-ADAPTOR'};
 
-    $self->obj($obj) if $obj;
-    $self->adaptor($adp) if $adp;
+    $self->obj($obj) if defined($obj);
+    $self->adaptor($adp) if defined($adp);
     $self->is_dirty(1);
 
     # success - we hope
@@ -299,10 +301,11 @@ sub remove{
  Usage   : $obj->primary_key($newval)
  Function: Get the primary key of the persistent object in the datastore.
 
-           Note that this implementation does not permit changing the primary
-           key once it has been set. This is for sanity reasons, and may or may
-           not be relaxed in the future. The only exception is changing it
-           undef.
+           Note that this implementation does not permit changing the
+           primary key once it has been set. This is for sanity
+           reasons, and may or may not be relaxed in the future. The
+           only exception is changing it to undef.
+
  Example : 
  Returns : value of primary_key (a scalar)
  Args    : new value (a scalar, optional)
@@ -330,9 +333,10 @@ sub primary_key{
  Usage   : $obj->obj()
  Function: Get/set the object that is made persistent through this adaptor.
 
-           Note that this implementation does not allow to change the value
-           once it has been set. This is for sanity reasons, and may or may
-           not be relaxed in the future.
+           Note that this implementation does not allow to change the
+           value once it has been set. This is for sanity reasons, and
+           may or may not be relaxed in the future.
+
  Example : 
  Returns : The object made persistent through this adaptor
  Args    : On set, the new value. Read above for caveat.
@@ -341,18 +345,20 @@ sub primary_key{
 =cut
 
 sub obj{
-    my ($self,$value) = @_;
+    my $self = shift;
+    my $obj = $self->{"_obj"};
 
-    if($value) {
-	if(exists($self->{'_obj'})) {
+    if (@_) {
+        $obj = shift;
+	if (exists($self->{'_obj'})
+            && (refaddr($obj) != refaddr($self->{'_obj'}))) {
 	    $self->throw("must not change obj() once it is set");
 	}
-	$self->{"_obj"} = $value;
+	$self->{"_obj"} = $obj;
     }
-    my $obj = $self->{"_obj"};
     # we must have the object to be wrapped
     $self->throw("you must set the object to be wrapped before using it")
-	unless $obj;
+	unless ref($obj);
     return $obj;
 }
 
@@ -370,10 +376,9 @@ sub obj{
 =cut
 
 sub adaptor{
-    my ($self,$value) = @_;
-    if( defined $value) {
-	$self->{'_adaptor'} = $value;
-    }
+    my $self = shift;
+
+    return $self->{'_adaptor'} = shift if @_;
     return $self->{'_adaptor'};
 }
 
@@ -487,7 +492,7 @@ sub isa{
     if(! $ans) {
 	# try the wrapped object, too, but not if it's self
 	my $obj = $self->obj();
-	$ans = $obj->isa(@args) unless $obj eq $self;
+	$ans = $obj->isa(@args) unless refaddr($obj) == refaddr($self);
     }
     return $ans;
 }
@@ -513,7 +518,7 @@ sub can{
     if(! $ans) {
 	# try the wrapped object, too, but not if it's self
 	my $obj = $self->obj();
-	$ans = $obj->can(@args) unless $obj eq $self;
+	$ans = $obj->can(@args) unless refaddr($obj) == refaddr($self);
     }
     return $ans;
 }
@@ -525,15 +530,22 @@ sub can{
 #
 sub AUTOLOAD {
     my ($self,@args) = @_;
-    # the object to delegate to:
-    my $obj = $self->obj();
     # the method to call:
     my $meth = $AUTOLOAD;
     $meth =~ s/.*://;
+    # sanity check
+    if (! $self->isa("Bio::DB::Persistent::PersistentObject")) {
+        $self->throw("I'm an instance of ".ref($self)
+                     .", not a persistent object instance! "
+                     ."(resolving $AUTOLOAD)");
+    }
+    # the object to delegate to:
+    my $obj = $self->obj();
     # is the object set to which we delegate?
-    $self->throw("Can't locate object method \"$meth\" via package ".
-		 ref($self))
-	unless $obj && ($obj != $self);
+    if ((!defined($obj)) || (refaddr($obj) == refaddr($self))) {
+        $self->throw("Can't locate object method \"$meth\" via package ".
+                     ref($self));
+    }
     # by default, we consider any arguments as a calling a setter and hence
     # the object becomes dirty
     $self->is_dirty(1) if @args;

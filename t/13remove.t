@@ -59,7 +59,7 @@ eval {
     # all feature qualifier/value pairs
     @arr = ();
     foreach my $feat ($pseq->top_SeqFeatures()) {
-        foreach ($feat->all_tags()) {
+        foreach ($feat->get_all_tags()) {
             push(@arr, $feat->each_tag_value($_));
         }
     }

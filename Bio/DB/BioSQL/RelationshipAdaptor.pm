@@ -412,7 +412,7 @@ sub remove_all_relationships{
         my $adp = $self->_ont_adaptor();
         $ont = $adp->find_by_unique_key($ont, '-obj_factory' => $ontfact);
     }
-    return $ont ?
+    return ref($ont) ?
         # note that having the persistent object in the -objs array
         # will constrain by the foreign key to that object
         $self->remove_association(-objs => ["Bio::Ontology::TermI",

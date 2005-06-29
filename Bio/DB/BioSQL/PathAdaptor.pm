@@ -283,7 +283,7 @@ sub compute_transitive_closure{
 			      )],
 			  @args);
     # need to create identity relationships?
-    if($identity_pred) {
+    if (defined($identity_pred)) {
 	# set up the relationship object we'll reuse
 	my $rel = Bio::Ontology::Relationship->new(
 				   -ontology => $identity_pred->ontology());
@@ -304,7 +304,7 @@ sub compute_transitive_closure{
 	}
     }
     # need to create subclass relationships?
-    if($ancestor_pred) {
+    if (defined($ancestor_pred)) {
 	# set up the relationship object we'll reuse
 	my $rel = Bio::Ontology::Relationship->new(
 				   -ontology => $ancestor_pred->ontology());

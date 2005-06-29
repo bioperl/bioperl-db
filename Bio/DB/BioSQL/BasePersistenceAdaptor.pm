@@ -78,6 +78,7 @@ Internal methods are usually preceded with a _
 package Bio::DB::BioSQL::BasePersistenceAdaptor;
 use vars qw(@ISA);
 use strict;
+use Scalar::Util qw(blessed refaddr reftype);
 
 # Object preamble - inherits from Bio::Root::Root
 
@@ -160,7 +161,7 @@ sub create{
     # make sure the foreign key objects are all persistent objects and have
     # been stored already
     foreach (@fkobjs) {
-	next unless $_ && ref($_);
+	next unless ref($_);
 	if(! $_->isa("Bio::DB::PersistentObjectI")) {
 	    $self->throw("All foreign key objects must implement ".
 			 "Bio::DB::PersistentObjectI. This one doesn't: ".
@@ -258,7 +259,7 @@ sub store{
     # make sure the foreign key objects are all persistent objects and have
     # a primary key
     foreach (@fkobjs) {
-	next unless $_ && ref($_);
+	next unless ref($_);
 	if(! $_->isa("Bio::DB::PersistentObjectI")) {
 	    $self->throw("All foreign key objects must implement ".
 			 "Bio::DB::PersistentObjectI. This one doesn't: ".
@@ -577,7 +578,7 @@ sub create_persistent{
     my ($self,$obj,$pwrapper) = @_;
     my $pobj = $obj;
     
-    return undef unless $obj;
+    return undef unless defined($obj);
     # default for persistence wrapper class is
     # Bio::DB::Persistent::PersistentObjct
     $pwrapper = "Bio::DB::Persistent::PersistentObject" unless $pwrapper;
@@ -603,9 +604,11 @@ sub create_persistent{
            This is an internal method. Do not call from outside.
  Example :
  Returns : The first argument.
- Args    : A Bio::DB::PersistentObjectI implementing object, the class
-           of which is suitable for this adaptor (unless on a recursive call).
-
+ Args    :  - A Bio::DB::PersistentObjectI implementing object, the
+              class of which is suitable for this adaptor (unless on a
+              recursive call).
+            - Optionally, the class which actually implements wrapping
+              the object to become a PersistentObjectI.
 
 =cut
 
@@ -614,27 +617,27 @@ sub _create_persistent {
 
     # loop over children first and replace each one with the recursively
     # made persistent object (depth-first traversal)
+    # some operations are different for blessed refs than for unblessed
+    my $is_blessed = blessed($obj);
     my $class = ref($obj);
     # we only alter references
     if($class &&
        # but not references to scalars, code, or symbols, which basically
        # leaves arrays, hashes, and blessed references
-       ($class ne "SCALAR") && ($class ne "CODE") && ($class ne "GLOB")) {
-	# some operations are different for blessed refs than for unblessed
-	my $is_blessed = ($class ne "HASH") && ($class ne "ARRAY");
+       ($is_blessed || ($class eq "HASH") || ($class eq "ARRAY"))) {
 	# loop over the elements and process each element
-	if(($class eq "HASH") || ($is_blessed && $obj->isa("HASH"))) {
+	if (reftype($obj) eq "HASH") {
 	    foreach my $key (keys %$obj) {
 		my $child = $obj->{$key};
-		next if ! ($child && ref($child)); # omit non-refs
+		next unless ref($child); # omit non-refs
 		$obj->{$key} = $self->_process_child($child, $pwrapper);
 	    }
-	} elsif(($class eq "ARRAY") || ($is_blessed && $obj->isa("ARRAY"))) {
+	} elsif (reftype($obj) eq "ARRAY") {
 	    my $i = 0;
 	    while($i < @$obj) {
 		my $child = $obj->[$i];
 		# omit non-refs
-		if($child  && ref($child) ) {
+		if (ref($child)) {
 		    $obj->[$i] = $self->_process_child($child, $pwrapper);
 		}
 		$i++;
@@ -649,11 +652,7 @@ sub _process_child{
     my ($self,$obj,$pwrapper) = @_;
 
     # some operations are different for blessed refs than for unblessed
-    my $class = ref($obj);
-    my $is_blessed = ! (($class eq "SCALAR") || ($class eq "CODE") ||
-			($class eq "GLOB") || ($class eq "HASH") ||
-			($class eq "ARRAY"));
-    if($is_blessed) {
+    if (blessed($obj)) {
 	# if this is a PersistentObjectI, its adaptor needs to do the job
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    # if the wrapped object is persistent too, we assume the object
@@ -676,8 +675,8 @@ sub _process_child{
 	    #
 	    # cache this recursion to prevent infinite loops if we
 	    # meet it again
-	    if(! $self->{'_pers_recurs_cache'}->{$obj}) {
-		my $key = $obj;
+            my $key = refaddr($obj);
+	    if(! $self->{'_pers_recurs_cache'}->{$key}) {		
 		$self->{'_pers_recurs_cache'}->{$key} = 1;
 		$obj = $objadp->create_persistent($obj, $pwrapper);
 		delete $self->{'_pers_recurs_cache'}->{$key};
@@ -686,7 +685,7 @@ sub _process_child{
 			    " object");
 	    }
 	} else {
-	    $self->debug("no adaptor found for class $class\n");
+	    $self->debug("no adaptor found for class ".ref($obj)."\n");
 	    # we won't venture into something we don't have an
 	    # adaptor for, meaning we do nothing in this case
 	}
@@ -734,7 +733,7 @@ sub find_by_primary_key{
 
     # is it cached?
     $obj = $self->obj_cache($dbid);
-    return $obj if $obj;
+    return $obj if defined($obj);
     # Object is not cached
     #
     # Gather the foreign key slots; we'll need that in any case.
@@ -1710,7 +1709,7 @@ sub _remove_from_obj_cache{
     my @delkeys = ();
 
     while(($key, $val) = each %{$self->{'_obj_cache'}}) {
-	next unless $val && ref($val);
+	next unless ref($val);
 	push(@delkeys, $key) if $val->primary_key() == $obj->primary_key();
     }
     foreach (@delkeys) {

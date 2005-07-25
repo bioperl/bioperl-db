@@ -218,7 +218,7 @@ sub get_biosequence{
 	    }
 	    my $ukname = $self->foreign_key_name("Bio::PrimarySeqI");
 	    my $sql = "SELECT SUBSTRING($seqcol FROM ?" .
-		(defined($end) ? "FOR ?" : "") .
+		(defined($end) ? " FOR ?" : "") .
 		") FROM $table WHERE $ukname = ?";
 	    $adp->debug("preparing SELECT statement: $sql\n");
 	    $sth = $adp->dbh()->prepare($sql);

@@ -207,7 +207,6 @@ sub get_biosequence{
     # statement cached?
     my $cache_key = defined($start) 
         ? "SELECT BIOSEQ SUBSTR ".(defined($end) ? "2POS " : "").ref($adp)
-#        ? "SELECT BIOSEQ SUBSTR ".(defined($end) ? "2POS $start;$end" : "").ref($adp)
         : "SELECT BIOSEQ ".ref($adp);
     my $sth = $adp->sth($cache_key);
     if(! $sth) {
@@ -221,8 +220,6 @@ sub get_biosequence{
         my $sql = defined($start)
             ? "SELECT SUBSTRING($seqcol FROM ?".(defined($end) ? " FOR ?" : "")
                 . ") FROM $table WHERE $ukname = ?"
-#             ? "SELECT SUBSTRING($seqcol FROM $start".(defined($end) ? " FOR ".($end-$start+1) : "")
-#                 . ") FROM $table WHERE $ukname = ?"
             : "SELECT $seqcol FROM $table WHERE $ukname = ?";
         $adp->debug("preparing SELECT statement: $sql\n");
         $sth = $adp->dbh()->prepare($sql);

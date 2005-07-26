@@ -81,6 +81,7 @@ Internal methods are usually preceded with a _
 package Bio::DB::BioSQL::Pg::BiosequenceAdaptorDriver;
 use vars qw(@ISA);
 use strict;
+use DBI qw(:sql_types);
 
 # Object preamble - inherits from Bio::Root::Root
 
@@ -157,7 +158,7 @@ sub insert_object{
 sub update_object{
     my ($self,$adp,$obj,$fkobjs) = @_;
     
-    my $cache_key = 'SELECT UK '.$self;
+    my $cache_key = 'SELECT UK '.ref($self);
     my $sth = $adp->sth($cache_key);
     if(! $sth) {
 	# create and prepare sql
@@ -170,7 +171,7 @@ sub update_object{
 	$adp->sth($cache_key, $sth);
     }
     # bind parameters
-    $sth->bind_param(1, $obj->primary_key());
+    $sth->bind_param(1, $obj->primary_key(), SQL_INTEGER);
     # execute and fetch
     $sth->execute();
     my $row = $sth->fetchall_arrayref();
@@ -202,61 +203,65 @@ sub update_object{
 
 sub get_biosequence{
     my ($self,$adp,$bioentryid,$start,$end) = @_;
-    my ($sth, $cache_key, $i, $row);
-    my $seqstr;
 
-    if(defined($start)) {
-	# statement cached?
-	$cache_key = "SELECT BIOSEQ SUBSTR".$adp.(defined($end) ?" 2POS":"");
-	$sth = $adp->sth($cache_key);
-	if(! $sth) {
-	    # we need to create this
-	    my $table = $self->table_name($adp);
-	    my $seqcol = $self->slot_attribute_map($table)->{"seq"};
-	    if(! $seqcol) {
-		$self->throw("no mapping for column seq in table $table");
-	    }
-	    my $ukname = $self->foreign_key_name("Bio::PrimarySeqI");
-	    my $sql = "SELECT SUBSTRING($seqcol FROM ?" .
-		(defined($end) ? " FOR ?" : "") .
-		") FROM $table WHERE $ukname = ?";
-	    $adp->debug("preparing SELECT statement: $sql\n");
-	    $sth = $adp->dbh()->prepare($sql);
-	    # and cache it
-	    $adp->sth($cache_key, $sth);
-	}
-	# bind parameters
-	$sth->bind_param(1, $start);
-	$i = 2;
-	if(defined($end)) {
-	    $sth->bind_param(2, $end-$start+1);
-	    $i = 3;
-	}
-	$sth->bind_param($i, $bioentryid);
-    } else {
-	# statement cached?
-	$cache_key = "SELECT BIOSEQ ".$adp;
-	$sth = $adp->sth($cache_key);
-	if(! $sth) {
-	    # we need to create this
-	    my $table = $self->table_name($adp);
-	    my $seqcol = $self->slot_attribute_map($table)->{"seq"};
-	    if(! $seqcol) {
-		$self->throw("no mapping for column seq in table $table");
-	    }
-	    my $ukname = $self->foreign_key_name("Bio::PrimarySeqI");
-	    my $sql = "SELECT $seqcol FROM $table WHERE $ukname = ?";
-	    $adp->debug("preparing SELECT statement: $sql\n");
-	    $sth = $adp->dbh()->prepare($sql);
-	    # and cache it
-	    $adp->sth($cache_key, $sth);
-	}
-	# bind parameters
-	$sth->bind_param(1, $bioentryid);
+    # statement cached?
+    my $cache_key = defined($start) 
+        ? "SELECT BIOSEQ SUBSTR ".(defined($end) ? "2POS " : "").ref($adp)
+#        ? "SELECT BIOSEQ SUBSTR ".(defined($end) ? "2POS $start;$end" : "").ref($adp)
+        : "SELECT BIOSEQ ".ref($adp);
+    my $sth = $adp->sth($cache_key);
+    if(! $sth) {
+        my $table = $self->table_name($adp);
+        my $seqcol = $self->slot_attribute_map($table)->{"seq"};
+        if(! $seqcol) {
+            $self->throw("no mapping for column seq in table $table");
+        }
+        my $ukname = $self->foreign_key_name("Bio::PrimarySeqI");
+        # we need to create this
+        my $sql = defined($start)
+            ? "SELECT SUBSTRING($seqcol FROM ?".(defined($end) ? " FOR ?" : "")
+                . ") FROM $table WHERE $ukname = ?"
+#             ? "SELECT SUBSTRING($seqcol FROM $start".(defined($end) ? " FOR ".($end-$start+1) : "")
+#                 . ") FROM $table WHERE $ukname = ?"
+            : "SELECT $seqcol FROM $table WHERE $ukname = ?";
+        $adp->debug("preparing SELECT statement: $sql\n");
+        $sth = $adp->dbh()->prepare($sql);
+        # cache it
+        if ($sth) {
+            $adp->sth($cache_key, $sth);
+        } else {
+            $self->throw("failed to prepare SQL statement '$sql': "
+                         .$adp->dbh->errstr);
+        }
     }
+    # bind parameters
+    my $i = 1;
+    if (defined($start)) {
+        # note that the SQL type specification is absolutely necessary
+        # here as otherwise the server will complain about an escaped string
+	$sth->bind_param($i, $start, SQL_INTEGER);
+	$i++;
+	if (defined($end)) {
+	    $sth->bind_param($i, $end-$start+1, SQL_INTEGER);
+	    $i++;
+	}
+    }
+    $sth->bind_param($i, $bioentryid, SQL_INTEGER);
     # execute and fetch
-    $sth->execute();
-    $row = $sth->fetchall_arrayref();
+    $adp->debug(substr(ref($self),rindex(ref($self),"::")+2)
+                .": executing SELECT SUBSTRING with ("
+                .(defined($start) ? "$start;" : "")
+                .(defined($end) ? ($end-$start+1).";" : "")
+                .$bioentryid.")\n")
+        if $adp->verbose > 0;
+    if (! $sth->execute()) {
+        $self->throw("error while executing query $cache_key with values ("
+                     .(defined($start) ? "$start;" : "")
+                     .(defined($end) ? ($end-$start+1).";" : "")
+                     .$bioentryid."):\n"
+                     .$sth->errstr." (".$sth->state.")");
+    }
+    my $row = $sth->fetchall_arrayref();
     return (@$row ? $row->[0]->[0] : undef);
 }
 

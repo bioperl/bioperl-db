@@ -396,6 +396,12 @@ sub create_persistent{
                          ontology in the database already. Otherwise the
                          transitive closure will be incomplete.
 
+                         The predicate will also be used for
+                         indicating identity between a term and itself
+                         for the paths of distance zero between a term
+                         and itself. If undef the zero distance paths
+                         will not be created.
+
 
 =cut
 

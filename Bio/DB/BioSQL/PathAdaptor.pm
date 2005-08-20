@@ -233,7 +233,7 @@ sub populate_from_row{
                          predicate, where the ancestor predicate is
                          the object, the predicate is either the one
                          given by -subclass_predicate or the term
-                         'subclasses', and the ontology is the
+                         'implies', and the ontology is the
                          ontology referenced by the ancestor
                          predicate.
 
@@ -250,7 +250,7 @@ sub populate_from_row{
                          that represents the predicate for the
                          relationship between predicate A and
                          predicate B if predicate A can be considered
-                         to subclass predicate B.
+                         to subclass, or imply, predicate B.
 
              -identity_predicate A Bio::Ontology::TermI compliant object
                          that represents the predicate for the
@@ -267,6 +267,12 @@ sub populate_from_row{
                          relationships should be present in an
                          ontology in the database already. Otherwise the
                          transitive closure will be incomplete.
+
+                         The predicate will also be used for
+                         indicating identity between a term and itself
+                         for the paths of distance zero between a term
+                         and itself. If undef the zero distance paths
+                         will not be created.
 
 
 =cut
@@ -331,7 +337,10 @@ sub compute_transitive_closure{
     $ont = $self->db->create_persistent($ont)
 	unless $ont->isa("Bio::DB::PeristentObjectI");
     # now delegate to the driver
-    return $self->dbd->compute_transitive_closure($self,$ont,$trunc);
+    return $self->dbd->compute_transitive_closure($self,
+                                                  $ont,
+                                                  $identity_pred,
+                                                  $trunc);
 }
 
 1;

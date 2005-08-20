@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 302;
+    plan tests => 738;
 }
 
 use DBTestHarness;
@@ -142,6 +142,28 @@ while(my $path = $qres->next_object()) {
     $n++;
 }
 ok ($n, 1);
+
+# test for distance zero paths
+$query = Bio::DB::Query::BioQuery->new(
+               -datacollections => [
+                    "Bio::Ontology::OntologyI=>Bio::Ontology::PathI o",
+                    "Bio::Ontology::TermI=>Bio::Ontology::PathI tpred::predicate",
+			 ],
+	       -where => ["o.name = 'My Test Ontology'",
+			  "tpred.name = 'identity'"]
+				       );
+$qres = $pathadp->find_by_query($query);
+$n = 0;
+while(my $path = $qres->next_object()) {
+    ok ($path->ontology->name, "My Test Ontology");
+    ok ($path->subject_term->name, $path->object_term->name);
+    ok ($path->predicate_term->name, "identity");
+    ok ($path->predicate_term->ontology->name, "My BioSQL Predicate Ontology");
+    ok ($path->distance, 0);
+    $n++ if $path->subject_term->identifier; # don't count hard-coded but
+					     # unused relationship types
+}
+ok ($n, 86);
 
 #
 # test removal of relationships

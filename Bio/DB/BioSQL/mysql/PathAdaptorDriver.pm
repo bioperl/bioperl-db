@@ -100,6 +100,11 @@ use Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
            The ontology to compute the transitive closure over (a
            persistent Bio::Ontology::OntologyI compliant object).
 
+           The predicate indicating identity between a term and
+           itself, to be used as the predicate for the paths of
+           distance zero between a term and itself. If undef the zero
+           distance paths will not be created.
+
            A scalar that if evaluating to TRUE means truncate the
            paths for the respective ontology first (optional;
            even though the default is FALSE this parameter should
@@ -110,8 +115,15 @@ use Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
 =cut
 
 sub compute_transitive_closure{
-    my ($self,$adp,$ont,$trunc) = @_;
+    my ($self,$adp,$ont,$idpred,$trunc) = @_;
     
+    # if we only got three arguments and the third is not a term then we
+    # probably got called in the old signature
+    if ((! ref($idpred)) && (@_ == 4)) {
+        $trunc = $idpred;
+        $idpred = undef;
+    }
+
     # the ontology needs to be persistent (we'll need its primary key)
     if(! $ont->isa("Bio::DB::PersistentObjectI")) {
 	$self->throw("$ont is not a persistent object. Bummer.");
@@ -123,6 +135,22 @@ sub compute_transitive_closure{
 	$self->throw("failed to look-up or insert ontology \"".
 		     $ont->name().", can't continue without the foreign key");
     }
+
+    # the identity predicate needs to be persistent too, if given 
+    if (ref($idpred)) {
+        if(! $idpred->isa("Bio::DB::PersistentObjectI")) {
+            $idpred = $adp->db->create_persistent($idpred);
+        }
+        # and obviously needs to have a primary key as well
+        if(! ($idpred->primary_key ||
+              ($idpred = ($idpred->adaptor->find_by_unique_key($idpred) ||
+                          $idpred->adaptor->create($idpred))))) {
+            $self->throw("failed to look-up or insert ID predicate '".
+                         $idpred->name()
+                         ."', can't continue without the foreign key");
+        }
+    }
+
     # we'll need the name of the path table, and that of the relationship
     # table
     my $path_table = $self->table_name($adp);
@@ -150,6 +178,40 @@ sub compute_transitive_closure{
 	$self->foreign_key_name($_);
     } ($termcl."::subject", $termcl."::predicate", $termcl."::object", $ont);
     my $colmap = $self->slot_attribute_map($path_table);
+
+    # initialize with paths of distance zero between all non-predicate
+    # terms and themselves if the identity predicate was provided
+    if (ref($idpred)) {
+        my $term_table = $self->table_name($termcl);
+        my $pkname = $self->primary_key_name($term_table);
+        my $ontfkname = $self->foreign_key_name($ont);
+        my $sql = "INSERT INTO $path_table ("
+            . join(", ", @fks, $colmap->{"distance"}).")\n"
+            . "SELECT t.$pkname, ".$idpred->primary_key
+            . ", t.$pkname, t.$ontfkname, 0\n"
+            . "FROM $term_table t LEFT OUTER JOIN $rel_table ta "
+            . "ON (ta.".$self->foreign_key_name($termcl."::predicate")
+            ." = t.$pkname AND ta.$ontfkname = t.$ontfkname) "
+            . "WHERE t.$ontfkname = ? AND ta.$ontfkname IS NULL\n";
+        $adp->debug("INSERT TC ONTOLOGY #0: preparing: $sql\n");
+        my $sth = $adp->dbh->prepare($sql);
+        $self->throw("failed to prepare statement ($sql): ".$adp->dbh->errstr)
+            unless $sth;
+        $adp->debug("INSERT TC ONTOLOGY #0: executing: binding column 1 to ",
+                    $ont->primary_key(),
+                    " (FK to ".ref($ont->obj).")\n");
+        my $rv = $sth->execute($ont->primary_key());
+        if($rv) {
+            $adp->debug("INSERT TC ONTOLOGY #0: $rv rows inserted\n");
+        } else {
+            $self->throw("failed to execute statement ($sql) with parameter ".
+                         $ont->primary_key()." (FK to ".ref($ont->obj)."): ".
+                         $sth->errstr);
+        }
+    }
+
+    # now the distance one paths as the relationships in the
+    # Term_Relationship table
     my $sql = "INSERT INTO $path_table (".
 	join(", ", @fks, $colmap->{"distance"}).")\n".
 	"SELECT ".
@@ -164,10 +226,10 @@ sub compute_transitive_closure{
 		" (FK to ".ref($ont->obj).")\n");
     my $rv = $sth->execute($ont->primary_key());
     if($rv) {
-	$adp->debug("INSERT TC ONTOLOGY #1: executed, $rv rows inserted\n");
+	$adp->debug("INSERT TC ONTOLOGY #1: $rv rows inserted\n");
     } else {
 	$self->throw("failed to execute statement ($sql) with parameter ".
-		     $ont->primary_key()." (PK to ".ref($ont->obj)."): ".
+		     $ont->primary_key()." (FK to ".ref($ont->obj)."): ".
 		     $sth->errstr);
     }
     # now build the transitive closure in a loop

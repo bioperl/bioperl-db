@@ -230,7 +230,7 @@ sub compute_transitive_closure{
 	$adp->debug("INSERT TC ONTOLOGY #1: $rv rows inserted\n");
     } else {
 	$self->throw("failed to execute statement ($sql) with parameter ".
-		     $ont->primary_key()." (PK to ".ref($ont->obj)."): ".
+		     $ont->primary_key()." (FK to ".ref($ont->obj)."): ".
 		     $sth->errstr);
     }
     # now build the transitive closure in a loop

@@ -89,6 +89,59 @@ password [undef]
 
 the DBI driver name for the RDBMS e.g., mysql, Pg, or Oracle [mysql]
 
+=item --dsn dsn
+
+Instead of providing the database connection and driver parameters
+individually, you may also specify the DBI-formatted DSN that is to be
+used verbatim for connecting to the database. Note that if you do give
+individual parameters in addition they will not supplant what is in
+the DSN string. Hence, the only database-related parameter that may be
+useful to specify in addition is --driver, as that is used also for
+selecting the driver-specific adaptors that generate SQL
+code. Usually, the driver will be parsed out from the DSN though and
+therefore will be set as well by setting the DSN.
+
+Consult the POD of your DBI driver for how to properly format the DSN
+for it. A typical example is dbi:Pg:dbname=biosql;host=foo.bar.edu
+(for PostgreSQL). Note that the DSN will be specific to the driver
+being used.
+
+=item --initrc paramfile
+
+Instead of, or in addition to, specifying every individual database
+connection parameter you may put them into a file that when read by
+perl evaluates to an array or hash reference. This option specifies
+the file to read; the special value DEFAULT (or no value) will use a
+file ./.bioperldb or $HOME/.bioperldb, whichever is found first in
+that order.
+
+Constructing a file that evaluates to a hash reference is very
+simple. The first non-space character needs to be an open curly brace,
+and the last non-space character a closing curly brace. In between the
+curly braces, write option name, followed by => (equal to or greater
+than), followed by the value in single quotes. Separate each such
+option/value pair by comma. Here is an example:
+
+{ 
+    -dbname => 'mybiosql', -host => 'foo.bar.edu', -user => 'cleo' 
+}
+
+Line breaks and white space don't matter (except if in the value
+itself). Also note that options only have a single dash as prefix, and
+they need to be those accepted by Bio::DB::BioDB->new()
+(L<Bio::DB::BioDB>) or Bio::DB::SimpleDBContext->new()
+(L<Bio::DB::SimpleDBContext>). Those sometimes differ slightly from the
+option names used by this script, e.g., --dbuser corresponds to -user.
+
+Note also that using the above example, you can use it for --initrc
+and still connect as user caesar by also supplying --dbuser caesar on
+the command line. I.e., command line arguments override any parameters
+also found in the initrc file.
+
+Finally, note that if using this option with default file name and the
+default file is not found at any of the default locations, the option
+will be ignored; it is not considered an error.
+
 =item --namespace $namesp 
 
 The namespace (name of the ontology) under which the terms and
@@ -309,6 +362,8 @@ my $dbpass;
 my $format = 'goflat';
 my $fmtargs = '';
 my $namespace = "bioperl ontology";
+my $initrc;              # use an initialization file for parameters?
+my $dsn;                 # DSN to use verbatim for connecting, if any
 my $mergefunc;           # if and how to merge old (found) and new objects
 # flags
 my $remove_flag = 0;     # remove object before creating?
@@ -351,8 +406,10 @@ my $ok = GetOptions( 'host:s'      => \$host,
 		     'dbname:s'    => \$dbname,
 		     'dbuser:s'    => \$dbuser,
 		     'dbpass:s'    => \$dbpass,
+                     'dsn=s'       => \$dsn,
 		     'format:s'    => \$format,
 		     'fmtargs=s'   => \$fmtargs,
+                     'initrc:s'    => \$initrc,
 		     'namespace:s' => \$namespace,
 		     'mergeobjs:s' => \$mergefunc,
 		     'safe'        => \$safe_flag,

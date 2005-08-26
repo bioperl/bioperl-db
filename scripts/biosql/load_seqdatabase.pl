@@ -20,17 +20,19 @@ load_seqdatabase.pl
 
 =head1 DESCRIPTION
 
-This script loads a Biosql database with sequences. There are a number of
-options that have to do with where the database is and how it's accessed
-and the format and namespace of the input files. These are followed by any number 
-of file names. The files are assumed to be formatted identically with the format 
-given by the --format flag. See below for more details.
+This script loads a Biosql database with sequences. There are a number
+of options that have to do with where the database is and how it's
+accessed and the format and namespace of the input files. These are
+followed by any number of file names. The files are assumed to be
+formatted identically with the format given by the --format flag. See
+below for more details.
 
 =head1 ARGUMENTS
 
 The arguments after the named options constitute the filelist. If
-there are no such files, input is read from stdin. Default values for each
-parameter are shown in square brackets. Note that --bulk is no longer available.
+there are no such files, input is read from stdin. Default values for
+each parameter are shown in square brackets. Note that --bulk is no
+longer available.
 
 =over 2
 
@@ -66,6 +68,59 @@ password [undef]
 =item --driver $driver
 
 the DBI driver name for the RDBMS e.g., mysql, Pg, or Oracle [mysql]
+
+=item --dsn dsn
+
+Instead of providing the database connection and driver parameters
+individually, you may also specify the DBI-formatted DSN that is to be
+used verbatim for connecting to the database. Note that if you do give
+individual parameters in addition they will not supplant what is in
+the DSN string. Hence, the only database-related parameter that may be
+useful to specify in addition is --driver, as that is used also for
+selecting the driver-specific adaptors that generate SQL
+code. Usually, the driver will be parsed out from the DSN though and
+therefore will be set as well by setting the DSN.
+
+Consult the POD of your DBI driver for how to properly format the DSN
+for it. A typical example is dbi:Pg:dbname=biosql;host=foo.bar.edu
+(for PostgreSQL). Note that the DSN will be specific to the driver
+being used.
+
+=item --initrc paramfile
+
+Instead of, or in addition to, specifying every individual database
+connection parameter you may put them into a file that when read by
+perl evaluates to an array or hash reference. This option specifies
+the file to read; the special value DEFAULT (or no value) will use a
+file ./.bioperldb or $HOME/.bioperldb, whichever is found first in
+that order.
+
+Constructing a file that evaluates to a hash reference is very
+simple. The first non-space character needs to be an open curly brace,
+and the last non-space character a closing curly brace. In between the
+curly braces, write option name, followed by => (equal to or greater
+than), followed by the value in single quotes. Separate each such
+option/value pair by comma. Here is an example:
+
+{ 
+    -dbname => 'mybiosql', -host => 'foo.bar.edu', -user => 'cleo' 
+}
+
+Line breaks and white space don't matter (except if in the value
+itself). Also note that options only have a single dash as prefix, and
+they need to be those accepted by Bio::DB::BioDB->new()
+(L<Bio::DB::BioDB>) or Bio::DB::SimpleDBContext->new()
+(L<Bio::DB::SimpleDBContext>). Those sometimes differ slightly from the
+option names used by this script, e.g., --dbuser corresponds to -user.
+
+Note also that using the above example, you can use it for --initrc
+and still connect as user caesar by also supplying --dbuser caesar on
+the command line. I.e., command line arguments override any parameters
+also found in the initrc file.
+
+Finally, note that if using this option with default file name and the
+default file is not found at any of the default locations, the option
+will be ignored; it is not considered an error.
 
 =item --namespace $namesp
 
@@ -240,6 +295,16 @@ If supplied with an integer argument n greater than zero, progress
 will be logged to stderr every n entries of the input file(s). Default
 is no progress logging.
 
+=item --debug
+
+Turn on verbose and debugging mode. This will produce a *lot* of
+logging output, hence you will want to capture the output in a
+file. This option is useful if you get some mysterious failure
+somewhere in the events of loading or updating a record, and you would
+like to see, e.g., precisely which SQL statement fails. Usually you
+turn on this option because you've been asked to do so by a person
+responding after you posted your problem to the Bioperl mailing list.
+
 =item -u, -z, or --uncompress
 
 Uncompress the input file(s) on-the-fly by piping them through
@@ -288,6 +353,8 @@ my $logchunk = 0;        # log progress after <x> entries (0 = don't)
 my $seqfilter;           # see conditions in Bio::Seq::SeqBuilder
 my $mergefunc;           # if and how to merge old (found) and new objects
 my $pipeline;            # see Bio::Factory::SequenceProcessorI
+my $initrc;              # use an initialization file for parameters?
+my $dsn;                 # DSN to use verbatim for connecting, if any
 #
 # flags
 #
@@ -326,8 +393,10 @@ my $ok = GetOptions( 'host=s'         => \$host,
                      'dbname=s'       => \$dbname,
                      'dbuser=s'       => \$dbuser,
                      'dbpass=s'       => \$dbpass,
+                     'dsn=s'          => \$dsn,
                      'format=s'       => \$format,
                      'fmtargs=s'      => \$fmtargs,
+                     'initrc:s'       => \$initrc,
                      'seqfilter:s'    => \$seqfilter,
                      'namespace=s'    => \$namespace,
                      'pipeline:s'     => \$pipeline,
@@ -421,6 +490,11 @@ if($pipeline) {
 }
 
 #
+# check whether we need to apply defaults
+#
+$initrc = "DEFAULT" unless $initrc || !defined($initrc);
+
+#
 # create the DBAdaptorI for our database
 #
 my $db = Bio::DB::BioDB->new(-database   => "biosql",
@@ -431,6 +505,8 @@ my $db = Bio::DB::BioDB->new(-database   => "biosql",
                              -driver     => $driver,
                              -user       => $dbuser,
                              -pass       => $dbpass,
+                             -dsn        => $dsn,
+                             -initrc     => $initrc,
                              );
 $db->verbose($debug) if $debug > 0;
 

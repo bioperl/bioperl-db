@@ -152,10 +152,12 @@ sub sequence_name{
 sub build_dsn{
     my ($self,$dbc) = @_;
 
-    my $dsn = "DBI:" . $dbc->driver() . ":database=" . $dbc->dbname();
-    $dsn .= ";host=" . $dbc->host() if $dbc->host();
-    $dsn .= ";port=" . $dbc->port() if $dbc->port();
-
+    my $dsn = $dbc->dsn();
+    if (! defined($dsn)) {
+        $dsn = "DBI:" . $dbc->driver() . ":database=" . $dbc->dbname();
+        $dsn .= ";host=" . $dbc->host() if $dbc->host();
+        $dsn .= ";port=" . $dbc->port() if $dbc->port();
+    }
     return $dsn;
 }
 

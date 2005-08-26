@@ -103,6 +103,9 @@ use Bio::DB::DBI;
                         oracle, or Pg)
              -user      the username for connecting
              -pass      the password for the user
+             -dsn       the DSN string to use verbatim for connecting;
+                        if supplied, other parameters will not change
+                        or add to the value (see method dsn())
 
 =cut
 
@@ -110,13 +113,15 @@ sub new {
     my($class,@args) = @_;
 
     my $self = $class->SUPER::new(@args);
-    my ($db,
+    my ($dsn,
+        $db,
         $host,
         $driver,
         $user,
         $password,
         $port,
-        ) = $self->_rearrange([qw(DBNAME
+        ) = $self->_rearrange([qw(DSN
+                                  DBNAME
 				  HOST
 				  DRIVER
 				  USER
@@ -124,13 +129,80 @@ sub new {
 				  PORT
 				  )],@args);
 
+    $self->dsn($dsn) if $dsn;
     $self->username( $user );
     $self->host( $host ) if defined($host);
-    $self->dbname( $db );
-    $self->driver($driver || 'mysql');
+    $self->dbname( $db ) if defined($db);
+    $self->driver($driver || "mysql") unless $self->driver();
     $self->password($password) if defined($password);
     $self->port($port) if defined($port);
     return $self;
+}
+
+=head2 dsn
+
+ Title   : dsn
+ Usage   : $obj->dsn($newval)
+ Function: Get/set the DSN for the database connection. 
+
+           The DSN typically contains all non-credential information
+           necessary to connect to the database, like driver, database
+           or instance name, host, etc. Therefore, setting the DSN
+           overrides any other individual properties set before. We
+           make an attempt to parse those properties out of the DSN
+           string, but, in accordance with the interface contract,
+           advise any client to use the dsn verbatim for connecting if
+           set and not try to rebuild it from the parsed out
+           properties.
+
+           I.e., if you set this property, setting any other
+           individual properties will not alter the DSN used for
+           connecting to the database. If you query the property, a
+           value will not be automatically constructed if only
+           individual properties have been set.
+
+ Example : 
+ Returns : value of dsn (a scalar)
+ Args    : on set, new value (a scalar or undef, optional)
+
+
+=cut
+
+sub dsn{
+    my $self = shift;
+
+    if (@_) {
+        my $dsn = shift;        
+        $self->{'dsn'} = $dsn;
+        if ($dsn) {
+            my @elts = split(/:/,$dsn);
+            shift(@elts);                # first element is dbi or DBI
+            $self->driver(shift(@elts)); # second is the driver
+                                         # the rest is less predictable ...
+            if (@elts && ($elts[0] =~ /^\w$/)) {  # just a plain dbname or sid?
+                $self->dbname(shift(@elts));
+            }
+            my @params = split(/;/,join(':',@elts));
+            foreach my $param (@params) {
+                # check for dbname
+                if ($param =~ /^(dbname|database|sid)=(.+)/) {
+                    $self->dbname($2);
+                    next;
+                }
+                # check for host
+                if ($param =~ /^(host=|hostname=|\@)(.+)/) {
+                    $self->host($2);
+                    next;
+                }
+                # check for port
+                if ($param =~ /^(port=|:)(\d+)/) {
+                    $self->port($2);
+                }
+                # anything else we could check for?
+            }
+        }
+    }
+    return $self->{'dsn'};
 }
 
 =head2 dbname
@@ -146,10 +218,9 @@ sub new {
 =cut
 
 sub dbname{
-    my ($self,$value) = @_;
-    if( defined $value) {
-	$self->{'dbname'} = $value;
-    }
+    my $self = shift;
+
+    return $self->{'dbname'} = shift if @_;
     return $self->{'dbname'};
 }
 
@@ -166,10 +237,9 @@ sub dbname{
 =cut
 
 sub driver{
-    my ($self,$value) = @_;
-    if( defined $value) {
-	$self->{'driver'} = $value;
-    }
+    my $self = shift;
+
+    return $self->{'driver'} = shift if @_;
     return $self->{'driver'};
 }
 
@@ -186,10 +256,9 @@ sub driver{
 =cut
 
 sub username {
-    my ($self,$value) = @_;
-    if( defined $value) {
-	$self->{'username'} = $value;
-    }
+    my $self = shift;
+
+    return $self->{'username'} = shift if @_;
     return $self->{'username'};
 }
 
@@ -206,10 +275,9 @@ sub username {
 =cut
 
 sub password{
-    my ($self,$value) = @_;
-    if( defined $value) {
-	$self->{'password'} = $value;
-    }
+    my $self = shift;
+
+    return $self->{'password'} = shift if @_;
     return $self->{'password'};
 }
 
@@ -245,10 +313,9 @@ sub host {
 =cut
 
 sub port{
-    my ($self,$value) = @_;
-    if( defined $value) {
-	$self->{'port'} = $value;
-    }
+    my $self = shift;
+
+    return $self->{'port'} = shift if @_;
     return $self->{'port'};
 }
 
@@ -267,10 +334,9 @@ sub port{
 =cut
 
 sub dbadaptor{
-    my ($self,$value) = @_;
-    if( defined $value) {
-	$self->{'dbadaptor'} = $value;
-    }
+    my $self = shift;
+
+    return $self->{'dbadaptor'} = shift if @_;
     return $self->{'dbadaptor'};
 }
 

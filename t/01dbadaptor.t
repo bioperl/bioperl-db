@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 13;
+    plan tests => 19;
 }
 
 use BioSQLBase;
@@ -32,6 +32,22 @@ my $dbh = $dbc->dbi()->new_connection($dbc);
 ok $dbh;
 my $rc = $dbh->ping();
 ok ($rc && ($rc ne '0 but true'));
+
+# test that the -dsn option works as advertised
+my $dsn = $dbc->dbi()->build_dsn($dbc); # that's what's used for connecting
+my $db2 = Bio::DB::BioDB->new(-database => "biosql", -dsn => $dsn);
+my $dbc2 = $db2->dbcontext;
+ok ($dbc2->dbi->build_dsn($dbc2), $dsn);
+$dbc2->host("i.dont.exist.com");
+$dbc2->port(9876);
+ok ($dbc2->dbi->build_dsn($dbc2), $dsn); # dsn is to be taken verbatim
+$db2 = undef;
+# test the dsn parsing results
+$dbc2 = Bio::DB::SimpleDBContext->new(-dsn => $dsn);
+ok ($dbc2->driver, $dbc->driver);
+ok ($dbc2->dbname, $dbc->dbname);
+ok ($dbc2->host, $dbc->host);
+ok ($dbc2->port, $dbc->port);
 
 # test that transaction control is active by trying to roll back
 my $ns = Bio::BioEntry->new(-namespace => "__dummy__", -authority => "nobody");

@@ -175,7 +175,9 @@ sub new {
             my %params = ();
             while (@$initrc) {
                 my $key = lc(shift(@$initrc));
-                $params{$key} = shift(@$initrc);
+                my $val = shift(@$initrc);
+                # don't let undefs override values possibly defined in %initrc
+                $params{$key} = $val if defined($val);
             }
             # check for our arguments; they may have come through the file
             $biodb = $params{-database} unless $biodb;

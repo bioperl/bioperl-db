@@ -69,6 +69,44 @@ use Bio::Root::RootI;
 @ISA = qw(Bio::Root::RootI);
 
 
+=head2 dsn
+
+ Title   : dsn
+ Usage   : $obj->dsn($newval)
+ Function: Get/set the DSN for the database connection. 
+
+           The DSN typically contains all non-credential information
+           necessary to connect to the database, like driver, database
+           or instance name, host, etc. Therefore, setting the DSN
+           overrides any other individual properties set before. An
+           implementation should make an attempt to parse those
+           properties out of the DSN string but is not mandated to do
+           so. Modules that use a DBContextI compliant object to
+           construct a DSN should instead use the value of this
+           property verbatim for connecting to the database, if it is
+           defined.
+
+           I.e., if you set this property, setting any other
+           individual properties will not alter the DSN used for
+           connecting to the database. If you query the property, a
+           value will not be automatically constructed if only
+           individual properties have been set. This is so because
+           constructing the proper DSN from individual properties is
+           driver-specific, and therefore cannot be done in a
+           driver-neutral module.
+
+ Example : 
+ Returns : value of dsn (a scalar)
+ Args    : on set, new value (a scalar or undef, optional)
+
+
+=cut
+
+sub dsn{
+    my ($self) = @_;
+    $self->throw_not_implemented();
+}
+
 =head2 dbname
 
  Title   : dbname

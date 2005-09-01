@@ -62,6 +62,7 @@ use strict;
 use Bio::Root::Root;
 use Bio::Root::IO;
 use Bio::DB::SimpleDBContext;
+use Scalar::Util qw(blessed);
 
 @ISA = qw(Bio::Root::Root);
 
@@ -159,7 +160,7 @@ sub new {
         $self->throw("unable to read file '$initrc': $!") if $!;
         $self->throw("'$initrc' failed to return an array ref or hash ref")
             unless $initrc || !ref($initrc);
-        if ($initrc->isa("Bio::DB::DBContextI")) {
+        if (blessed($initrc) && $initrc->isa("Bio::DB::DBContextI")) {
             # we allow this too
             $dbc = $initrc;
             $initrc = undef;

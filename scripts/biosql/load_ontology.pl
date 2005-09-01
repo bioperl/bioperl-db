@@ -118,12 +118,13 @@ that order.
 Constructing a file that evaluates to a hash reference is very
 simple. The first non-space character needs to be an open curly brace,
 and the last non-space character a closing curly brace. In between the
-curly braces, write option name, followed by => (equal to or greater
-than), followed by the value in single quotes. Separate each such
-option/value pair by comma. Here is an example:
+curly braces, write option name enclosed by single quotes, followed by
+=> (equal to or greater than), followed by the value in single
+quotes. Separate each such option/value pair by comma. Here is an
+example:
 
 { 
-    -dbname => 'mybiosql', -host => 'foo.bar.edu', -user => 'cleo' 
+    '-dbname' => 'mybiosql', '-host' => 'foo.bar.edu', '-user' => 'cleo' 
 }
 
 Line breaks and white space don't matter (except if in the value
@@ -355,9 +356,9 @@ use Bio::Root::RootI;
 # Defaults for options changeable through command line
 ####################################################################
 my $host; # should make the driver to default to localhost
-my $dbname = "biosql";
-my $dbuser = "root";
-my $driver = 'mysql';
+my $dbname;
+my $dbuser;
+my $driver;
 my $dbpass;
 my $format = 'goflat';
 my $fmtargs = '';

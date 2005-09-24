@@ -87,7 +87,7 @@ password [undef]
 
 =item --driver $driver
 
-the DBI driver name for the RDBMS e.g., mysql, Pg, or Oracle [mysql]
+the DBI driver name for the RDBMS e.g., mysql, Pg, or Oracle
 
 =item --dsn dsn
 
@@ -490,6 +490,11 @@ while($i+1 < @fmtargs) {
 }
 
 #
+# check whether we need to apply defaults
+#
+$initrc = "DEFAULT" unless $initrc || !defined($initrc);
+
+#
 # create the DBAdaptorI for our database
 #
 my $db = Bio::DB::BioDB->new(-database   => "biosql",
@@ -499,6 +504,8 @@ my $db = Bio::DB::BioDB->new(-database   => "biosql",
 			     -driver     => $driver,
 			     -user       => $dbuser,
 			     -pass       => $dbpass,
+                             -dsn        => $dsn,
+                             -initrc     => $initrc,
 			     );
 $db->verbose($debug) if $debug > 0;
 

@@ -124,7 +124,7 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("authors","title","location","doc_id","start","end");
+    return ("authors","title","location","doc_id","start","end","rank");
 }
 
 =head2 get_persistent_slot_values
@@ -160,7 +160,8 @@ sub get_persistent_slot_values {
 		$obj->location(),
 		$self->_crc64($obj),
 		$obj->start(),
-		$obj->end()
+		$obj->end(),
+                $obj->can('rank') ? $obj->rank() : undef,
 		);
     return \@vals;
 }
@@ -321,6 +322,12 @@ sub instantiate_from_row{
 	} else {
 	    $obj = Bio::Annotation::Reference->new();
 	}
+        # in order to store rank we need a persistent object - sooner or later
+        # it will be turned into one anyway
+        if (!$obj->isa("Bio::DB::PersistentObjectI")) {
+            $obj = $self->create_persistent($obj);
+        }
+        # now populate
 	$self->populate_from_row($obj, $row);
     }
     return $obj;
@@ -359,6 +366,7 @@ sub populate_from_row{
 	$obj->location($row->[3]) if $row->[3];
 	$obj->start($row->[5]) if $row->[5];
 	$obj->end($row->[6]) if $row->[6];
+        $obj->rank($row->[7]) if $row->[7] && $obj->can('rank');
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($row->[0]);
 	}

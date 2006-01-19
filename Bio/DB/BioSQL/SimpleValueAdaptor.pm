@@ -103,7 +103,7 @@ use Bio::Annotation::SimpleValue;
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("tagname", "value");
+    return ("tagname", "value", "rank");
 }
 
 =head2 get_persistent_slot_values
@@ -127,7 +127,8 @@ sub get_persistent_slots{
 sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
     my @vals = ($obj->tagname(),
-		$obj->value()
+		$obj->value(),
+                $obj->can('rank') ? $obj->rank() : undef,
 		);
     return \@vals;
 }
@@ -305,6 +306,12 @@ sub instantiate_from_row{
 	} else {
 	    $obj = Bio::Annotation::SimpleValue->new();
 	}
+        # in order to store rank we need a persistent object - sooner or later
+        # it will be turned into one anyway
+        if (!$obj->isa("Bio::DB::PersistentObjectI")) {
+            $obj = $self->create_persistent($obj);
+        }
+        # now populate
 	$self->populate_from_row($obj, $row);
     }
     return $obj;
@@ -328,16 +335,17 @@ sub instantiate_from_row{
 =cut
 
 sub populate_from_row{
-    my ($self,$obj,$rows) = @_;
+    my ($self,$obj,$row) = @_;
 
     if(! ref($obj)) {
 	$self->throw("\"$obj\" is not an object. Probably internal error.");
     }
-    if($rows && @$rows) {
-	$obj->tagname($rows->[1]) if $rows->[1];
-	$obj->value($rows->[2]) if defined($rows->[2]);
+    if($row && @$row) {
+	$obj->tagname($row->[1]) if $row->[1];
+	$obj->value($row->[2]) if defined($row->[2]);
+        $obj->rank($row->[3]) if $row->[3] && $obj->can('rank');
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
-	    $obj->primary_key($rows->[0]);
+	    $obj->primary_key($row->[0]);
 	}
 	return $obj;
     }

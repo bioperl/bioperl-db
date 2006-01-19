@@ -124,7 +124,7 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("identifier", "name", "definition","is_obsolete");
+    return ("identifier","name","definition","is_obsolete","rank");
 }
 
 =head2 get_persistent_slot_values
@@ -161,7 +161,8 @@ sub get_persistent_slot_values {
     my @vals = ($obj->identifier(),
 		$obj->name(),
 		$obj->definition(),
-		$obj->is_obsolete() ? 'X' : undef
+		$obj->is_obsolete() ? 'X' : undef,
+                $obj->can('rank') ? $obj->rank() : undef,
 		);
     return \@vals;
 }
@@ -395,6 +396,12 @@ sub instantiate_from_row{
 	} else {
 	    $obj = Bio::Ontology::Term->new();
 	}
+        # in order to store rank we need a persistent object - sooner or later
+        # it will be turned into one anyway
+        if (!$obj->isa("Bio::DB::PersistentObjectI")) {
+            $obj = $self->create_persistent($obj);
+        }
+        # now populate
 	$self->populate_from_row($obj, $row);
     }
     return $obj;
@@ -419,18 +426,19 @@ sub instantiate_from_row{
 =cut
 
 sub populate_from_row{
-    my ($self,$obj,$rows) = @_;
+    my ($self,$obj,$row) = @_;
 
     if(! ref($obj)) {
 	$self->throw("\"$obj\" is not an object. Probably internal error.");
     }
-    if($rows && @$rows) {
-	$obj->identifier($rows->[1]) if $rows->[1];
-	$obj->name($rows->[2]) if $rows->[2];
-	$obj->definition($rows->[3]) if $rows->[3];
-	$obj->is_obsolete($rows->[4]) if $rows->[4];
+    if($row && @$row) {
+	$obj->identifier($row->[1]) if $row->[1];
+	$obj->name($row->[2]) if $row->[2];
+	$obj->definition($row->[3]) if $row->[3];
+	$obj->is_obsolete($row->[4]) if $row->[4];
+        $obj->rank($row->[5]) if $row->[5] && $obj->can('rank');
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
-	    $obj->primary_key($rows->[0]);
+	    $obj->primary_key($row->[0]);
 	}
 	return $obj;
     }

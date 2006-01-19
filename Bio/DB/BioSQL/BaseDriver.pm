@@ -252,6 +252,7 @@ my %slot_attribute_map = (
 	     "database"       => "dbname",
 	     "primary_id"     => "accession",
 	     "version"        => "version",
+             "rank"           => "=>{bioentry_dbxref,seqfeature_dbxref,term_dbxref}.rank",
 	 },
 	 "bioentry_dbxref" => {
 	     "rank"           => "rank",
@@ -268,6 +269,7 @@ my %slot_attribute_map = (
 	     "doc_id"         => "crc",
 	     "start"          => "=>bioentry_reference.start",
 	     "end"            => "=>bioentry_reference.end",
+	     "rank"           => "=>bioentry_reference.rank",
 	 },
 	 "bioentry_reference" => {
 	     "start"          => "start_pos",
@@ -286,6 +288,7 @@ my %slot_attribute_map = (
 	     "is_obsolete"    => "is_obsolete",
              "definition"     => "definition",
 	     "value"          => "=>{bioentry_qualifier_value,seqfeature_qualifier_value}.value",
+	     "rank"           => "=>{bioentry_qualifier_value,seqfeature_qualifier_value}.rank",
 	     "ontology"       => "ontology_id",
 	     # these are for context-sensitive FK name resolution
              # term relationships:
@@ -294,7 +297,7 @@ my %slot_attribute_map = (
 	     "object"         => "object_term_id",
              # seqfeatures:
              "primary_tag"    => "type_term_id",
-             "source_tag"     => "source_term_id",
+             "source_tag"     => "source_term_id",             
 	 },
 	 # term_synonym is more a hack - it doesn't correspond to an object
 	 # in bioperl, but this does let you specify your column naming

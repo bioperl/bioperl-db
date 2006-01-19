@@ -130,7 +130,7 @@ sub new{
 sub get_persistent_slots{
     my ($self,@args) = @_;
 
-    return ("database", "primary_id", "version");
+    return ("database", "primary_id", "version", "rank");
 }
 
 =head2 get_persistent_slot_values
@@ -163,7 +163,8 @@ sub get_persistent_slot_values {
     my ($self,$obj,$fkobjs) = @_;
     my @vals = ($obj->database(),
 		$obj->primary_id(),
-		$obj->version() || 0
+		$obj->version() || 0,
+                $obj->can('rank') ? $obj->rank() : undef,
 		);
     return \@vals;
 }
@@ -266,6 +267,12 @@ sub instantiate_from_row{
 	} else {
 	    $obj = Bio::Annotation::DBLink->new();
 	}
+        # in order to store rank we need a persistent object - sooner or later
+        # it will be turned into one anyway
+        if (!$obj->isa("Bio::DB::PersistentObjectI")) {
+            $obj = $self->create_persistent($obj);
+        }
+        # now populate
 	$self->populate_from_row($obj, $row);
     }
     return $obj;
@@ -302,6 +309,7 @@ sub populate_from_row{
 	$obj->database($row->[1]) if $row->[1];
 	$obj->primary_id($row->[2]) if $row->[2];
 	$obj->version($row->[3]) if $row->[3];
+        $obj->rank($row->[4]) if $row->[4] && $obj->can('rank');
 	if($obj->isa("Bio::DB::PersistentObjectI")) {
 	    $obj->primary_key($row->[0]);
 	}

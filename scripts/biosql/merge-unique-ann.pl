@@ -14,16 +14,26 @@ sub {
     if($old->isa("Bio::AnnotatableI")) {
 	# remove the old ones from the object (this doesn't remove them
 	# from the database, nor does it remove the associations)
-	my @anns = $old->annotation->remove_Annotations();
-	my $r = 1;
-	foreach (@anns) { $r = $_->rank if $_->rank > $r; }
-	foreach my $ann ($new->annotation->get_Annotations()) {
-	    # only add on those that weren't there yet (i.e., don't
-	    # update annotations, just add new ones)
-	    if(! grep { $_->as_text() eq $ann->as_text(); } @anns) {
+        my $oanncoll = $old->annotation();
+        my %annkeys = map { ($_,1); } (
+            $oanncoll->get_all_annotation_keys(),
+            $new->annotation->get_all_annotation_keys()
+        );
+        foreach my $annkey (keys(%annkeys)) {
+            my @anns = $oanncoll->remove_Annotations($annkey);
+            my %annmap = ();
+            my $r = 0;
+            foreach (@anns) { 
+                $r = $_->rank if $_->rank > $r;
+                $annmap{$_->as_text()} = 1;
+            }
+            foreach my $ann ($new->annotation->get_Annotations($annkey)) {
+                # only add on those that weren't there yet (i.e., don't
+                # update annotations, just add new ones)
+                next if exists($annmap{$ann->as_text});
 		$ann = $db->create_persistent($ann);
 		$ann->rank(++$r);
-		$old->annotation->add_Annotation($ann);
+		$oanncoll->add_Annotation($ann);
 	    }
 	}
     }

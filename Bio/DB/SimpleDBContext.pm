@@ -179,7 +179,7 @@ sub dsn{
             shift(@elts);                # first element is dbi or DBI
             $self->driver(shift(@elts)); # second is the driver
                                          # the rest is less predictable ...
-            if (@elts && ($elts[0] =~ /^\w$/)) {  # just a plain dbname or sid?
+            if (@elts && ($elts[0] =~ /^\w+$/)) { # just a plain dbname or sid?
                 $self->dbname(shift(@elts));
             }
             my @params = split(/;/,join(':',@elts));

@@ -608,9 +608,10 @@ foreach $file ( @files ) {
             # on update, skip the rest if we are not supposed to update
             if(! ($lseq && $no_update_flag)) {
                 # create a persistent object out of the seq if it's
-                # not one already (merge_objs may have touched it)
-                $pseq = $db->create_persistent($seq)
-                    unless $seq->isa("Bio::DB::PersistentObjectI");
+                # not one already (merge_objs may have returned the
+                # looked up sequence, i.e., $lseq)
+                $pseq = $seq->isa("Bio::DB::PersistentObjectI") 
+                    ? $seq : $db->create_persistent($seq);
                 # store the primary key of what we found by lookup (this
                 # is going to be an udate then)
                 if($lseq && $lseq->primary_key) {

@@ -2,27 +2,12 @@
 
 bioperl-db INSTALLATION
 
-GET THE RIGHT BIOPERL
+INSTALL THE RIGHT BIOPERL
 
-You need at least the latest bioperl release of the 1.2.x series
-(currently no earlier than 1.2.1) for the whole functionality to
-work. The previous stable branch 1.0.x or the development series 
-1.1.1 will not suffice.
-
-If you are using the 1.2.1 release of bioperl you need to apply 
-a small patch that comes with bioperl-db, onto-term.patch. Change 
-directory into the root of your Bioperl source tree, than issue the 
-following command, replacing the path with what is appropriate for 
-your download:
-
-  >patch -p0 < /path/to/bioperl-db/onto-term.patch
-
-Update: The current latest release of bioperl is 1.5.0. The 1.2.x
-series hasn't been tested anymore for more than a year and may not
-work anymore. The 1.4.0 release is known to work, but has a problem in
-the ontology IO code for parsing GO. Choose either to download bioperl
-from the 1.4 branch per CVS (the ontology IO is fixed on the branch),
-or use 1.5.0, or, if available, the 1.6.x release series.
+You need at least Bioperl version 1.4* but 1.4 has a problem 
+in the ontology IO code for parsing GO, version 1.5* is preferable. 
+Versions earlier than 1.4 will not work. See http://bioperl.org
+for instructions.
 
 
 INSTALL BIOSQL
@@ -43,7 +28,7 @@ Download the bioperl-db archive, then extract its contents. Example:
   >cd bioperl-db
 
 where <release-version> is the current release. Note that at present
-there is no current release and you will need to download bioperl-db
+there is no versioned release and you will need to download bioperl-db
 through CVS.
 
 If you are on Windows, see the respective section at the end of this
@@ -63,10 +48,10 @@ The 'make install' step may require that you have root privileges.
 
 LOAD THE NCBI TAXONOMY
 
-It is advisable to pre-load the NCBI taxonomy database using the
-scripts/load_ncbi_taxonomy.pl script in the BioSQL package. Otherwise 
-you may see errors from mis-parsed organisms when you attempt to load 
-sequences.
+You should pre-load the NCBI taxonomy database using the
+scripts/load_ncbi_taxonomy.pl script in the BioSQL package. 
+Otherwise you will see errors from mis-parsed organisms when you 
+attempt to load sequences.
 
 
 LOAD SEQUENCE DATA
@@ -118,7 +103,7 @@ bioperl-l@bioperl.org  ;-)
 INSTALLING bioperl-db ON WINDOWS
 
 The following is a report sent by Chris Fields, cjfields at uiuc.edu.
-=====================================================================
+=========================================
 I have installed bioperl-db on Windows XP without a problem (although
 I plan on switching over to MacOSX within a year!).  Basically, here's
 what I did:
@@ -193,4 +178,4 @@ think Cygwin is a good alternative (the installation is exactly like
 the instructions).
 
 Chris
-=====================================================================
+==========================================

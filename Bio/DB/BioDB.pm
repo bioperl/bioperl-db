@@ -23,21 +23,20 @@ Bio::DB::BioDB - class creating the adaptor factory for a particular database
 =head1 SYNOPSIS
 
     $dbadp = Bio::DB::BioDB->new(
-			-database => 'biosql'
+			               -database => 'biosql',
                         -user     => 'root',
                         -dbname   => 'pog',
                         -host     => 'caldy',
-			-port     => 3306,    # optional
-                        -driver   => 'mysql',
+			               -port     => 3306,    # optional
+                        -driver   => 'mysql'
 	    );
 
 
 =head1 DESCRIPTION
 
 This object represents a database that is implemented somehow (you
-shouldn't care much as long as you can get the object). From the
+should not care much as long as you can get the object). From the
 object you can pull out other adapters, such as the BioSeqAdapter etc.
-
 
 =head1 CONTACT
 
@@ -67,7 +66,7 @@ use Scalar::Util qw(blessed);
 @ISA = qw(Bio::Root::Root);
 
 my %db_map = ("biosql" => "Bio::DB::BioSQL::",
-	      "map"    => "Bio::DB::Map::");
+				  "map"    => "Bio::DB::Map::");
 
 my $default_prefix = "Bio::DB::";
 my $initrc_name = ".bioperldb";

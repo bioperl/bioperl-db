@@ -24,24 +24,24 @@ Bio::DB::Query::BioQuery - Object representing a query on a bioperldb
   # all mouse sequences loaded under namespace ensembl that
   # have receptor in their description
   $query->datacollections(["Bio::PrimarySeqI e",
-			 "Bio::Species=>Bio::PrimarySeqI sp",
-			 "BioNamespace=>Bio::PrimarySeqI db"]);
+			 "Bio::Species => Bio::PrimarySeqI sp",
+			 "BioNamespace => Bio::PrimarySeqI db"]);
   $query->where(["sp.binomial like 'Mus *'",
-	         "e.desc like '*receptor*'",
+	              "e.desc like '*receptor*'",
                  "db.namespace = 'ensembl'"]);
 
   # all mouse sequences loaded under namespace ensembl that
   # have receptor in their description, and that also have a
   # cross-reference with SWISS as the database
   $query->datacollections(["Bio::PrimarySeqI e",
-			 "Bio::Species=>Bio::PrimarySeqI sp",
-			 "BioNamespace=>Bio::PrimarySeqI db",
+			 "Bio::Species => Bio::PrimarySeqI sp",
+			 "BioNamespace => Bio::PrimarySeqI db",
 			 "Bio::Annotation::DBLink xref",
-			 "Bio::PrimarySeqI<=>Bio::Annotation::DBLink"]);
+			 "Bio::PrimarySeqI <=> Bio::Annotation::DBLink"]);
   $query->where(["sp.binomial like 'Mus *'",
-	         "e.desc like '*receptor*'",
-	         "db.namespace = 'ensembl'",
-	         "xref.database = 'SWISS'"]);
+	              "e.desc like '*receptor*'",
+	              "db.namespace = 'ensembl'",
+	              "xref.database = 'SWISS'"]);
 
   # find a bioentry by primary key
   $query->datacollections(["Bio::PrimarySeqI]);
@@ -59,10 +59,10 @@ Bio::DB::Query::BioQuery - Object representing a query on a bioperldb
 =head1 DESCRIPTION
 
 A BioQuery is a high level query on a biological database. It allows
-queries to be specified regardelss of the underlying schema. Although
-a BioQuery can be translated into a corresponding SqlQuery or series
-of SqlQuerys, it is not always desirable to do so; rather the BioQuery
-should be translated into SqlQuerys one at a time, the SqlQuery
+queries to be specified regardless of the underlying schema. Although
+a BioQuery can be translated into a corresponding SQL query or series
+of SQL queries, it is not always desirable to do so; rather the BioQuery
+should be translated into SQL querys one at a time, the SQL query
 executed and the results fed back to the BioQuery processor.
 
 It is the job of the various adaptors to turn BioQuerys into resulting
@@ -71,13 +71,13 @@ Bio objects via these transformations.
 A BioQuery can be specified either as a text string which is converted
 into a BioQuery object via some grammar, or the object can be created
 and manipulated directly. The text string would be some kind of
-sqlesque language, one can imagine different languages with different
+language like SQL, one can imagine different languages with different
 grammars.
 
-Other than being more high level, a BioQuery differs from a SqlQuery
+Other than being more high level, a BioQuery differs from a SQL Query
 in that it is object based, not table based.
 
-the BioQuery is a schema independent repesentation of a query; it may
+The BioQuery is a schema-independent representation of a query; it may
 or may not be tied to the bioperl object model.
 
 =head1 STATUS
@@ -91,14 +91,14 @@ into a BioQuery object; objects have to be built manually
 At the moment, everything in this object apart from the query
 constraints (the $bioquery-E<gt>where() method) are ignored.
 
-
 =head1 CONTACT
 
 Chris Mungall, cmungall@fruitfly.org
 
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object methods. Internal 
+methods are usually preceded with a _
 
 =cut
 
@@ -115,22 +115,25 @@ use Bio::DB::Query::AbstractQuery;
 
 =head2 new
 
-  Usage:  $bioq = $self->new("SELECT bioentry.* FROM bioentry WHERE species='Human'");  # NOT IMPLEMENTED
-      OR  $bioq = $self->new(-select=>["att1", "att2"],
-			     -where=>["att3='val1'", "att4='val4'"]);
-      OR  $bioq = $self->new(-where=>{species=>'human'});
+  Usage:  $bioq = $self->new(-select => ["att1", "att2"],
+			                    -where  => ["att3='val1'", "att4='val4'"]);
+
+      OR  $bioq = $self->new(-where => {species=>'human'});
+
+          # NOT IMPLEMENTED:
+          $bioq = $self->new("SELECT bioentry.* FROM bioentry WHERE species='Human'");  
 
   Args: objects, where, select, order, group
 
-all arguments are optional (select defaults to *)
+        All arguments are optional (select defaults to *).
 
-the arguments can either be array references or a comma delimited string
+        The arguments can either be array references or a comma delimited string.
 
-the where argument can also be passed as a hash reference
+        The where argument can also be passed as a hash reference.
 
-the from/objects array is optional because this is usually derived
-from the context eg the database adapter used. if used outside this
-context the object is required.
+        The from/objects array is optional because this is usually derived
+        from the context eg the database adapter used. if used outside this
+        context the object is required.
 
 =cut
 

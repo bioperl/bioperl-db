@@ -51,9 +51,8 @@ the Bioperl mailing list.  Your participation is much appreciated.
 
 Report bugs to the Bioperl bug tracking system to help us keep track
 of the bugs and their resolution. Bug reports can be submitted via
-email or the web:
+the web:
 
-  bioperl-bugs@bioperl.org
   http://bugzilla.open-bio.org/
 
 =head1 AUTHOR - Hilmar Lapp
@@ -101,7 +100,6 @@ use Bio::DB::DBI::Transaction;
  Function: Builds a new Bio::DB::BioSQL::BasePersistenceAdaptor object 
  Returns : an instance of Bio::DB::BioSQL::BasePersistenceAdaptor
  Args    :
-
 
 =cut
 
@@ -238,7 +236,6 @@ sub create{
            parameters. A common parameter will
            be -fkobjs, with a reference to an array of foreign key objects
            that are not retrievable from the persistent object itself.
-
 
 =cut
 
@@ -1180,8 +1177,6 @@ sub find_by_association{
                          having a foreign key to the entity handled by
                          this adaptor) if value evaluates to true
                          (default: false)
-
-
 
 =cut
 

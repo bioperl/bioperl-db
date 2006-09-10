@@ -51,9 +51,8 @@ the Bioperl mailing list.  Your participation is much appreciated.
 
 Report bugs to the Bioperl bug tracking system to help us keep track
 of the bugs and their resolution. Bug reports can be submitted via
-email or the web:
+the web:
 
-  bioperl-bugs@bioperl.org
   http://bugzilla.open-bio.org/
 
 =head1 AUTHOR - Hilmar Lapp
@@ -373,7 +372,6 @@ my %dont_select_attrs = (
  Returns : an instance of Bio::DB::BioSQL::BaseDriver
  Args    :
 
-
 =cut
 
 sub new {
@@ -479,7 +477,6 @@ sub prepare_findbypk_sth{
            unique key as keys and their values as values.
            A reference to an array of foreign key objects or slots 
            (class names if slot).
-
 
 =cut
 

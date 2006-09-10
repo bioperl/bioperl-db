@@ -44,7 +44,7 @@ Describe the object here
 
 User feedback is an integral part of the evolution of this
 and other Bioperl modules. Send your comments and suggestions preferably
- to one of the Bioperl mailing lists.
+to one of the Bioperl mailing lists.
 Your participation is much appreciated.
 
   bioperl-l@bio.perl.org
@@ -52,10 +52,8 @@ Your participation is much appreciated.
 =head2 Reporting Bugs
 
 Report bugs to the Bioperl bug tracking system to help us keep track
- the bugs and their resolution.
- Bug reports can be submitted via email or the web:
+the bugs and their resolution. Bug reports can be submitted via the web:
 
-  bioperl-bugs@bio.perl.org
   http://bugzilla.open-bio.org/
 
 =head1 AUTHOR - Ewan Birney, Hilmar Lapp
@@ -65,7 +63,8 @@ Email hlapp at gmx.net
 
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object methods. 
+Internal methods are usually preceded with a _
 
 =cut
 
@@ -184,7 +183,6 @@ sub get_foreign_key_objects{
            child objects shall be made persistent.
            A reference to an array of foreign key values, in the order of
            foreign keys returned by get_foreign_key_objects().
-
 
 =cut
 

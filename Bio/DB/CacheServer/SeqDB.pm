@@ -37,11 +37,10 @@ of the Bioperl mailing lists.  Your participation is much appreciated.
 =head2 Reporting Bugs
 
 Report bugs to the Bioperl bug tracking system to help us keep track
-the bugs and their resolution.  Bug reports can be submitted via email
-or the web:
+the bugs and their resolution.  Bug reports can be submitted via 
+the web:
 
-  bioperl-bugs@bio.perl.org
-  http://bio.perl.org/bioperl-bugs/
+  http://bugzilla.open-bio.org/
 
 =head1 AUTHOR - Ewan Birney
 
@@ -113,7 +112,7 @@ sub new {
 }
 
 
-=head1 Methods inherieted from Bio::DB::RandomAccessI
+=head1 Methods inherited from Bio::DB::RandomAccessI
 
 =head2 get_Seq_by_id
 

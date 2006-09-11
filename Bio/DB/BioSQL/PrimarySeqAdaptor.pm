@@ -53,10 +53,8 @@ Your participation is much appreciated.
 =head2 Reporting Bugs
 
 Report bugs to the Bioperl bug tracking system to help us keep track
- the bugs and their resolution.
- Bug reports can be submitted via email or the web:
+the bugs and their resolution. Bug reports can be submitted via the web:
 
-  bioperl-bugs@bio.perl.org
   http://bio.perl.org/bioperl-bugs/
 
 =head1 AUTHOR - Ewan Birney, Hilmar Lapp
@@ -68,7 +66,8 @@ Describe contact details here
 
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object methods. 
+Internal methods are usually preceded with a _
 
 =cut
 
@@ -464,7 +463,7 @@ sub get_biosequence{
            I.e., call from descendants, but not from outside.
  Example : 
  Returns : value of _bioseq_adaptor (a Bio::DB::PersistenceAdaptorI
-	   instance)
+	        instance)
  Args    : new value (a Bio::DB::PersistenceAdaptorI instance, optional)
 
 

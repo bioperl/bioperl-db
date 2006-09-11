@@ -44,7 +44,7 @@ Describe the object here
 
 User feedback is an integral part of the evolution of this
 and other Bioperl modules. Send your comments and suggestions preferably
- to one of the Bioperl mailing lists.
+to one of the Bioperl mailing lists.
 Your participation is much appreciated.
 
   bioperl-l@bio.perl.org
@@ -52,10 +52,8 @@ Your participation is much appreciated.
 =head2 Reporting Bugs
 
 Report bugs to the Bioperl bug tracking system to help us keep track
- the bugs and their resolution.
- Bug reports can be submitted via email or the web:
+the bugs and their resolution. Bug reports can be submitted via the web:
 
-  bioperl-bugs@bio.perl.org
   http://bugzilla.open-bio.org/
 
 =head1 AUTHOR - Ewan Birney, Hilmar Lapp
@@ -65,7 +63,8 @@ Email hlapp at gmx.net
 
 =head1 APPENDIX
 
-The rest of the documentation details each of the object methods. Internal methods are usually preceded with a _
+The rest of the documentation details each of the object methods. 
+Internal methods are usually preceded with a _
 
 =cut
 
@@ -90,8 +89,8 @@ use Bio::Seq::SeqFactory;
 
  Title   : get_persistent_slots
  Usage   :
- Function: Get the slots of the object that map to attributes in its respective
-           entity in the datastore.
+ Function: Get the slots of the object that map to attributes in its
+           respective entity in the datastore.
 
            Slots should be methods callable without an argument.
 
@@ -122,7 +121,6 @@ sub get_persistent_slots{
            A reference to an array of foreign key objects if not retrievable 
            from the object itself.
 
-
 =cut
 
 sub get_persistent_slot_values {
@@ -138,8 +136,8 @@ sub get_persistent_slot_values {
 
  Title   : get_foreign_key_objects
  Usage   :
- Function: Gets the objects referenced by this object, and which therefore need
-           to be referenced as foreign keys in the datastore.
+ Function: Gets the objects referenced by this object, and which therefore
+           need to be referenced as foreign keys in the datastore.
 
            This implementation takes care of the species.
  Example :

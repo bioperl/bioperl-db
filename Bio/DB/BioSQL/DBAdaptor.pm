@@ -4,7 +4,8 @@
 
 =head1 NAME
 
-Bio::DB::BioSQL::DBAdapter - Object representing an instance of a bioperl database
+Bio::DB::BioSQL::DBAdapter - Object representing an instance of a 
+bioperl database
 
 =head1 SYNOPSIS
 
@@ -58,7 +59,6 @@ use Bio::Root::Root;
 use Bio::DB::DBAdaptorI;
 use Bio::DB::PersistenceAdaptorI;
 use Bio::DB::Persistent::PersistentObject;
-
 use DBI;
 use FileHandle;
 

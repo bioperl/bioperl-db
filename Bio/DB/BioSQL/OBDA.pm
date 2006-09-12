@@ -77,7 +77,7 @@ use Bio::DB::RandomAccessI;
 
  Title   : new_from_registry
  Usage   : 
- Function: Create a query object that can be used by OBDA
+ Function: Create a database object that can be used by OBDA
  Returns : 
  Args    : Hash containing connection parameters read from an OBDA
            registry file

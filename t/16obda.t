@@ -42,6 +42,7 @@ my $pseq = $db->create_persistent($seq);
 $pseq->namespace("mytestnamespace");
 $pseq->store();
 ok $pseq->primary_key();
+$pseq->commit;
 
 # try/finally block
 eval {

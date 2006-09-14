@@ -13,7 +13,8 @@ BEGIN {
     use Test;    
     plan tests => 12;
 
-	 $old_obda_path = $ENV{OBDA_SEARCH_PATH} if defined $ENV{OBDA_SEARCH_PATH};
+	 $old_obda_path = $ENV{OBDA_SEARCH_PATH} 
+		if defined $ENV{OBDA_SEARCH_PATH};
 	 $ENV{OBDA_SEARCH_PATH} = 't/data/';
 }
 
@@ -40,7 +41,7 @@ my $seq = $seqio->next_seq();
 ok $seq;
 my $pseq = $db->create_persistent($seq);
 $pseq->namespace("mytestnamespace");
-$pseq->store();
+$pseq->store(); # this will raise warnings if there are duplicates
 ok $pseq->primary_key();
 $pseq->commit;
 
@@ -69,7 +70,7 @@ ok ($ns->remove(), 1);
 
 END {
 	unlink $registry_file if (-e $registry_file);
-	 $ENV{OBDA_SEARCH_PATH} = $old_obda_path if defined $old_obda_path;
+	$ENV{OBDA_SEARCH_PATH} = $old_obda_path if defined $old_obda_path;
 }
 
 sub write_registry {

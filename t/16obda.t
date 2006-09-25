@@ -67,6 +67,7 @@ my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pseq);
 ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);
 ok $ns->primary_key();
 ok ($ns->remove(), 1);
+$ns->commit;
 
 END {
 	unlink $registry_file if (-e $registry_file);

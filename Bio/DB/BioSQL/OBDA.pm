@@ -52,7 +52,7 @@ the bugs and their resolution. Bug reports can be submitted via the web:
 
 =head1 AUTHOR - Brian Osborne
 
-Email osborne1 at optonline.net
+Email bosborne at alum.mit.edu
 
 =head1 APPENDIX
 
@@ -64,14 +64,10 @@ methods are usually preceded with a _
 # Let the code begin...
 
 package Bio::DB::BioSQL::OBDA;
-use vars qw(@ISA);
 use strict;
-use Bio::Root::Root;
 use Bio::DB::Query::BioQuery;
 use Bio::DB::BioDB;
-use Bio::DB::RandomAccessI;
-
-@ISA = qw(Bio::DB::RandomAccessI Bio::Root::Root);
+use base qw(Bio::Root::Root Bio::DB::RandomAccessI);
 
 =head2 new_from_registry
 

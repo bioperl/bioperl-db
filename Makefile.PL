@@ -12,6 +12,9 @@
 # All Bioperl-db dependencies on external modules are defined here
 %packages =(
     'DBI' => '0.0/Database Access/this entire package/',
+    # Odd, the following results in a warning:
+    # Warning: prerequisite Bio::Root::Root 0 not found. We have -1, set by base.pm.
+    #'Bio::Root::Root' => '0.0/Bioperl//',
 ); 
 
 sub check_package {
@@ -20,6 +23,10 @@ sub check_package {
 
     ($ver,$desc,$expl,$module) = split( /\// , $str);
     if( !eval "require $name") {
+    	if ($name eq 'Bio::Root::Root') {
+	  print "Bioperl-db absolutely needs Bioperl to work - It makes no sense without it\n";
+	  exit(0);
+	}
 	print "External Module $name, $desc,\n is not installed on this computer.\n  The $module in Bioperl-db needs it for $expl\n\n";
 	return 1;
     }

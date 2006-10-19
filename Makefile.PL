@@ -8,7 +8,7 @@
 #
 # If you want help with this Makefile get in touch with
 # the developers by sending a message to bioperl-l@bioperl.org.
-#
+
 # All Bioperl-db dependencies on external modules are defined here
 %packages =(
     'DBI' => '0.0/Database Access/this entire package/',

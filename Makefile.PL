@@ -1,5 +1,18 @@
+## --Makefile.PL for Bioperl core module distribution--##
+## ----------------------------------------------------##
+## $Id$
+##----------------------------------------------------
 
-%packages =('DBI' => '0.0/Database Access/this entire package/'); 
+# Basically this is a standard Makefile with a hash of
+# needed packages which are tested at the start
+#
+# If you want help with this Makefile get in touch with
+# the developers by sending a message to bioperl-l@bioperl.org.
+#
+# All Bioperl-db dependencies on external modules are defined here
+%packages =(
+    'DBI' => '0.0/Database Access/this entire package/',
+); 
 
 sub check_package {
     my ($name,$str) = @_;

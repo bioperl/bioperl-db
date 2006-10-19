@@ -86,13 +86,28 @@ QQ_ERROR_QQ
 
 @BACKUP_FILES = ();
 
+# generate hash for prerequisites
+# for use in WriteMakefile
+my %prereq;
+while (my ($key, $value) = each %packages) {
+  my ($version,$desc,$expl,$module) = split( /\// , $value);                                                                          
+  $prereq{$key} = $version;
+}
+
 WriteMakefile(
-	      NAME	=> $NAME,
-	      DISTNAME  => $DISTNAME,
-	      VERSION   => $VERSION,
-	      'dist'    => {  COMPRESS     => 'gzip -9f',
-			      SUFFIX       => '.gz', 
-			      DIST_DEFAULT => 'all tardist',
-			  },
-	      'realclean' => { FILES       => join( ' ', @BACKUPFILES) }
-	      );
+  NAME         => $NAME,
+  DISTNAME     => $DISTNAME,
+  VERSION      => $VERSION,
+  dist         => { COMPRESS     => 'gzip -9f',
+                    SUFFIX       => '.gz',
+		    DIST_DEFAULT => 'all tardist',
+  },
+  ($] ge '5.005') ? (
+    'AUTHOR'   => 'Bioperl Team (bioperl-l@bioperl.org)',
+    'ABSTRACT' => 'Bioperl DB',
+  ) : (),
+  realclean   => { FILES => join(' ', @BACKUP_FILES) },
+  DIR         => [  ], # directories with other Makefile.PL's in them
+  PREREQ_PM   => \%prereq,
+);
+

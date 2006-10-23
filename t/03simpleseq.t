@@ -39,10 +39,8 @@ ok $dbid;
 # test long sequence
 $seqio->close();
 $seqio = Bio::SeqIO->new('-format' => 'fasta',
-                         '-file' => 
-                         "gzip -d -c "
-                         . Bio::Root::IO->catfile('t','data','Titin.fasta.gz')
-                         . '|');
+                         '-file' =>
+						 Bio::Root::IO->catfile('t','data','Titin.fasta') );
 my $lseq = $seqio->next_seq();
 $seqio->close();
 $lseq->namespace("mytestnamespace");

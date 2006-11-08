@@ -117,6 +117,7 @@ QQ_ERROR_QQ
 else {
 	print "All dependencies are installed\n\n";
 }
+print "NB: BioSQL also needs to be installed for this package to work; see the INSTALL file\n\n";
 
 # write the makefile
 WriteMakefile(

@@ -3,129 +3,161 @@
 ## $Id$
 ##----------------------------------------------------
 
-# Basically this is a standard Makefile with a hash of
-# needed packages which are tested at the start
 #
-# If you want help with this Makefile get in touch with
-# the developers by sending a message to bioperl-l@bioperl.org.
-
-# All Bioperl-db dependencies on external modules are defined here
-%packages =(
-    'DBI' => '0.0/Database Access/this entire package/',
-    'Bio::Root::Version' => '0.0/Bioperl//',
-); 
-
-sub check_package {
-    my ($name,$str) = @_;
-    my($ver,$desc,$expl,@modules);
-
-    ($ver,$desc,$expl,$module) = split( /\// , $str);
-    if( !eval "require $name") {
-    	if ($name eq 'Bio::Root::Version') {
-	  print "Bioperl-db absolutely needs Bioperl to work - It makes no sense without it\n";
-	  exit(0);
-	}
-	print "External Module $name, $desc,\n is not installed on this computer.\n  The $module in Bioperl-db needs it for $expl\n\n";
-	return 1;
-    }
-
-    return 0;
-}
-
-
-# Generate sub testing package system
-#
+# Start with object preamble and setup of variables that might need changing
+# in the future
 #
 
-# make mini test targets for playing around with
-# in testing...
+require 5.006_001;
+use strict;
+use warnings;
+use File::Spec::Functions;
+use ExtUtils::MakeMaker;
+use Cwd;
 
-opendir(DIR,"t") || warn "No test directory. Weird!";
-@files = readdir(DIR);
+my $VERSION = 1.005002_003;
+$VERSION = eval $VERSION;
+
+# All Bioperl dependencies on external modules are defined here
+# (these are mostly considered optional)
+my %packages = (
+ 'DBI'								=> '0.0/Database Access/basic functionality/Everything',
+ 'Bio::Root::Version'	=> '1.005002/Bioperl/basic functionality/Everything',
+);
+
+# We don't want CPAN, Bundle::BioPerl et al. to know about these for various
+# reasons (eg. because they would cause a circular dependency), so will exclude
+# them from PREREQ_PM later on
+my %exclude_from_prereqs = (
+  
+);
+
+# These are really required and deserve a clearer warning
+my %required = (
+	'Bio::Root::Version' => 1,
+	'DBI' => 1
+);
+
+
+#
+# Main code
+#
+
+# generate string for makefile that allows show_tests and make test_<testname>
+# to work
+opendir(DIR,"t") || die "No test directory. Cannot continue.";
+my @files = readdir(DIR);
 shift @files;
 shift @files;
+my ($tline, $tset);
 foreach my $file (@files) {
-    $file =~ /(\w+)\.t/ || next;
-    $file = $1;
-    $line = "test_$file :: pure_all\n\tPERL_DL_NONLAZY=1 \$(FULLPERL) -I\$(INST_ARCHLIB) -I\$(INST_LIB) -I\$(PERL_ARCHLIB) -I\$(PERL_LIB) -e \'use Test::Harness qw(&runtests \$\$verbose); \$\$verbose=\$(TEST_VERBOSE); runtests \@ARGV;\' t/$file.t\n";
-    push(@tline,$line);
-    push(@targets,$file);
-    $tset  .= "$file \\\n";
+  $file =~ /(\w+)\.t/ || next;
+  $file = $1;
+  my $path = catfile('t', $file);
+  my $line = "test_$file :: pure_all\n\tPERL_DL_NONLAZY=1 \$(FULLPERL) -I\$(INST_ARCHLIB) -I\$(INST_LIB) -I\$(PERL_ARCHLIB) -I\$(PERL_LIB) -e \'use Test::Harness qw(&runtests \$\$verbose); \$\$verbose=\$(TEST_VERBOSE); runtests \@ARGV;\' $path.t\n";
+  $tline .= $line;
+  $tset  .= " $file \\\n";
 }
-
-$tline = join('',@tline);
 $tline = "show_tests :\n\t\@echo \'type make test_<subtest> to run\'\n\t\@echo '$tset'\n$tline\n";
-
 print STDERR "Generated sub tests. go make show_tests to see available subtests\n";
 
-sub MY::postamble {
-             $tline;
-           }
+# we may end up creating extra files we would want to clean later; note them here
+my @should_be_cleaned;
+
+# ask questions about optional stuff to install/test
 
 
-				           
-use ExtUtils::MakeMaker;
-require 5.004;
-$NAME     = 'Bio';
-$DISTNAME = "bioperl-db";
-$VERSION  = "0.01";
-
-$error = 0;
-foreach $name ( keys %packages ) {
-    if( &check_package($name,$packages{$name}) == 1 ) {
-	$error = 1;
+# notify about optional modules that haven't been installed, and generate hash
+# for prereqs needed later in WriteMakefile
+my %prereq;
+my $error = 0;
+print "\n*** Optional dependencies section ***\n";
+while (my ($name, $value) = each %packages) {
+  my ($ver, $desc, $expl, $module) = split( /\// , $value);
+	no strict 'refs';
+  if (! eval "require $name;" || ${$name.'::VERSION'} < $ver) {
+    my @modules = split(',', $module);
+    my $modules = join("\n * ", @modules);
+    print "External Module '$name' >= $ver ($desc) is not installed on this computer.\n The following Bioperl-run modules need it for $expl:\n * $modules\n";
+    $error = 1;
+    
+    if (exists $exclude_from_prereqs{$name}) {
+      print "Additionally, it will not be considered a pre-requisite\n(and therefore will not be automatically installed by CPAN) because:\n $exclude_from_prereqs{$name}.\n\n";
     }
+		elsif (exists $required{$name}) {
+			print "Additionally, it is absolutely required and therefore most if not all tests will fail!\n\n";
+		}
+    else {
+      print "\n";
+    }
+  }
+	
+  unless (exists $exclude_from_prereqs{$name}) {
+    $prereq{$name} = $ver;
+  }
 }
+if ($error == 1) {
+  print <<QQ_ERROR_QQ;
+Information:
 
-if( $error == 1 ) {
-    print <<QQ_ERROR_QQ;
+  Some perl modules are missing, listed above and below. The only
+  functionality that will be affected is described above;
+  the rest of bioperl will work fine without them.
 
-Warning:
+  The installation of these external packages is very simple. You
+  can read more about bioperl external dependencies in the INSTALL
+  file or at:
 
-   There are some external packages, listed above, which bioperl 
-   uses. This only effects the functionality which is listed above:
-   the rest of bioperl will work fine.
+  http://bioperl.org/wiki/Installing_BioPerl
 
-   The installation of these external packages is very simple. You
-   can read more about the external packages at
-
-   http://bio.perl.org/Core/external.shtml
-
-   The ftp site
-
-   ftp://bio.perl.org/pub/external/
-
-   has all the external packages for easy retrieval, or you can use CPAN
-
-   Enjoy the rest of bioperl, which you can use after going 'make install'
+  Enjoy the rest of bioperl, which you can use after going 'make install'
 
 QQ_ERROR_QQ
 }
-
-@BACKUP_FILES = ();
-
-# generate hash for prerequisites
-# for use in WriteMakefile
-my %prereq;
-while (my ($key, $value) = each %packages) {
-  my ($version,$desc,$expl,$module) = split( /\// , $value);                                                                          
-  $prereq{$key} = $version;
+else {
+	print "All dependencies are installed\n\n";
 }
 
+# write the makefile
 WriteMakefile(
-  NAME         => $NAME,
-  DISTNAME     => $DISTNAME,
+  NAME         => 'Bio',
+  DISTNAME     => 'bioperl-network',
   VERSION      => $VERSION,
   dist         => { COMPRESS     => 'gzip -9f',
                     SUFFIX       => '.gz',
-		    DIST_DEFAULT => 'all tardist',
-  },
-  ($] ge '5.005') ? (
-    'AUTHOR'   => 'Bioperl Team (bioperl-l@bioperl.org)',
-    'ABSTRACT' => 'Bioperl DB',
-  ) : (),
-  realclean   => { FILES => join(' ', @BACKUP_FILES) },
-  DIR         => [  ], # directories with other Makefile.PL's in them
-  PREREQ_PM   => \%prereq,
+                    DIST_DEFAULT => 'all tardist'
+                  },
+  'AUTHOR'     => 'Bioperl Team (bioperl-l@bioperl.org)',
+  'ABSTRACT'   => 'bioperl-network - package for biological networks',
+  # clean() is overridden and also gets rid of @should_be_cleaned
+  realclean    => { FILES => join(' ', @should_be_cleaned) },
+  PREREQ_PM    => \%prereq,
+  # Once 'nmake ppd' has been issued, the PPD needs to be modified for use with PPM4
+  # In addition, non-critical prereq's should be moved to a Bundle::BioPerl PPD
+  # A bit of a pain, but better to have all the prereq's in the same place initially
+  # TODO I'll (Nathan Haigh) added updated details to the wiki for doing this
 );
 
+exit;
+
+
+#
+# subroutines
+#
+
+
+#
+# override MakeMaker methods
+#
+
+sub MY::postamble {
+  $tline;
+}
+
+package MY;
+
+sub MY::clean {
+  return shift->SUPER::clean(@_) . <<END;
+\t-rm -rf @should_be_cleaned
+END
+}

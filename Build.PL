@@ -20,7 +20,7 @@ my $build = ModuleBuildBioperl->new(
     requires            => {
                             'perl'                      => '5.6.1',
                             'Bio::Root::Version'        => '1.5.2',
-                            'DBI' =>                    => 0
+                            'DBI'                       => 0
                            },
     dynamic_config      => 1
     
@@ -90,7 +90,7 @@ sub biosql_conf {
     unless ($config{dbname}) {
         $config{schema_sql} = $build->prompt("Set schema_sql to use the version appropriate for your RDBMS (mandatory)", $config{schema_sql});
     }
-    $config{schema_sql} = "['$config{schema_sql}']";
+    $config{schema_sql} = "['$config{schema_sql}']"; # don't know why it is stored as an array ref, is this correct?
     
     $build->log_info("
     # The next answer does not refer to the schema or RDBMS; it only

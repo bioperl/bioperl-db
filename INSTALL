@@ -4,10 +4,8 @@ bioperl-db INSTALLATION
 
 INSTALL THE RIGHT BIOPERL
 
-You need at least Bioperl version 1.4* but 1.4 has a problem 
-in the ontology IO code for parsing GO, version 1.5* is preferable. 
-Versions earlier than 1.4 will not work. See http://bioperl.org
-for instructions.
+You need at least the corresponding version of Bioperl. Since this
+is bioperl-db 1.5.2, you will need bioperl 1.5.2.
 
 
 INSTALL BIOSQL
@@ -19,7 +17,48 @@ BioSQL requires a relational database, either Mysql, Oracle, or
 Postgres.
 
 
-MAKE
+CPAN INSTALLATION
+
+To install using CPAN you will need a recent version (v1.8802 has
+been tested) of it and your prefer_installer conf set to 'MB':
+
+  >cpan
+  cpan> o conf init prefer_installer
+  Choose 'MB'.
+  cpan> o conf commit
+  cpan> q
+
+Ensure that you have installed BioSQL properly prior to attempting
+an installation. You will also probably need root privileges.
+Find the name of the bioperl-db version you want:
+
+  >cpan
+  cpan>d /bioperl-run/
+  Database was generated on Mon, 20 Nov 2006 05:24:36 GMT
+  Distribution S/SE/SENDU/bioperl-db-1.5.2_100.tar.gz
+  
+Now install:
+
+ cpan>install S/SE/SENDU/bioperl-db-1.5.2_100.tar.gz
+
+If you've installed everything perfectly then you may pass all the tests
+run in the './Build test' phase.
+It's also possible that you may fail some tests. Possible explanations:
+problems with local Perl installation, previously undetected bug in
+Bioperl, flawed test script and so on. A few failed tests may not affect
+your usage of bioperl-db.
+
+If you decide that the failed tests will not affect how you intend to use
+bioperl-db and you'd like to install anyway do:
+
+ cpan>force install S/SE/SENDU/bioperl-db-1.5.2_100.tar.gz
+
+This is what most experienced Bioperl users would do. However, if you're
+concerned about a failed test and need assistance or advice then contact
+bioperl-l@bioperl.org.
+  
+
+MANUAL INSTALLATION
 
 Download the bioperl-db archive, then extract its contents. Example:
 
@@ -27,26 +66,23 @@ Download the bioperl-db archive, then extract its contents. Example:
   >tar xvf bioperl-db-<release-version>.tar
   >cd bioperl-db
 
-where <release-version> is the current release. Note that at present
-there is no versioned release and you will need to download bioperl-db
-through CVS.
+where <release-version> is the current release.
 
-Otherwise, copy or rename t/DBHarness.conf.example to
-t/DBHarness.biosql.conf and edit the file as needed. Then issue the
-following commands from within bioperl-db/:
+Copy or rename t/DBHarness.conf.example to t/DBHarness.biosql.conf
+and edit the file as needed. Then issue the following command from
+within bioperl-db/:
 
-  >perl Makefile.PL
-  >make
+  >perl Build.PL
 
 You can run regression tests and install bioperl-db using the
 following commands:
 
-  >make test  
-  >make install
+  >./Build test  
+  >./Build install
 
-NOTE:  bioperl-db tests require that the BioSQL database in
+NOTE: bioperl-db tests require that the BioSQL database in
 DBHarness.biosql.conf does NOT have NCBI taxonomy loaded.  Also,
-the 'make install' step may require that you have root privileges.
+the './Build  install' step may require that you have root privileges.
 
 
 INSTALLING bioperl-db ON WINDOWS

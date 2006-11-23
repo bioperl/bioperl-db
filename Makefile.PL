@@ -122,14 +122,14 @@ print "NB: BioSQL also needs to be installed for this package to work; see the I
 # write the makefile
 WriteMakefile(
   NAME         => 'Bio',
-  DISTNAME     => 'bioperl-network',
+  DISTNAME     => 'bioperl-db',
   VERSION      => $VERSION,
   dist         => { COMPRESS     => 'gzip -9f',
                     SUFFIX       => '.gz',
                     DIST_DEFAULT => 'all tardist'
                   },
   'AUTHOR'     => 'Bioperl Team (bioperl-l@bioperl.org)',
-  'ABSTRACT'   => 'bioperl-network - package for biological networks',
+  'ABSTRACT'   => 'bioperl-db - package for biological databases',
   # clean() is overridden and also gets rid of @should_be_cleaned
   realclean    => { FILES => join(' ', @should_be_cleaned) },
   PREREQ_PM    => \%prereq,

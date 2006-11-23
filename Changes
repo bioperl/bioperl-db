@@ -1,10 +1,22 @@
 Revision history for bioperl-db.
 
-0.01 - Ewan Birney's code committed to handle a simple relation schema
-       for roundtripping Genbank/EMBL (swissprot MOSTLY handled)
+1.5.2
+-----
+Released with bioperl-1.5.2 developer branch release
 
-       Support built in for seqdb to serve as a BioCORBA seq caching server.
+Introduced Build.PL as the recommended alternative to installation,
+instead of Makefile.PL
 
-       Maps objects built on old schema - still in flux but included in release.
+Compatability with bioperl-1.5.2 changes such as the new Bio::Species
 
-       Released with bioperl-0.7.2 stable branch release.
+
+0.01
+----
+Ewan Birney's code committed to handle a simple relation schema
+for roundtripping Genbank/EMBL (swissprot MOSTLY handled)
+
+Support built in for seqdb to serve as a BioCORBA seq caching server.
+
+Maps objects built on old schema - still in flux but included in release.
+
+Released with bioperl-0.7.2 stable branch release.

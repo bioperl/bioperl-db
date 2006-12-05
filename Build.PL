@@ -13,7 +13,7 @@ use ModuleBuildBioperl;
 my $build = ModuleBuildBioperl->new(
     module_name         => 'Bio',
     dist_name           => 'bioperl-db',
-    dist_version        => 1.005002005,
+    dist_version        => 1.005002100,
     dist_author         => 'Bioperl Team <bioperl-l@bioperl.org>',
     dist_abstract       => 'bioperl-db - package for biological databases',
     license             => 'artistic',

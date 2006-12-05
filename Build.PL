@@ -58,7 +58,7 @@ sub biosql_conf {
                   user       => 'root',
                   port       => 3306,
                   password   => '',
-                  dbname     => 'biosql',
+                  dbname     => 'bioseqdb',
                   database   => 'biosql',
                   schema_sql => '../biosql-schema/sql/biosqldb-mysql.sql');
     

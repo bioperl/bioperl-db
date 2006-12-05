@@ -3,6 +3,46 @@
 ## $Id$
 ##----------------------------------------------------
 
+# This still works, but has been superceded by Build.PL
+# Please use Build.PL in preference
+
+warn <<'WARN';
+!--
+  Bioperl is transitioning from Makefile.PL-based installations to Build.PL
+
+  This Makefile.PL should still work fine, but please try Build.PL instead,
+  especially if you run into any non-test-related problems:
+
+  perl Build.PL
+  ./Build test
+  ./Build install
+  
+  If you're seeing this message whilst installing with CPAN, consider
+  stopping this installation and changing your CPAN configuration before
+  trying to install again:
+  
+  cpan>install CPAN
+  cpan>reload CPAN
+  cpan>install Module::Build
+  cpan>o conf prefer_installer MB
+  cpan>o conf commit
+  cpan>q
+  
+  Otherwise, if you would like to install the optional dependencies,
+  install Bundle::BioPerl v2.1.8 or greater
+
+--!
+
+WARN
+
+for (1..5) {
+  local $| = 1;
+  print ". ";
+  sleep(1);
+}
+print "\n";
+
+
 #
 # Start with object preamble and setup of variables that might need changing
 # in the future
@@ -15,7 +55,7 @@ use File::Spec::Functions;
 use ExtUtils::MakeMaker;
 use Cwd;
 
-my $VERSION = 1.005002_003;
+my $VERSION = 1.005002_100;
 $VERSION = eval $VERSION;
 
 # All Bioperl dependencies on external modules are defined here

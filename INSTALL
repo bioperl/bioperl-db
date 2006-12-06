@@ -7,7 +7,6 @@ INSTALL THE RIGHT BIOPERL
 You need at least the corresponding version of Bioperl. Since this
 is bioperl-db 1.5.2, you will need bioperl 1.5.2.
 
-
 INSTALL BIOSQL
 
 The bioperl-db package is designed to work with the BioSQL database.
@@ -23,10 +22,9 @@ To install using CPAN you will need a recent version (v1.8802 has
 been tested) of it and your prefer_installer conf set to 'MB':
 
   >cpan
-  cpan> o conf init prefer_installer
-  Choose 'MB'.
-  cpan> o conf commit
-  cpan> q
+  cpan>o conf prefer_installer MB
+  cpan>o conf commit
+  cpan>q
 
 Ensure that you have installed BioSQL properly prior to attempting
 an installation. You will also probably need root privileges.
@@ -68,9 +66,7 @@ Download the bioperl-db archive, then extract its contents. Example:
 
 where <release-version> is the current release.
 
-Copy or rename t/DBHarness.conf.example to t/DBHarness.biosql.conf
-and edit the file as needed. Then issue the following command from
-within bioperl-db/:
+Issue the following command from within bioperl-db/:
 
   >perl Build.PL
 
@@ -80,9 +76,9 @@ following commands:
   >./Build test  
   >./Build install
 
-NOTE: bioperl-db tests require that the BioSQL database in
-DBHarness.biosql.conf does NOT have NCBI taxonomy loaded.  Also,
-the './Build  install' step may require that you have root privileges.
+NOTE: bioperl-db tests require that the BioSQL database you configure
+does NOT have NCBI taxonomy loaded. Also, the './Build install' step
+may require that you have root privileges.
 
 
 INSTALLING bioperl-db ON WINDOWS
@@ -91,6 +87,9 @@ The following page on the BioPerl website has up-to-date
 instructions on how to install bioperl-db on Windows:
 
 http://www.bioperl.org/wiki/Installing_Bioperl_on_Windows
+
+(the instructions are aimed at bioperl-core, but apply
+equally to bioperl-db)
 
 
 LOAD THE NCBI TAXONOMY

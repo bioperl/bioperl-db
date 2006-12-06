@@ -1,5 +1,8 @@
 Revision history for bioperl-db.
 
+Full details of changes between all versions are available online at:
+http://www.bioperl.org/wiki/Change_log
+
 1.5.2
 -----
 Released with bioperl-1.5.2 developer branch release
@@ -8,7 +11,6 @@ Introduced Build.PL as the recommended alternative to installation,
 instead of Makefile.PL
 
 Compatability with bioperl-1.5.2 changes such as the new Bio::Species
-
 
 0.01
 ----

@@ -16,6 +16,13 @@ BioSQL requires a relational database, either Mysql, Oracle, or
 Postgres.
 
 
+INSTALLATION
+
+Installation instructions at the following address apply here:
+http://www.bioperl.org/wiki/Installing_Bioperl_for_Unix
+The next 2 sections summarize the essential points from there.
+
+
 CPAN INSTALLATION
 
 To install using CPAN you will need a recent version (v1.8802 has
@@ -31,7 +38,7 @@ an installation. You will also probably need root privileges.
 Find the name of the bioperl-db version you want:
 
   >cpan
-  cpan>d /bioperl-run/
+  cpan>d /bioperl-db/
   Database was generated on Mon, 20 Nov 2006 05:24:36 GMT
   Distribution S/SE/SENDU/bioperl-db-1.5.2_100.tar.gz
   

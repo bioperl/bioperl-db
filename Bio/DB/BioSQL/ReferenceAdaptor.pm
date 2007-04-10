@@ -426,7 +426,7 @@ sub get_unique_key_query{
 	    });
 	}
     }
-    if($obj->authors()) {
+    if($obj->authors() || $obj->title() || $obj->location()) {
 	push(@ukqueries, {
 	    'doc_id' => $self->_crc64($obj),
 	});

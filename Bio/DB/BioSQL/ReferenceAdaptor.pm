@@ -426,6 +426,9 @@ sub get_unique_key_query{
 	    });
 	}
     }
+    # note that according to the BioSQL v1.0 schema location is mandatory,
+    # so this clause should always evaluate to true, at least if the
+    # annotation comes from a legitimate source (such as Genbank, UniProt, etc)
     if($obj->authors() || $obj->title() || $obj->location()) {
 	push(@ukqueries, {
 	    'doc_id' => $self->_crc64($obj),

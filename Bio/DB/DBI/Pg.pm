@@ -226,4 +226,38 @@ sub build_dsn{
     return $dsn;
 }
 
+=head2 new_connection
+
+ Title   : new_connection
+ Usage   :
+ Function: Obtains a new connection handle to the database represented by the
+           the DBContextI object, passing additional args to the DBI->connect()
+           method.
+
+           We need to override this here in order to support setting a
+           schema for PostgreSQL.
+
+ Example :
+ Returns : an open DBI database handle
+ Args    : A Bio::DB::DBContextI implementing object. Additional hashref
+           parameter to pass to DBI->connect().
+
+
+=cut
+
+sub new_connection{
+    my $self = shift;
+    my ($dbc) = @_; # we don't need the parameter hash here
+
+    my $dbh = $self->SUPER::new_connection(@_);
+    if ($dbc->schema) {
+        my $rv = $dbh->do("SET search_path TO ".$dbc->schema().", public");
+        if (!$rv) {
+            $self->warn("Failed to add schema '".$dbc->schema()
+                        ."' to search path; is the server < v7.4?");
+        }
+    }
+    return $dbh;
+}
+
 1;

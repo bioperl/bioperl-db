@@ -86,6 +86,13 @@ for it. A typical example is dbi:Pg:dbname=biosql;host=foo.bar.edu
 (for PostgreSQL). Note that the DSN will be specific to the driver
 being used.
 
+=item --schema schemaname
+
+The schema under which the BioSQL tables reside in the database. For
+Oracle and MySQL this is synonymous with the user, and won't have an
+effect. PostgreSQL since v7.4 supports schemas as the namespace for
+collections of tables within a database.
+
 =item --initrc paramfile
 
 Instead of, or in addition to, specifying every individual database
@@ -347,6 +354,7 @@ my $dbname;
 my $dbuser;
 my $driver;
 my $dbpass;
+my $schema;
 my $format = 'genbank';
 my $fmtargs = '';
 my $namespace = 'bioperl';
@@ -395,6 +403,7 @@ my $ok = GetOptions( 'host=s'         => \$host,
                      'dbuser=s'       => \$dbuser,
                      'dbpass=s'       => \$dbpass,
                      'dsn=s'          => \$dsn,
+                     'schema=s'       => \$schema,
                      'format=s'       => \$format,
                      'fmtargs=s'      => \$fmtargs,
                      'initrc:s'       => \$initrc,
@@ -507,6 +516,7 @@ my $db = Bio::DB::BioDB->new(-database   => "biosql",
                              -user       => $dbuser,
                              -pass       => $dbpass,
                              -dsn        => $dsn,
+                             -schema     => $schema,
                              -initrc     => $initrc,
                              );
 $db->verbose($debug) if $debug > 0;

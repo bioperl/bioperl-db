@@ -245,4 +245,34 @@ sub dbi{
     $self->throw_not_implemented();
 }
 
+=head2 schema
+
+ Title   : schema
+ Usage   : $dbc->schema($newval)
+ Function: Get/set the schema in which the database tables reside.
+
+           A schema is typically equivalent to a namespace for a
+           collection of tables within a database. In Oracle, the
+           notion of a schema is synonymous with that of the user (all
+           database objects of a user belong to the schema of the same
+           name as the user) and hence can be omitted. In PostgreSQL,
+           since v7.4 schemas can delineate collections of tables
+           within a database (which in concept is more similar to a
+           user in Oracle).
+
+           For most drivers and database instances this will not be
+           needed.
+
+ Example : 
+ Returns : value of schema (a scalar)
+ Args    : on set, new value (a scalar or undef, optional)
+
+
+=cut
+
+sub schema{
+    my ($self,@args) = @_;
+    $self->throw_not_implemented();
+}
+
 1;

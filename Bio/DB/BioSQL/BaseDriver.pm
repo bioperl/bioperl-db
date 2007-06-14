@@ -367,7 +367,7 @@ my %dont_select_attrs = (
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::BioSQL::BaseDriver();
+ Usage   : my $obj = Bio::DB::BioSQL::BaseDriver->new();
  Function: Builds a new Bio::DB::BioSQL::BaseDriver object 
  Returns : an instance of Bio::DB::BioSQL::BaseDriver
  Args    :

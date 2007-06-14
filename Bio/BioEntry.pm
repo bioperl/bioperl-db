@@ -77,7 +77,7 @@ use Bio::DescribableI;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::BioEntry();
+ Usage   : my $obj = Bio::BioEntry->new();
  Function: Builds a new Bio::BioEntry object 
  Returns : an instance of Bio::BioEntry
  Args    :

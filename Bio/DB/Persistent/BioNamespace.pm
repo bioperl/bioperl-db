@@ -76,7 +76,7 @@ use Bio::IdentifiableI;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::Persistent::BioNamespace();
+ Usage   : my $obj = Bio::DB::Persistent::BioNamespace->new();
  Function: Builds a new Bio::DB::Persistent::BioNamespace object 
  Returns : an instance of Bio::DB::Persistent::BioNamespace
  Args    :

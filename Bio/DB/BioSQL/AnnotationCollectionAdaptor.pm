@@ -109,7 +109,7 @@ my %annotation_type_map = (
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::BioSQL::AnnotationCollectionAdaptor();
+ Usage   : my $obj = Bio::DB::BioSQL::AnnotationCollectionAdaptor->new();
  Function: Builds a new Bio::DB::BioSQL::AnnotationCollectionAdaptor object 
  Returns : an instance of Bio::DB::BioSQL::AnnotationCollectionAdaptor
  Args    :

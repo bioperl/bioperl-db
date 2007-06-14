@@ -87,7 +87,7 @@ use Bio::DB::DBI::base;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::DBI::Oracle();
+ Usage   : my $obj = Bio::DB::DBI::Oracle->new();
  Function: Builds a new Bio::DB::DBI::Oracle object using the passed named 
            parameters.
  Returns : an instance of Bio::DB::DBI::Oracle

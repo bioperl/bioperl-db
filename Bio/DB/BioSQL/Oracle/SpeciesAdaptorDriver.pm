@@ -90,7 +90,7 @@ use Bio::DB::BioSQL::Oracle::BasePersistenceAdaptorDriver;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::BioSQL::Oracle::SpeciesAdaptorDriver();
+ Usage   : my $obj = Bio::DB::BioSQL::Oracle::SpeciesAdaptorDriver->new();
  Function: Builds a new Bio::DB::BioSQL::Oracle::SpeciesAdaptorDriver object 
  Returns : an instance of Bio::DB::BioSQL::Oracle::SpeciesAdaptorDriver
  Args    :

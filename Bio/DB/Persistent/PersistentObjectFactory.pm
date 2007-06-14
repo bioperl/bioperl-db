@@ -76,7 +76,7 @@ use Bio::Factory::ObjectFactoryI;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::Persistent::PersistentObjectFactory();
+ Usage   : my $obj = Bio::DB::Persistent::PersistentObjectFactory->new();
  Function: Builds a new Bio::DB::Persistent::PersistentObjectFactory object 
  Returns : an instance of Bio::DB::Persistent::PersistentObjectFactory
  Args    : Named parameters, specifically

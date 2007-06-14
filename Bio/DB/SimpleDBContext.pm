@@ -91,7 +91,7 @@ use Bio::DB::DBI;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::SimpleDBContext();
+ Usage   : my $obj = Bio::DB::SimpleDBContext->new();
  Function: Builds a new Bio::DB::SimpleDBContext object 
  Returns : an instance of Bio::DB::SimpleDBContext
  Args    : Named parameters. Currently recognized are

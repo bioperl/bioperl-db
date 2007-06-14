@@ -90,7 +90,7 @@ use Bio::DB::BioSQL::Pg::BasePersistenceAdaptorDriver;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::BioSQL::Pg::SpeciesAdaptorDriver();
+ Usage   : my $obj = Bio::DB::BioSQL::Pg::SpeciesAdaptorDriver->new();
  Function: Builds a new Bio::DB::BioSQL::Pg::SpeciesAdaptorDriver object 
  Returns : an instance of Bio::DB::BioSQL::Pg::SpeciesAdaptorDriver
  Args    :

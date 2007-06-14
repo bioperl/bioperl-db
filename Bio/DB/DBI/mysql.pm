@@ -87,7 +87,7 @@ use Bio::DB::DBI::base;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::DBI::mysql();
+ Usage   : my $obj = Bio::DB::DBI::mysql->new();
  Function: Builds a new Bio::DB::DBI::mysql object using the passed named 
            parameters.
  Returns : an instance of Bio::DB::DBI::mysql

@@ -92,7 +92,7 @@ use Bio::Root::Root;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::Query::DBQueryResult();
+ Usage   : my $obj = Bio::DB::Query::DBQueryResult->new();
  Function: Builds a new Bio::DB::Query::DBQueryResult object 
  Returns : an instance of Bio::DB::Query::DBQueryResult
  Args    : named parameters

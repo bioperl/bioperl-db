@@ -111,7 +111,7 @@ sub new {
 =head2 _new
 
  Title   : _new
- Usage   : my $obj = _new Bio::DB::DBI::Transaction();
+ Usage   : my $obj = Bio::DB::DBI::Transaction->_new();
  Function: Builds a new Bio::DB::DBI::Transaction object 
 
            This is a private method. If you call this method from

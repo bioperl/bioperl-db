@@ -96,7 +96,7 @@ use Bio::DB::DBI::Transaction;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::BioSQL::BasePersistenceAdaptor();
+ Usage   : my $obj = Bio::DB::BioSQL::BasePersistenceAdaptor->new();
  Function: Builds a new Bio::DB::BioSQL::BasePersistenceAdaptor object 
  Returns : an instance of Bio::DB::BioSQL::BasePersistenceAdaptor
  Args    :

@@ -89,7 +89,7 @@ use Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::BioSQL::mysql::SpeciesAdaptorDriver();
+ Usage   : my $obj = Bio::DB::BioSQL::mysql::SpeciesAdaptorDriver->new();
  Function: Builds a new Bio::DB::BioSQL::mysql::SpeciesAdaptorDriver object 
  Returns : an instance of Bio::DB::BioSQL::mysql::SpeciesAdaptorDriver
  Args    :

@@ -117,7 +117,7 @@ my $counter = 1;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::DBI::TransactionListener();
+ Usage   : my $obj = Bio::DB::DBI::TransactionListener->new();
  Function: Builds a new Bio::DB::DBI::TransactionListener object 
  Returns : an instance of Bio::DB::DBI::TransactionListener
  Args    :

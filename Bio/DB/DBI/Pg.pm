@@ -86,7 +86,7 @@ use Bio::DB::DBI::base;
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::DBI::Pg();
+ Usage   : my $obj = Bio::DB::DBI::Pg->new();
  Function: Builds a new Bio::DB::DBI::Pg object using the passed named 
            parameters.
  Returns : an instance of Bio::DB::DBI::Pg

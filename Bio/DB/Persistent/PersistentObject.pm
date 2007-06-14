@@ -118,7 +118,7 @@ our %wrapper_class_map = ();
 =head2 new
 
  Title   : new
- Usage   : my $obj = new Bio::DB::Persistent::PersistentObject();
+ Usage   : my $obj = Bio::DB::Persistent::PersistentObject->new();
  Function: Builds a new Bio::DB::Persistent::PersistentObject object 
  Returns : an instance of Bio::DB::Persistent::PersistentObject
  Args    : -object => $obj_to_be_wrapped (mandatory)

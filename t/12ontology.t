@@ -91,8 +91,9 @@ ok ($syns[0], "UTR");
 # modify, update, and re-retrieve to check with multiple synonyms, and with
 # dbxrefs (this version of SOFA doesn't come with any dbxrefs)
 $term->add_synonym("junk DNA");
-$term->add_dblink(Bio::Annotation::DBLink->new(-database   => "MYDB",
-					       -primary_id => "yaddayadda"));
+my $linkobj = Bio::Annotation::DBLink->new(-database   => "MYDB",
+					       -primary_id => "yaddayadda");
+$term->add_dbxref(-dbxrefs => [$linkobj]);
 ok ($term->store());
 $term = $term->adaptor->find_by_primary_key($term->primary_key);
 ok ($term);
@@ -100,7 +101,7 @@ ok ($term);
 @syns = $term->get_synonyms();
 ok (scalar(@syns), 2);
 ok (scalar(grep { $_ eq "junk DNA"; } @syns), 1);
-ok (scalar($term->get_dblinks()), 1);
+ok (scalar($term->get_dbxrefs()), 1);
 
 #
 # test the transitive closure computations

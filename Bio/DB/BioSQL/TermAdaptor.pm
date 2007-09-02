@@ -277,7 +277,7 @@ sub store_children{
     }
     # we also possibly have db-xrefs to store
     my $dbladp = $self->db->get_object_adaptor("Bio::Annotation::DBLink");
-    foreach my $dbl ($obj->get_dblinks()) {
+    foreach my $dbl ($obj->get_dbxrefs()) {
 	# terms store dblinks as flat strings currently
 	if(!ref($dbl)) {
 	    # some ontologies have URLs here or even whole sentences (check

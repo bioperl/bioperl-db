@@ -91,9 +91,8 @@ ok ($syns[0], "UTR");
 # modify, update, and re-retrieve to check with multiple synonyms, and with
 # dbxrefs (this version of SOFA doesn't come with any dbxrefs)
 $term->add_synonym("junk DNA");
-my $linkobj = Bio::Annotation::DBLink->new(-database   => "MYDB",
-					       -primary_id => "yaddayadda");
-$term->add_dbxref(-dbxrefs => [$linkobj]);
+$term->add_dbxref(-dbxrefs => [Bio::Annotation::DBLink->new(-database   => "MYDB",
+					       -primary_id => "yaddayadda")]);
 ok ($term->store());
 $term = $term->adaptor->find_by_primary_key($term->primary_key);
 ok ($term);

@@ -485,7 +485,7 @@ sub get_classification{
 	    ", node.".$slotmap->{"node_rank"}.
 	    " FROM $node_table node, $node_table taxon, $name_table name".
 	    " WHERE name.$fkname = node.$pkname AND".
-	    " taxon.left_value BETWEEN node.left_value AND node.right_value".
+	    " taxon.left_value >= node.left_value AND taxon.left_value <= node.right_value".
 	    " AND taxon.$pkname = ?".
 	    " AND name.".$slotmap->{"name_class"}." = 'scientific name'".
 	    " ORDER BY node.left_value";

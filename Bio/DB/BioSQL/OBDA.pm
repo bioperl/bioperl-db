@@ -83,13 +83,17 @@ use base qw(Bio::Root::Root Bio::DB::RandomAccessI);
 sub new_from_registry {
    my ($class, %conf) = @_;
 	my $self = $class->SUPER::new();
-	my ($host,$port) = split ":", $conf{'location'};
-	my $db = Bio::DB::BioDB->new(-database => 'biosql',
+	my ($host,$port);
+        #  prevent warning msg by allowing location to be undef for postgresql 'ident sameuser' login)
+        if (defined $conf{'location'}) {
+                ($host,$port) = split ":", $conf{'location'};
+        }
+	my $db = Bio::DB::BioDB->new( -database => 'biosql',
 										  -host     => $host,
 										  -port     => $port,
 										  -dbname   => $conf{'dbname'},
 										  -driver   => $conf{'driver'},
-										  -user     => $conf{'user'},
+                                      -user     => $conf{'user'  },
 										  -pass     => $conf{'passwd'} );
 	$self->_db($db);
 	$self;

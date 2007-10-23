@@ -245,7 +245,7 @@ sub new_connection{
     $self->throw("mandatory argument dbcontext not supplied (internal error?)")
 	unless $dbc;
     my $dsn = $self->build_dsn($dbc);
-    $self->debug("new_connection(): dsn=$dsn; user=" .$dbc->username() ."\n");
+    $self->debug("new_connection(): dsn=$dsn; user=" . (defined $dbc->username() ? $dbc->username() : 'undef') ."\n"); # undef: postgres 'ident sameuser' login
 
     my $dbh;
     eval {

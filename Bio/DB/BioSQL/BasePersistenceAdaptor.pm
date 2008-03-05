@@ -303,6 +303,8 @@ sub remove{
     $self->_remove_from_obj_cache($obj);
     # obtain primary key
     my $pk = $obj->primary_key();
+    $self->throw("Object of class ".ref($obj)." does not have ".
+		 "a primary key.  Have you used \$pobj->create()?") if !defined $pk;
     # prepared delete statement cached?
     my $cache_key = 'DELETE '.ref($obj->obj());
     my $sth = $self->sth($cache_key);

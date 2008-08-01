@@ -43,8 +43,8 @@ load_ontology.pl
 
 =head1 DESCRIPTION
 
-This script loads a bioperl-db with an ontology. There are a number of
-options to do with where the bioperl-db database is (ie, hostname,
+This script loads a BioSQL database with an ontology. There are a number of
+options to do with where the BioSQL database is (ie, hostname,
 user for database, password, database name) followed by the database
 name you wish to load this into and then any number of files that make
 up the ontology. The files are assumed formatted identically with the

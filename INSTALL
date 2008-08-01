@@ -11,9 +11,10 @@ INSTALL BIOSQL
 
 The bioperl-db package is designed to work with the BioSQL database.
 Install the BioSQL package by following the instructions in its
-INSTALL file. You can obtain the BioSQL package at www.open-bio.org. 
-BioSQL requires a relational database, either Mysql, Oracle, or 
-Postgres.
+INSTALL file. You can obtain the BioSQL package at www.biosql.org.
+BioSQL requires a relational database, either Mysql, Oracle, or
+PostgreSQL. Support for additional RDBMSs gets added every once in a
+while, check out the documentation at www.biosql.org.
 
 
 INSTALLATION
@@ -84,7 +85,7 @@ following commands:
   >./Build install
 
 NOTE: bioperl-db tests require that the BioSQL database you configure
-does NOT have NCBI taxonomy loaded. Also, the './Build install' step
+does NOT have the NCBI taxonomy loaded. Also, the './Build install' step
 may require that you have root privileges.
 
 

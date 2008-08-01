@@ -20,7 +20,7 @@ load_seqdatabase.pl
 
 =head1 DESCRIPTION
 
-This script loads a Biosql database with sequences. There are a number
+This script loads a BioSQL database with sequences. There are a number
 of options that have to do with where the database is and how it's
 accessed and the format and namespace of the input files. These are
 followed by any number of file names. The files are assumed to be

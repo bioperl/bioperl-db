@@ -113,22 +113,27 @@ sub new_from_registry {
 =cut
 
 sub get_Seq_by_id {
-   my ($self,$id) = @_;
-	my $db = $self->_db;
-	my @seqs = ();
-	$self->throw("No identifier given") unless $id;
-
-	my $query = Bio::DB::Query::BioQuery->new(
-		  -datacollections => ['Bio::SeqI seq'],
-	     -where => ["seq.primary_id = $id"]);
-
-	my $seq_adaptor = $db->get_object_adaptor('Bio::SeqI');
-	my $result = $seq_adaptor->find_by_query($query);
-
-	for my $seq ($result->next_object) {
-		push @seqs,$seq;
-	}
-	return wantarray ? @seqs : $seqs[0];
+    my ($self,$id) = @_;
+    my $db = $self->_db;
+    my @seqs = ();
+    $self->throw("No identifier given") unless $id;
+    
+    my $query = $self->{'_byId_Query'};
+    if (! $query) {
+        $query = Bio::DB::Query::BioQuery->new(
+            -datacollections => ['Bio::SeqI seq'],
+            -where => ["seq.primary_id = ?"]);
+        $self->{'_byId_Query'} = $query;
+    }
+    my $seq_adaptor = $db->get_object_adaptor('Bio::SeqI');
+    my $result = $seq_adaptor->find_by_query($query, 
+                                             '-name' => 'OBDA get_Seq_by_id',
+                                             '-values' => [$id]);
+    
+    for my $seq ($result->next_object) {
+        push @seqs,$seq;
+    }
+    return wantarray ? @seqs : $seqs[0];
 }
 
 =head2 get_Seq_by_acc
@@ -143,22 +148,27 @@ sub get_Seq_by_id {
 =cut
 
 sub get_Seq_by_acc {
-   my ($self,$acc) = @_;
-	my $db = $self->_db;
-	my @seqs = ();
-	$self->throw("No accession given") unless $acc;
+    my ($self,$acc) = @_;
+    my $db = $self->_db;
+    my @seqs = ();
+    $self->throw("No accession given") unless $acc;
 
-	my $query = Bio::DB::Query::BioQuery->new(
-     -datacollections => ['Bio::SeqI seq'],
-	  -where => ["seq.accession_number = '$acc'"]);
+    my $query = $self->{'_byAcc_Query'};
+    if (! $query) {
+        $query = Bio::DB::Query::BioQuery->new(
+            -datacollections => ['Bio::SeqI seq'],
+            -where => ["seq.accession_number = ?"]);
+        $self->{'_byAcc_Query'} = $query;
+    }
+    my $seq_adaptor = $db->get_object_adaptor('Bio::SeqI');
+    my $result = $seq_adaptor->find_by_query($query,
+                                             '-name' => "OBDA get_Seq_by_acc",
+                                             '-values' => [$acc]);
 
-	my $seq_adaptor = $db->get_object_adaptor('Bio::SeqI');
-	my $result = $seq_adaptor->find_by_query($query);
-
-	for my $seq ($result->next_object) {
-		push @seqs,$seq;
-	}
-	return wantarray ? @seqs : $seqs[0];
+    for my $seq ($result->next_object) {
+        push @seqs,$seq;
+    }
+    return wantarray ? @seqs : $seqs[0];
 }
 
 =head2 get_Seq_by_version
@@ -173,25 +183,32 @@ sub get_Seq_by_acc {
 =cut
 
 sub get_Seq_by_version {
-   my ($self,$vacc) = @_;
-	my $db = $self->_db;
-	my @seqs = ();
-	my ($acc,$ver) = split /\./, $vacc; # split on period
-	$self->throw("Must supply a versioned accession: <accession>.<version>")
-	  unless ($acc && $ver);
-
-	my $query = Bio::DB::Query::BioQuery->new(
-     -datacollections => ['Bio::SeqI seq'],
-	  -where => ["seq.accession_number = '$acc'",
-					 "seq.version = $ver"]);
-
-	my $seq_adaptor = $db->get_object_adaptor('Bio::SeqI');
-	my $result = $seq_adaptor->find_by_query($query);
-
-	for my $seq ($result->next_object) {
-		push @seqs,$seq;
-	}
-	return wantarray ? @seqs : $seqs[0];
+    my ($self,$vacc) = @_;
+    my $db = $self->_db;
+    my @seqs = ();
+    my @comps = split(/\./, $vacc); # split into components on period
+    $self->throw("Must supply a versioned accession: <accession>.<version>")
+        unless @comps >= 2;
+    my $ver = pop(@comps);      # the last one is the version
+    my $acc = join(".",@comps); # the preceding rest is the accession
+    
+    my $query = $self->{'_byAccVersion_Query'};
+    if (! $query) {
+        $query = Bio::DB::Query::BioQuery->new(
+            -datacollections => ['Bio::SeqI seq'],
+            -where => ["seq.accession_number = ?",
+                       "seq.version = ?"]);
+        $self->{'_byAccVersion_Query'} = $query;
+    }    
+    my $seq_adaptor = $db->get_object_adaptor('Bio::SeqI');
+    my $result = $seq_adaptor->find_by_query($query,
+                                             '-name' => "OBDA get_Seq_by_version",
+                                             '-values' => [$acc,$ver]);
+    
+    for my $seq ($result->next_object) {
+        push @seqs,$seq;
+    }
+    return wantarray ? @seqs : $seqs[0];
 }
 
 =head1 Private methods

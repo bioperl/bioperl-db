@@ -9,12 +9,13 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 59;
+    plan tests => 67;
 }
 
 use DBTestHarness;
 use Bio::SeqIO;
 use Bio::Root::IO;
+use Bio::PrimarySeq;
 
 $biosql = DBTestHarness->new("biosql");
 $db = $biosql->get_DBAdaptor();
@@ -40,7 +41,7 @@ ok $dbid;
 $seqio->close();
 $seqio = Bio::SeqIO->new('-format' => 'fasta',
                          '-file' =>
-						 Bio::Root::IO->catfile('t','data','Titin.fasta') );
+                         Bio::Root::IO->catfile('t','data','Titin.fasta') );
 my $lseq = $seqio->next_seq();
 $seqio->close();
 $lseq->namespace("mytestnamespace");
@@ -83,7 +84,8 @@ eval {
     my $sequk = Bio::PrimarySeq->new(
 			      -accession_number => $pseq->accession_number(),
 			      -namespace => $pseq->namespace());
-    $dbseq = $db->get_object_adaptor($sequk)->find_by_unique_key($sequk);
+    my $adp2 = $db->get_object_adaptor($sequk);
+    $dbseq = $adp2->find_by_unique_key($sequk);
     ok $dbseq;
     ok ($dbseq->primary_key, $pseq->primary_key());
 
@@ -91,7 +93,7 @@ eval {
     $sequk = Bio::PrimarySeq->new(-accession_number =>$lseq->accession_number,
                                   -version => $lseq->version,
                                   -namespace => $lseq->namespace);
-    $dbseq = $db->get_object_adaptor($sequk)->find_by_unique_key($sequk);
+    $dbseq = $adp2->find_by_unique_key($sequk);
     ok $dbseq;
     ok ($dbseq->accession_number, $lseq->accession_number);
     ok ($dbseq->length, $lseq->length);
@@ -107,7 +109,7 @@ eval {
     $sequk = Bio::PrimarySeq->new(-accession_number =>$lseq->accession_number,
                                   -version => $lseq->version() + 1,
                                   -namespace => $lseq->namespace);
-    $dbseq = $db->get_object_adaptor($sequk)->find_by_unique_key($sequk);
+    $dbseq = $adp2->find_by_unique_key($sequk);
     ok ($dbseq->length, $lseq->length);
     ok ($dbseq->version, $lseq->version() + 1);
     ok ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
@@ -119,7 +121,7 @@ eval {
     $sequk = Bio::PrimarySeq->new(-accession_number =>$lseq->accession_number,
                                   -version => $lseq->version() + 1,
                                   -namespace => $lseq->namespace);
-    $dbseq = $db->get_object_adaptor($sequk)->find_by_unique_key($sequk);
+    $dbseq = $adp2->find_by_unique_key($sequk);
     ok ($dbseq->length, $lseq->length);
     ok ($dbseq->version, $lseq->version() + 1);
     ok ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
@@ -139,19 +141,45 @@ eval {
     $sequk = Bio::PrimarySeq->new(-accession_number =>$lseq->accession_number,
                                   -version => $lseq->version() + 1,
                                   -namespace => $lseq->namespace);
-    $dbseq = $db->get_object_adaptor($sequk)->find_by_unique_key($sequk);
+    $dbseq = $adp2->find_by_unique_key($sequk);
     ok ($dbseq->length, $lseq->length);
     ok ($dbseq->version, $lseq->version() + 1);
     ok ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
     ok ($dbseq->seq, $lseq->seq);
 
-    # remove the long sequence ...
-    ok $plseq->remove;
+    # test automatic casting of numeric values to string (varchar) -
+    # this may be an issue with PostgreSQL v8.3+ (but shouldn't be)
+    my $nseq = Bio::PrimarySeq->new(-accession_number => 123456,
+                                    -primary_id => 654321,
+                                    -display_id => 3457,
+                                    -desc => "test only",
+                                    -seq => "ACGTACGATGCTAGTAGCATCG",
+                                    -namespace => $lseq->namespace());
+    my $pnseq = $db->create_persistent($nseq);
+    # insert:
+    $pnseq->create();
+    ok $pnseq->primary_key;
+    # update:
+    $pnseq->primary_id(987654);
+    $pnseq->store();
+    # select (and test for update effect):
+    $sequk = Bio::PrimarySeq->new(-accession_number => 123456,
+                                  -namespace => $lseq->namespace());
+    $dbseq = $adp2->find_by_unique_key($sequk);
+    ok ($dbseq);
+    ok ($dbseq->accession_number, 123456);
+    ok ($dbseq->primary_id, 987654);
+    ok ($dbseq->display_id, 3457);
+    ok ($dbseq->desc, "test only");
+    ok ($dbseq->seq, "ACGTACGATGCTAGTAGCATCG");
+    # and delete again
+    ok ($dbseq->remove(), 1);
 };
 
 print STDERR $@ if $@;
 
-# delete seq and namespace
+# delete seqs and namespace
+ok ($plseq->remove(), 1);
 ok ($pseq->remove(), 1);
 my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pseq);
 ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);

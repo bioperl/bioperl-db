@@ -153,16 +153,7 @@ sub last_id_value{
 	$self->throw("no database handle supplied to last_id_value() --".
 		     "last_id and currval operations are connection-specific");
     }
-    my $sth = $dbh->prepare("SELECT last_insert_id()");
-    my $dbid;
-    if($sth->execute()) {
-	my $row = $sth->fetchrow_arrayref();
-	if(! ($row && @$row && ($dbid = $row->[0]))) {
-	    $self->throw("no record inserted or wrong database handle -- ".
-			 "probably internal error");
-	}
-    }
-    return $dbid;
+    return $dbh->{'mysql_insertid'};
 }
 
 =head2 ifnull_sqlfunc

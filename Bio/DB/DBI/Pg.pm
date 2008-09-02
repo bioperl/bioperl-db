@@ -130,11 +130,15 @@ sub next_id_value{
     }
     # we need to construct the sql statement
     $seq = $self->sequence_name() unless $seq;
-    my $row = $dbh->selectrow_arrayref("SELECT nextval('$seq')");
+    # use a cached (prepared) statement for this, and if for any
+    # reason it is still active when we request it, it fill be
+    # finish()ed first.
+    my $sth = $dbh->prepare_cached("SELECT nextval('$seq')", undef, 1);
+    my $row = $dbh->selectrow_arrayref($sth);
     my $dbid;
-    if(! ($row && @$row && ($dbid = $row->[0]))) {
-	$self->throw("no record inserted or wrong database handle -- ".
-		     "probably internal error");
+    if (! ($row && ($dbid = $row->[0]))) {
+	$self->throw("Does sequence '$seq' exist? -- ".
+		     "Probably internal error: ".$sth->errstr);
     }
     return $dbid;
 }
@@ -169,11 +173,15 @@ sub last_id_value{
     }
     # we need to construct the sql statement
     $seq = $self->sequence_name() unless $seq;
-    my $row = $dbh->selectrow_arrayref("SELECT currval('$seq')");
+    # use a cached (prepared) statement for this, and if for any
+    # reason it is still active when we request it, it fill be
+    # finish()ed first.
+    my $sth = $dbh->prepare_cached("SELECT currval('$seq')", undef, 1);
+    my $row = $dbh->selectrow_arrayref($sth);
     my $dbid;
-    if(! ($row && @$row && ($dbid = $row->[0]))) {
+    if (! ($row && ($dbid = $row->[0]))) {
 	$self->throw("no record inserted or wrong database handle -- ".
-		     "probably internal error");
+		     "probably internal error: ".$sth->errstr);
     }
     return $dbid;
 }

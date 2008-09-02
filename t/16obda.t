@@ -78,9 +78,11 @@ sub write_registry {
 	my $file = shift;
 	my $c = $db->dbcontext;
 	my ($host,$port,$dbname,$pass,$user,$driver) =
-	 ($c->host,$c->port,$c->dbname,$c->password,$c->username,$c->driver);
+	 ($c->host||'',$c->port||'',$c->dbname||'',$c->password||'',$c->username||'',$c->driver||'');
 
-	my $text = "VERSION=1.00
+        open F,">$file";
+	print F <<OBDA;
+VERSION=1.00
 
 [$obda_name]
 protocol=biosql
@@ -89,8 +91,6 @@ dbname=$dbname
 passwd=$pass
 user=$user
 driver=$driver
-";
-   open F,">$file";
-	print F $text;
-   close F;
+OBDA
+    close F;
 }

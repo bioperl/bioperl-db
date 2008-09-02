@@ -393,6 +393,9 @@ sub add_association{
 		     "::add_assoc: ".
 		     "binding column $i to \"".$obj->primary_key().
 		     "\" (FK to ".ref($obj->obj()).")\n");
+        # we cheat a few microseconds here by not routing the call
+        # through the persistence driver, but there really shouldn't
+        # be any special treatment needed for primary keys
 	$sth->bind_param($i, $obj->primary_key());
 	$i++;
     }
@@ -409,7 +412,7 @@ sub add_association{
 			     "::add_assoc: ".
 			     "binding column $i to \"",
 			     $values->{$valkey}, "\" ($valkey)\n");
-		$sth->bind_param($i, $values->{$valkey});
+		$dbd->bind_param($sth, $i, $values->{$valkey});
 		$i++;
 	    }
 	}
@@ -514,6 +517,9 @@ sub remove_association{
 			 "::remove_assoc: ".
 			 "binding column $i to \"".$obj->primary_key().
 			 "\" (FK to ".ref($obj->obj()).")\n");
+            # we cheat a few microseconds here by not routing the call
+            # through the persistence driver, but there really shouldn't
+            # be any special treatment needed for primary keys
 	    $sth->bind_param($i, $obj->primary_key());
 	    $i++;
 	}
@@ -530,7 +536,7 @@ sub remove_association{
 			     "::remove_assoc: ".
 			     "binding column $i to \"",
 			     $values->{$valkey}, "\" ($valkey)\n");
-		$sth->bind_param($i, $values->{$valkey});
+		$dbd->bind_param($sth, $i, $values->{$valkey});
 		$i++;
 	    }
 	}
@@ -936,9 +942,10 @@ sub _find_by_unique_key{
 	    ": binding UK column ".(++$i)." to \"".$query_h->{$_}."\" ($_)\n";
 	} keys %$query_h));
     }
+    my $dbd = $self->dbd();
     $i = 0;
     foreach (keys %$query_h) {
-	$sth->bind_param(++$i, $query_h->{$_});
+	$dbd->bind_param($sth, ++$i, $query_h->{$_});
     }
     # execute and check for error
     if(! $sth->execute()) {
@@ -1086,7 +1093,7 @@ sub find_by_association{
 	my $sql = $sqlgen->generate_sql($tquery);
 	# prepare statement 
 	$self->debug("preparing SELECT ASSOC query: $sql\n");
-	$sth = $self->dbh()->prepare($sql);
+	$sth = $self->dbd->prepare($self->dbh(), $sql);
 	# and cache for future use
 	$self->sth($cache_key, $sth);
     }
@@ -1100,6 +1107,9 @@ sub find_by_association{
 			     $obj->primary_key().
 			     "\" (FK to ".ref($obj->obj()).")\n");
 	    }
+            # we cheat a few microseconds here by not routing the call
+            # through the persistence driver, but there really shouldn't
+            # be any special treatment needed for primary keys
 	    $sth->bind_param($i, $obj->primary_key());
 	    $i++;
 	}
@@ -1112,7 +1122,7 @@ sub find_by_association{
 			 $values->{$constraint}.
 			 "\" (constraint ".$constraint->name.")\n");
 	}
-	$sth->bind_param($i, $values->{$constraint});
+	$self->dbd->bind_param($sth, $i, $values->{$constraint});
 	$i++;
     }
     # execute
@@ -1167,7 +1177,7 @@ sub find_by_association{
                          objects for resulting rows
 
               -name      a unique name for the query, which will make
-                         the the statement be a cached prepared
+                         the statement be a cached prepared
                          statement, which in subsequent invocations
                          will only be re-bound with parameters values,
                          but not recreated
@@ -1208,7 +1218,7 @@ sub find_by_query{
 	my $sql = $sqlgen->generate_sql($query);
 	# prepare
 	$self->debug("preparing query: $sql\n");
-	if($sth = $self->dbh()->prepare($sql)) {
+	if($sth = $self->dbd->prepare($self->dbh(), $sql)) {
 	    # cache if named query
 	    $self->sth($qname, $sth) if $qname;
 	} else {
@@ -1221,12 +1231,13 @@ sub find_by_query{
     }
     # bind parameter values if any and if a named query
     if($qname && $qvalues && @$qvalues) {
+        my $dbd = $self->dbd();
 	for(my $i = 1; $i <= @$qvalues; $i++) {
 	    $self->debug("Query $qname: binding column $i to \"".
 			 $qvalues->[$i-1]."\"\n");
 	    # We generally don't want to raise an exception.
 	    my $rv;
-	    eval { $rv = $sth->bind_param($i, $qvalues->[$i-1]); };
+	    eval { $rv = $dbd->bind_param($sth, $i, $qvalues->[$i-1]); };
 	    if(! $rv) {
 		# This is either due to an internal bug or to a constraint
 		# column not supported by the underlying schema (i.e., mapped

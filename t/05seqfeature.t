@@ -9,7 +9,7 @@ BEGIN {
     # as a fallback
     eval { require Test; };
     use Test;    
-    plan tests => 48;
+    plan tests => 49;
 }
 
 use DBTestHarness;
@@ -35,6 +35,7 @@ $feat->end(10);
 $feat->strand(-1);
 
 $feat->primary_tag('tag1');
+$feat->score(12345);
 $feat->source_tag('some-source');
 $feat->add_tag_value('tag12',18);
 $feat->add_tag_value('tag12','another damn value');
@@ -65,6 +66,7 @@ eval {
     ok ($dbf->primary_key, $pfeat->primary_key);
     ok ($dbf->primary_tag, $feat->primary_tag);
     ok ($dbf->source_tag, $feat->source_tag);
+    ok ($dbf->score, $feat->score);
     
     ok ($dbf->location->start, $feat->location->start);
     ok ($dbf->location->end, $feat->location->end);

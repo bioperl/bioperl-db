@@ -11,14 +11,14 @@ use Bio::Root::Build;
 # Set up the Bio::Root::Build object
 my $build = Bio::Root::Build->new(
     module_name         => 'Bio',
-    dist_name           => 'bioperl-db',
-    dist_version        => 1.005002101,
+    dist_name           => 'BioPerl-db',
+    dist_version        => '1.007000',
     dist_author         => 'Bioperl Team <bioperl-l@bioperl.org>',
-    dist_abstract       => 'bioperl-db - package for biological databases',
+    dist_abstract       => 'BioPerl-db - package for biological databases',
     license             => 'perl',
     requires            => {
                             'perl'                      => '5.6.1',
-                            'Bio::Root::Version'        => '1.5.2.103',
+                            'Bio::Root::Version'        => '1.7.0',
                             'DBI'                       => 0
                            },
     dynamic_config      => 1,

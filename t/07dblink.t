@@ -1,30 +1,21 @@
 # -*-Perl-*-
 # $Id$
 
-use lib 't';
-
 BEGIN {
-    # to handle systems with no installed Test module
-    # we include the t dir (where a copy of Test.pm is located)
-    # as a fallback
-    eval { require Test; };
-    use Test;    
-    plan tests => 18;
+    use lib qw(. t);
+    use Bio::Root::Test;
+    test_begin(-tests => 21);
+	use_ok('DBTestHarness');
+	use_ok('Bio::SeqIO');
+	use_ok('Bio::DB::Persistent::BioNamespace');
 }
-
-
-use DBTestHarness;
-use Bio::SeqIO;
-use Bio::Root::IO;
-use Bio::DB::Persistent::BioNamespace;
 
 $biosql = DBTestHarness->new("biosql");
 $db = $biosql->get_DBAdaptor();
 ok $db;
 
 my $seqio = Bio::SeqIO->new('-format' => 'genbank',
-			    '-file' => Bio::Root::IO->catfile(
-						      't','data','parkin.gb'));
+			    '-file' => test_input_file('parkin.gb'));
 my $seq = $seqio->next_seq();
 ok $seq;
 my $pseq = $db->create_persistent($seq);
@@ -45,9 +36,9 @@ eval {
     my $dbladp = $db->get_object_adaptor("Bio::Annotation::DBLink");
     my $fromdb = $dbladp->find_by_primary_key($pdbl->primary_key());
     ok $fromdb;
-    ok ($fromdb->primary_key, $pdbl->primary_key);
-    ok ($fromdb->database, $dbl->database);
-    ok ($fromdb->primary_id, $dbl->primary_id);
+    is ($fromdb->primary_key, $pdbl->primary_key);
+    is ($fromdb->database, $dbl->database);
+    is ($fromdb->primary_id, $dbl->primary_id);
 
     ok $dbladp->add_association(-objs => [$pseq, $pdbl]);
 
@@ -56,19 +47,19 @@ eval {
     my @mydbls = grep {
 	$_->database() eq "new-db";
     } $dbseq->annotation->get_Annotations("dblink");
-    ok (scalar(@mydbls), 1);
-    ok ($mydbls[0]->primary_id, $dbl->primary_id);
-    ok ($mydbls[0]->primary_key, $pdbl->primary_key);
+    is (scalar(@mydbls), 1);
+    is ($mydbls[0]->primary_id, $dbl->primary_id);
+    is ($mydbls[0]->primary_key, $pdbl->primary_key);
 
-    ok ($fromdb->remove(), 1);
+    is ($fromdb->remove(), 1);
 };
 
 print STDERR $@ if $@;
 
 # delete seq
-ok ($pseq->remove(), 1);
+is ($pseq->remove(), 1);
 my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pseq);
 ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);
 ok $ns->primary_key();
-ok ($ns->remove(), 1);
+is ($ns->remove(), 1);
 

@@ -1,55 +1,50 @@
 # -*-Perl-*-
 # $Id$
 
-use lib 't';
-
 BEGIN {
-    # to handle systems with no installed Test module
-    # we include the t dir (where a copy of Test.pm is located)
-    # as a fallback
-    eval { require Test; };
-    use Test;    
-    plan tests => 18;
-}
+    use lib '.';
+    use Bio::Root::Test;
+    test_begin(-tests => 23);
 
-use Bio::DB::Query::SqlQuery;
-use Bio::DB::Query::SqlGenerator;
-use Bio::DB::Query::BioQuery;
-use Bio::DB::Query::QueryConstraint;
-use Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver;
+	use_ok('Bio::DB::Query::SqlQuery');
+	use_ok('Bio::DB::Query::SqlGenerator');
+	use_ok('Bio::DB::Query::BioQuery');
+	use_ok('Bio::DB::Query::QueryConstraint');
+	use_ok('Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver');
+}
 
 my $query = Bio::DB::Query::SqlQuery->new(-tables => ["table1"]);
 my $sqlgen = Bio::DB::Query::SqlGenerator->new(-query => $query);
 
 my $sql = $sqlgen->generate_sql();
-ok ($sql, "SELECT * FROM table1");
+is ($sql, "SELECT * FROM table1");
 
 $query->add_datacollection("table1", "table2");
 $sql = $sqlgen->generate_sql();
-ok ($sql, "SELECT * FROM table1, table2");
+is ($sql, "SELECT * FROM table1, table2");
 
 $query->selectelts("col1", "col2", "col3");
 $sql = $sqlgen->generate_sql();
-ok ($sql, "SELECT col1, col2, col3 FROM table1, table2");
+is ($sql, "SELECT col1, col2, col3 FROM table1, table2");
 
 $query->groupelts("col1", "col3");
 $sql = $sqlgen->generate_sql();
-ok ($sql, "SELECT col1, col2, col3 FROM table1, table2 GROUP BY col1, col3");
+is ($sql, "SELECT col1, col2, col3 FROM table1, table2 GROUP BY col1, col3");
 
 $query->groupelts([]);
 $query->orderelts("col2","col3");
 $sql = $sqlgen->generate_sql();
-ok ($sql, "SELECT col1, col2, col3 FROM table1, table2 ORDER BY col2, col3");
+is ($sql, "SELECT col1, col2, col3 FROM table1, table2 ORDER BY col2, col3");
 
 $query->where(["col4 = ?", "col5 = 'somevalue'"]);
 $sql = $sqlgen->generate_sql();
-ok ($sql, "SELECT col1, col2, col3 FROM table1, table2 WHERE col4 = ? AND col5 = 'somevalue' ORDER BY col2, col3");
+is ($sql, "SELECT col1, col2, col3 FROM table1, table2 WHERE col4 = ? AND col5 = 'somevalue' ORDER BY col2, col3");
 
 $query->where(["and",
 	       ["or", "col4 = ?", "col5 = 'somevalue'"],
 	       ["col2 = col4", "col6 not like 'abcd*'"]]);
 $sql = $sqlgen->generate_sql();
-ok ($sql, "SELECT col1, col2, col3 FROM table1, table2 WHERE (col4 = ? OR col5 = 'somevalue') AND (col2 = col4 AND col6 NOT LIKE 'abcd\%') ORDER BY col2, col3");
+is ($sql, "SELECT col1, col2, col3 FROM table1, table2 WHERE (col4 = ? OR col5 = 'somevalue') AND (col2 = col4 AND col6 NOT LIKE 'abcd\%') ORDER BY col2, col3");
 
 $query = Bio::DB::Query::BioQuery->new();
 $mapper = Bio::DB::BioSQL::mysql::BasePersistenceAdaptorDriver->new();
@@ -58,19 +53,19 @@ $query->selectelts(["accession_number","version"]);
 $query->datacollections(["Bio::PrimarySeqI"]);
 $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
-ok ($sql, "SELECT bioentry.accession, bioentry.version FROM bioentry");
+is ($sql, "SELECT bioentry.accession, bioentry.version FROM bioentry");
 
 $query->selectelts([]);
 $query->datacollections(["Bio::Species=>Bio::PrimarySeqI"]);
 $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
-ok ($sql, "SELECT * FROM bioentry, taxon_name WHERE bioentry.taxon_id = taxon_name.taxon_id");
+is ($sql, "SELECT * FROM bioentry, taxon_name WHERE bioentry.taxon_id = taxon_name.taxon_id");
 
 $query->datacollections(["Bio::PrimarySeqI e",
 			 "Bio::Species=>Bio::PrimarySeqI sp"]);
 $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
-ok ($sql, "SELECT * FROM bioentry e, taxon_name sp WHERE e.taxon_id = sp.taxon_id");
+is ($sql, "SELECT * FROM bioentry e, taxon_name sp WHERE e.taxon_id = sp.taxon_id");
 
 $query->datacollections(["Bio::PrimarySeqI e",
 			 "Bio::Species=>Bio::PrimarySeqI sp",
@@ -80,7 +75,7 @@ $query->where(["sp.binomial like 'Mus *'",
 	       "db.namespace = 'ensembl'"]);
 $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
-ok ($sql,
+is ($sql,
     "SELECT * ".
     "FROM bioentry e, taxon_name sp, biodatabase db ".
     "WHERE e.taxon_id = sp.taxon_id AND e.biodatabase_id = db.biodatabase_id ".
@@ -100,7 +95,7 @@ $query->where(["sp.binomial like 'Mus *'",
 #$query->flag();
 $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
-ok ($sql,
+is ($sql,
     "SELECT e.accession, e.version ".
     "FROM bioentry e, taxon_name sp, biodatabase db, dbxref xref, bioentry_dbxref ".
     "WHERE e.taxon_id = sp.taxon_id AND e.biodatabase_id = db.biodatabase_id ".
@@ -115,7 +110,7 @@ $query->where(["Bio::PrimarySeqI::primary_key = 10",
 	       "Bio::Annotation::SimpleValue::ontology = 3"]);
 $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
-ok ($sql,
+is ($sql,
     "SELECT * ".
     "FROM bioentry, term, bioentry_qualifier_value ".
     "WHERE bioentry.bioentry_id = bioentry_qualifier_value.bioentry_id ".
@@ -130,7 +125,7 @@ $query->where(["Bio::PrimarySeqI::primary_key = 10",
 	       "Bio::Annotation::SimpleValue::ontology = 3"]);
 $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
-ok ($sql,
+is ($sql,
     "SELECT * ".
     "FROM bioentry e, term sv, bioentry_qualifier_value esva ".
     "WHERE e.bioentry_id = esva.bioentry_id ".
@@ -145,7 +140,7 @@ $query->where(["Bio::PrimarySeqI::primary_key = 10",
 	       "Bio::Annotation::SimpleValue::ontology = 3"]);
 $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
-ok ($sql,
+is ($sql,
     "SELECT * ".
     "FROM bioentry, term sv, bioentry_qualifier_value ".
     "WHERE bioentry.bioentry_id = bioentry_qualifier_value.bioentry_id ".
@@ -160,7 +155,7 @@ $query->where(["p.accession_number = 'Hs.2'",
 	       "Bio::Ontology::TermI::name = 'cluster member'"]);
 $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
-ok ($sql,
+is ($sql,
     "SELECT * ".
     "FROM bioentry c, bioentry p, term, bioentry_relationship ".
     "WHERE c.bioentry_id = bioentry_relationship.subject_bioentry_id ".
@@ -178,7 +173,7 @@ $query->where(["p.accession_number = 'Hs.2'",
 	       "Bio::Ontology::TermI::name = 'cluster member'"]);
 $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
-ok ($sql,
+is ($sql,
     "SELECT * ".
     "FROM bioentry c, bioentry p, term, bioentry_relationship ".
     "WHERE c.bioentry_id = bioentry_relationship.subject_bioentry_id ".
@@ -197,7 +192,7 @@ $query = Bio::DB::Query::BioQuery->new(
 				       );
 $tquery = $query->translate_query($mapper);
 $sql = $sqlgen->generate_sql($tquery);
-ok ($sql,
+is ($sql,
     "SELECT * ".
     "FROM term_path, ontology o, term ts, term to ".
     "WHERE term_path.ontology_id = o.ontology_id ".

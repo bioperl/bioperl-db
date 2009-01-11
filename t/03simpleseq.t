@@ -1,36 +1,28 @@
 # -*-Perl-*-
 # $Id$
 
-use lib 't';
-
 BEGIN {
-    # to handle systems with no installed Test module
-    # we include the t dir (where a copy of Test.pm is located)
-    # as a fallback
-    eval { require Test; };
-    use Test;    
-    plan tests => 67;
+    use lib qw(. t);
+    use Bio::Root::Test;
+    test_begin(-tests => 70);
+	use_ok('DBTestHarness');
+	use_ok('Bio::SeqIO');
+	use_ok('Bio::PrimarySeq');
 }
-
-use DBTestHarness;
-use Bio::SeqIO;
-use Bio::Root::IO;
-use Bio::PrimarySeq;
 
 $biosql = DBTestHarness->new("biosql");
 $db = $biosql->get_DBAdaptor();
 ok $db;
 
 my $seqio = Bio::SeqIO->new('-format' => 'fasta',
-			    '-file' => Bio::Root::IO->catfile('t','data',
-							      'parkin.fasta'));
+			    '-file' => test_input_file('parkin.fasta'));
 my $seq = $seqio->next_seq();
 ok $seq;
 
 my $pseq = $db->create_persistent($seq);
 ok $pseq;
-ok $pseq->isa("Bio::DB::PersistentObjectI");
-ok $pseq->isa("Bio::PrimarySeqI");
+isa_ok $pseq,"Bio::DB::PersistentObjectI";
+isa_ok $pseq,"Bio::PrimarySeqI";
 
 $pseq->namespace("mytestnamespace");
 $pseq->store();
@@ -40,8 +32,7 @@ ok $dbid;
 # test long sequence
 $seqio->close();
 $seqio = Bio::SeqIO->new('-format' => 'fasta',
-                         '-file' =>
-                         Bio::Root::IO->catfile('t','data','Titin.fasta') );
+                         '-file' => test_input_file('Titin.fasta') );
 my $lseq = $seqio->next_seq();
 $seqio->close();
 $lseq->namespace("mytestnamespace");
@@ -51,35 +42,35 @@ $lseq->version($1);
 $lseq->accession_number($acc);
 $lseq->primary_id(undef);
 $lseq->display_id($acc);
-ok ($lseq->accession_number, "NM_003319");
-ok ($lseq->version, 2);
-ok ($lseq->length, 82027);
+is ($lseq->accession_number, "NM_003319");
+is ($lseq->version, 2);
+is ($lseq->length, 82027);
 my $plseq = $db->create_persistent($lseq);
 $plseq->create();
 
 my $adp = $db->get_object_adaptor($seq);
 ok $adp;
-ok $adp->isa("Bio::DB::PersistenceAdaptorI");
+isa_ok $adp,"Bio::DB::PersistenceAdaptorI";
 
 # start try/finally
 eval {
     my $dbseq = $adp->find_by_primary_key($dbid);
     ok $dbseq;
-    ok ($dbseq->primary_key(), $dbid);
+    is ($dbseq->primary_key(), $dbid);
 
-    ok ($dbseq->display_id, $seq->display_id);
-    ok ($dbseq->accession_number, $seq->accession_number);
-    ok ($dbseq->namespace, $seq->namespace);
+    is ($dbseq->display_id, $seq->display_id);
+    is ($dbseq->accession_number, $seq->accession_number);
+    is ($dbseq->namespace, $seq->namespace);
     # the following two may take different call paths depending on whether the
     # sequence has been requested yet or not
-    ok ($dbseq->length, $seq->length);
-    ok ($dbseq->subseq(3,10), $seq->subseq(3,10) );
-    ok ($dbseq->seq, $seq->seq);
-    ok ($dbseq->subseq(3,10), $seq->subseq(3,10) );
-    ok ($dbseq->subseq(1,15), $seq->subseq(1,15) );
-    ok ($dbseq->length, $seq->length);
-    ok ($dbseq->length, length($dbseq->seq));
-    ok ($dbseq->desc, $seq->desc);
+    is ($dbseq->length, $seq->length);
+    is ($dbseq->subseq(3,10), $seq->subseq(3,10) );
+    is ($dbseq->seq, $seq->seq);
+    is ($dbseq->subseq(3,10), $seq->subseq(3,10) );
+    is ($dbseq->subseq(1,15), $seq->subseq(1,15) );
+    is ($dbseq->length, $seq->length);
+    is ($dbseq->length, length($dbseq->seq));
+    is ($dbseq->desc, $seq->desc);
 
     my $sequk = Bio::PrimarySeq->new(
 			      -accession_number => $pseq->accession_number(),
@@ -87,7 +78,7 @@ eval {
     my $adp2 = $db->get_object_adaptor($sequk);
     $dbseq = $adp2->find_by_unique_key($sequk);
     ok $dbseq;
-    ok ($dbseq->primary_key, $pseq->primary_key());
+    is ($dbseq->primary_key, $pseq->primary_key());
 
     # test correct retrieval of long sequence
     $sequk = Bio::PrimarySeq->new(-accession_number =>$lseq->accession_number,
@@ -95,12 +86,12 @@ eval {
                                   -namespace => $lseq->namespace);
     $dbseq = $adp2->find_by_unique_key($sequk);
     ok $dbseq;
-    ok ($dbseq->accession_number, $lseq->accession_number);
-    ok ($dbseq->length, $lseq->length);
-    ok ($dbseq->namespace, $lseq->namespace);
-    ok ($dbseq->version, $lseq->version);
-    ok ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
-    ok ($dbseq->seq, $lseq->seq);
+    is ($dbseq->accession_number, $lseq->accession_number);
+    is ($dbseq->length, $lseq->length);
+    is ($dbseq->namespace, $lseq->namespace);
+    is ($dbseq->version, $lseq->version);
+    is ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
+    is ($dbseq->seq, $lseq->seq);
 
     # test correct update of properties if seq object is updated (but
     # not the sequence)
@@ -110,10 +101,10 @@ eval {
                                   -version => $lseq->version() + 1,
                                   -namespace => $lseq->namespace);
     $dbseq = $adp2->find_by_unique_key($sequk);
-    ok ($dbseq->length, $lseq->length);
-    ok ($dbseq->version, $lseq->version() + 1);
-    ok ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
-    ok ($dbseq->seq, $lseq->seq);
+    is ($dbseq->length, $lseq->length);
+    is ($dbseq->version, $lseq->version() + 1);
+    is ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
+    is ($dbseq->seq, $lseq->seq);
 
     # test correct update of properties if seq object is not updated
     ok !$dbseq->is_dirty;
@@ -122,19 +113,19 @@ eval {
                                   -version => $lseq->version() + 1,
                                   -namespace => $lseq->namespace);
     $dbseq = $adp2->find_by_unique_key($sequk);
-    ok ($dbseq->length, $lseq->length);
-    ok ($dbseq->version, $lseq->version() + 1);
-    ok ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
-    ok ($dbseq->seq, $lseq->seq);
+    is ($dbseq->length, $lseq->length);
+    is ($dbseq->version, $lseq->version() + 1);
+    is ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
+    is ($dbseq->seq, $lseq->seq);
 
     # test whether a null sequence will not clobber the sequence in
     # the database
     $dbseq->seq(undef);
-    ok ($dbseq->length, 0);
-    ok ($dbseq->seq, undef);
+    is ($dbseq->length, 0);
+    is ($dbseq->seq, undef);
     $dbseq->length($lseq->length);
-    ok ($dbseq->seq, undef);
-    ok ($dbseq->length, $lseq->length);
+    is ($dbseq->seq, undef);
+    is ($dbseq->length, $lseq->length);
     ok $dbseq->is_dirty;
     ok $dbseq->store;
     # re-retrieve and test
@@ -142,10 +133,10 @@ eval {
                                   -version => $lseq->version() + 1,
                                   -namespace => $lseq->namespace);
     $dbseq = $adp2->find_by_unique_key($sequk);
-    ok ($dbseq->length, $lseq->length);
-    ok ($dbseq->version, $lseq->version() + 1);
-    ok ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
-    ok ($dbseq->seq, $lseq->seq);
+    is ($dbseq->length, $lseq->length);
+    is ($dbseq->version, $lseq->version() + 1);
+    is ($dbseq->subseq(40100,40400), $lseq->subseq(40100,40400));
+    is ($dbseq->seq, $lseq->seq);
 
     # test automatic casting of numeric values to string (varchar) -
     # this may be an issue with PostgreSQL v8.3+ (but shouldn't be)
@@ -167,21 +158,21 @@ eval {
                                   -namespace => $lseq->namespace());
     $dbseq = $adp2->find_by_unique_key($sequk);
     ok ($dbseq);
-    ok ($dbseq->accession_number, 123456);
-    ok ($dbseq->primary_id, 987654);
-    ok ($dbseq->display_id, 3457);
-    ok ($dbseq->desc, "test only");
-    ok ($dbseq->seq, "ACGTACGATGCTAGTAGCATCG");
+    is ($dbseq->accession_number, 123456);
+    is ($dbseq->primary_id, 987654);
+    is ($dbseq->display_id, 3457);
+    is ($dbseq->desc, "test only");
+    is ($dbseq->seq, "ACGTACGATGCTAGTAGCATCG");
     # and delete again
-    ok ($dbseq->remove(), 1);
+    is ($dbseq->remove(), 1);
 };
 
 print STDERR $@ if $@;
 
 # delete seqs and namespace
-ok ($plseq->remove(), 1);
-ok ($pseq->remove(), 1);
+is ($plseq->remove(), 1);
+is ($pseq->remove(), 1);
 my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pseq);
 ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);
 ok $ns->primary_key();
-ok ($ns->remove(), 1);
+is ($ns->remove(), 1);

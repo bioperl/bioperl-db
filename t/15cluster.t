@@ -1,35 +1,28 @@
 # -*-Perl-*-
 # $Id$
 
-use lib 't';
-
 BEGIN {
-    # to handle systems with no installed Test module
-    # we include the t dir (where a copy of Test.pm is located)
-    # as a fallback
-    eval { require Test; };
-    use Test;
-    plan tests => 160;
-}
+    use lib qw(. t);
+    use Bio::Root::Test;
+    test_begin(-tests => 162);
 
-use DBTestHarness;
-use Bio::ClusterIO;
-use Bio::Root::IO;
+	use_ok('DBTestHarness');
+	use_ok('Bio::ClusterIO');
+}
 
 $biosql = DBTestHarness->new("biosql");
 $db = $biosql->get_DBAdaptor();
 ok $db;
 
 my $objio = Bio::ClusterIO->new('-format' => 'unigene',
-				'-file' => Bio::Root::IO->catfile(
-					         't','data','unigene.data'));
+				'-file' => test_input_file('unigene.data'));
 my $clu = $objio->next_cluster();
 ok $clu;
 
 my $pclu = $db->create_persistent($clu);
 ok $pclu;
-ok $pclu->isa("Bio::DB::PersistentObjectI");
-ok $pclu->isa("Bio::ClusterI");
+isa_ok $pclu, "Bio::DB::PersistentObjectI";
+isa_ok $pclu, "Bio::ClusterI";
 
 $pclu->namespace("mytestnamespace");
 $pclu->create();
@@ -38,40 +31,40 @@ ok $dbid;
 
 my $adp = $db->get_object_adaptor($clu);
 ok $adp;
-ok $adp->isa("Bio::DB::PersistenceAdaptorI");
+isa_ok $adp, "Bio::DB::PersistenceAdaptorI";
 
 # try/finally
 eval {
     $dbclu = $adp->find_by_primary_key($dbid);
     ok $dbclu;
 
-    ok ($dbclu->display_id, $clu->display_id);
-    ok ($dbclu->description, $clu->description);
-    ok ($dbclu->size, $clu->size);
-    ok (scalar($dbclu->get_members), scalar($clu->get_members));
-    ok (scalar($dbclu->get_members), $clu->size);
-    ok ($dbclu->species->binomial, $clu->species->binomial);
+    is ($dbclu->display_id, $clu->display_id);
+    is ($dbclu->description, $clu->description);
+    is ($dbclu->size, $clu->size);
+    is (scalar($dbclu->get_members), scalar($clu->get_members));
+    is (scalar($dbclu->get_members), $clu->size);
+    is ($dbclu->species->binomial, $clu->species->binomial);
 
     # check all annotation objects
     my @dbkeys =
 	sort { $a cmp $b } $dbclu->annotation->get_all_annotation_keys();
     my @keys =
 	sort { $a cmp $b } $clu->annotation->get_all_annotation_keys();
-    ok (scalar(@dbkeys), scalar(@keys));
+    is (scalar(@dbkeys), scalar(@keys));
     my $i = 0;
     while($i < @dbkeys) {
-	ok ($dbkeys[$i], $keys[$i]);
+	is ($dbkeys[$i], $keys[$i]);
 	my @dbanns = sort {
 	    $a->as_text cmp $b->as_text;
 	} $dbclu->annotation->get_Annotations($dbkeys[$i]);
 	my @anns = sort {
 	    $a->as_text cmp $b->as_text;
 	} $clu->annotation->get_Annotations($dbkeys[$i]);
-	ok (scalar(@dbanns), scalar(@anns),
+	is (scalar(@dbanns), scalar(@anns),
 	    "number of annotations don't match for key ".$dbkeys[$i]);
 	my $j = 0;
 	while($j < @dbanns) {
-	    ok ($dbanns[$j]->as_text, $anns[$j]->as_text,
+	    is ($dbanns[$j]->as_text, $anns[$j]->as_text,
 		"values for annotation element $j don't match for key ".
 		$dbkeys[$i]);
 	    $j++;
@@ -88,9 +81,9 @@ eval {
     } $clu->get_members();
     $i = 0;
     while(($i < @mems) && ($i < @dbmems)) {
-	ok ($dbmems[$i]->accession_number, $mems[$i]->accession_number);
-	ok ($dbmems[$i]->display_id, $mems[$i]->display_id);
-	ok ($dbmems[$i]->namespace, $mems[$i]->namespace);
+	is ($dbmems[$i]->accession_number, $mems[$i]->accession_number);
+	is ($dbmems[$i]->display_id, $mems[$i]->display_id);
+	is ($dbmems[$i]->namespace, $mems[$i]->namespace);
 	$i++;
     }
 
@@ -99,27 +92,27 @@ eval {
     # re-fetch and test members
     $dbclu = $adp->find_by_primary_key($dbid);
     ok $dbclu;
-    ok (scalar($dbclu->get_members()), 0);
+    is (scalar($dbclu->get_members()), 0);
     # but the members should be still there (just not associated anymore)
     my $seq = $dbmems[0]->adaptor->find_by_primary_key($dbmems[0]->primary_key);
     ok $seq;
-    ok ($seq->accession_number, $dbmems[0]->accession_number);
+    is ($seq->accession_number, $dbmems[0]->accession_number);
     # and the original size is retained, like it or not
-    ok ($dbclu->size, 29);
+    is ($dbclu->size, 29);
     # now try to update the size (we should be able to do that in the
     # absence of any members
     $dbclu->size(10);
     $dbclu->store();
     # refetch and test
     $dbclu = $adp->find_by_primary_key($dbid);
-    ok ($dbclu->size, 10);
+    is ($dbclu->size, 10);
 };
 
 print STDERR $@ if $@;
 
 # delete clu
-ok ($pclu->remove(), 1);
+is ($pclu->remove(), 1);
 my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pclu);
 ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);
 ok $ns->primary_key();
-ok ($ns->remove(), 1);
+is ($ns->remove(), 1);

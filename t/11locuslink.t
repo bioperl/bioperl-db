@@ -1,29 +1,21 @@
 # -*-Perl-*- mode (to keep my emacs happy)
 # $Id$
 
-use lib 't';
+BEGIN {
+    use lib qw(. t);
+    use Bio::Root::Test;
+    test_begin(-tests => 113);
 
-BEGIN {     
-    # to handle systems with no installed Test module
-    # we include the t dir (where a copy of Test.pm is located)
-    # as a fallback
-    eval { require Test; };
-    use Test;
-
-    plan tests => 110;
+	use_ok('DBTestHarness');
+	use_ok('Bio::SeqIO');
+	use_ok('Bio::Seq::SeqFactory');
 }
-
-use DBTestHarness;
-use Bio::SeqIO;
-use Bio::Root::IO;
-use Bio::Seq::SeqFactory;
 
 $biosql = DBTestHarness->new("biosql");
 $db = $biosql->get_DBAdaptor();
 ok $db;
 
-my $seqin = Bio::SeqIO->new(-file => Bio::Root::IO->catfile("t","data",
-							    "LL-sample.seq"),
+my $seqin = Bio::SeqIO->new(-file => test_input_file("LL-sample.seq"),
 			    -format => 'locuslink');
 ok $seqin;
 
@@ -48,10 +40,10 @@ eval {
     $dbseq = $adp->find_by_primary_key($pseq->primary_key(), $seqfact);
     ok $dbseq;
 
-    ok ($dbseq->desc, $seq->desc);
-    ok ($dbseq->accession_number, $seq->accession_number);
-    ok ($dbseq->display_id, $seq->display_id);
-    ok ($dbseq->species->binomial, "Homo sapiens");
+    is ($dbseq->desc, $seq->desc);
+    is ($dbseq->accession_number, $seq->accession_number);
+    is ($dbseq->display_id, $seq->display_id);
+    is ($dbseq->species->binomial, "Homo sapiens");
 
 
     my @dblinks = $dbseq->annotation->get_Annotations('dblink');
@@ -71,9 +63,9 @@ eval {
     foreach (@links) { $counts{$_->database()}++; }
 
     foreach my $k (keys %counts) {
-	ok ($dbcounts{$k}, $counts{$k}, "unequal counts for $k");
+	is ($dbcounts{$k}, $counts{$k}, "equal counts for $k");
     }
-    ok (scalar(@dblinks), scalar(@links));
+    is (scalar(@dblinks), scalar(@links));
 
     my $dbac = $dbseq->annotation;
     my $ac = $seq->annotation;
@@ -110,30 +102,30 @@ eval {
     }
 
     my @keys = $ac->get_all_annotation_keys();
-    ok (scalar($dbac->get_all_annotation_keys()), scalar(@keys));
+    is (scalar($dbac->get_all_annotation_keys()), scalar(@keys));
 
     foreach my $k (@keys) {
 	my @dbanns =
 	    sort { $a->as_text() cmp $b->as_text } $dbac->get_Annotations($k);
 	my @anns = 
 	    sort { $a->as_text() cmp $b->as_text } $ac->get_Annotations($k);
-	ok (scalar(@dbanns), scalar(@anns), "unequal counts for $k");
+	is (scalar(@dbanns), scalar(@anns), "equal counts for $k");
 	for(my $i = 0; $i < @anns; $i++) {
-	    ok ($dbanns[$i]->as_text, $anns[$i]->as_text);
+	    is ($dbanns[$i]->as_text, $anns[$i]->as_text);
 	}
     }
 
     my ($dbcmt) = $dbac->get_Annotations('comment');
     my ($cmt) = $ac->get_Annotations('comment');
-    ok ($dbcmt->text, $cmt->text);
+    is ($dbcmt->text, $cmt->text);
 };
 
 print STDERR $@ if $@;
 
 # delete seq
-ok ($pseq->remove(), 1);
+is ($pseq->remove(), 1);
 my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pseq);
 ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);
 ok $ns->primary_key();
-ok ($ns->remove(), 1);
+is ($ns->remove(), 1);
 

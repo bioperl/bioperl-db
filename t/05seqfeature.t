@@ -1,28 +1,21 @@
 # -*-Perl-*-
 # $Id$
 
-use lib 't';
-
 BEGIN {
-    # to handle systems with no installed Test module
-    # we include the t dir (where a copy of Test.pm is located)
-    # as a fallback
-    eval { require Test; };
-    use Test;    
-    plan tests => 49;
+    use lib qw(. t);
+    use Bio::Root::Test;
+    test_begin(-tests => 52);
+	use_ok('DBTestHarness');
+	use_ok('Bio::SeqIO');
+	use_ok('Bio::Root::IO');
 }
-
-use DBTestHarness;
-use Bio::SeqIO;
-use Bio::Root::IO;
 
 $biosql = DBTestHarness->new("biosql");
 $db = $biosql->get_DBAdaptor();
 ok $db;
 
 my $seqio = Bio::SeqIO->new('-format' => 'genbank',
-			    '-file' => Bio::Root::IO->catfile(
-						      't','data','parkin.gb'));
+			    '-file' => test_input_file('parkin.gb'));
 my $seq = $seqio->next_seq();
 ok $seq;
 my $pseq = $db->create_persistent($seq);
@@ -43,7 +36,7 @@ $feat->add_tag_value('another-tag','something else');
 
 # make persistent
 my $pfeat = $db->create_persistent($feat);
-ok $pfeat->isa("Bio::DB::PersistentObjectI");
+isa_ok $pfeat, "Bio::DB::PersistentObjectI";
 
 # store seq
 $pseq->create();
@@ -63,20 +56,20 @@ eval {
     ok $fadp;
     $dbf = $fadp->find_by_primary_key($pfeat->primary_key());
     ok $dbf;
-    ok ($dbf->primary_key, $pfeat->primary_key);
-    ok ($dbf->primary_tag, $feat->primary_tag);
-    ok ($dbf->source_tag, $feat->source_tag);
-    ok ($dbf->score, $feat->score);
+    is ($dbf->primary_key, $pfeat->primary_key);
+    is ($dbf->primary_tag, $feat->primary_tag);
+    is ($dbf->source_tag, $feat->source_tag);
+    is ($dbf->score, $feat->score);
     
-    ok ($dbf->location->start, $feat->location->start);
-    ok ($dbf->location->end, $feat->location->end);
-    ok ($dbf->location->strand, $feat->location->strand);
+    is ($dbf->location->start, $feat->location->start);
+    is ($dbf->location->end, $feat->location->end);
+    is ($dbf->location->strand, $feat->location->strand);
     ok ! $dbf->location->is_remote;
     
-    ok (scalar($dbf->get_tag_values('tag12')), 2);
+    is (scalar($dbf->get_tag_values('tag12')), 2);
     
     ($value) = $dbf->get_tag_values('another-tag');
-    ok( $value , 'something else');
+    is( $value , 'something else');
 
     # add a tag value and update
     $dbf->add_tag_value('tag13','value for tag13');
@@ -89,41 +82,41 @@ eval {
     ($dbf) = grep { $_->primary_tag eq 'tag1'; } $dbseq->top_SeqFeatures();
     ok $dbf;
     # check previous tags and for added tag
-    ok (scalar($dbf->get_tag_values('tag12')), 2);
+    is (scalar($dbf->get_tag_values('tag12')), 2);
     ($value) = $dbf->get_tag_values('another-tag');
-    ok( $value , 'something else');
+    is( $value , 'something else');
     ($value) = $dbf->get_tag_values('tag13');
-    ok( $value , 'value for tag13');
+    is( $value , 'value for tag13');
 
     # test remote feature locations
     # without explicit namespace:
-    ok ($pfeat->remove(), 1);
+    is ($pfeat->remove(), 1);
     $pfeat->location->is_remote(1);
     $pfeat->location->seq_id('AB123456');
     $pfeat->create();
     # re-retrieve and test
     $dbf = $fadp->find_by_primary_key($pfeat->primary_key());
     ok $dbf;
-    ok ($dbf->primary_key, $pfeat->primary_key);
-    ok ($dbf->start, 1);
-    ok ($dbf->end, 10);
+    is ($dbf->primary_key, $pfeat->primary_key);
+    is ($dbf->start, 1);
+    is ($dbf->end, 10);
     ok $dbf->location->is_remote;
-    ok ($dbf->location->seq_id, "mytestnamespace:AB123456");
+    is ($dbf->location->seq_id, "mytestnamespace:AB123456");
     # with explicit namespace:
-    ok ($pfeat->remove(), 1);
+    is ($pfeat->remove(), 1);
     $pfeat->location->is_remote(1);
     $pfeat->location->seq_id('XZ:AB123456.4');
     $pfeat->create();
     # re-retrieve and test
     $dbf = $fadp->find_by_primary_key($pfeat->primary_key());
     ok $dbf;
-    ok ($dbf->primary_key, $pfeat->primary_key);
-    ok ($dbf->start, 1);
-    ok ($dbf->end, 10);
+    is ($dbf->primary_key, $pfeat->primary_key);
+    is ($dbf->start, 1);
+    is ($dbf->end, 10);
     ok $dbf->location->is_remote;
-    ok ($dbf->location->seq_id, "XZ:AB123456.4");
+    is ($dbf->location->seq_id, "XZ:AB123456.4");
     # redundant namespace removal
-    ok ($pseq->remove, 1);
+    is ($pseq->remove, 1);
     ok $pfeat->remove;
     $pseq->flush_SeqFeatures();
     $pseq->annotation->remove_Annotations();
@@ -133,7 +126,7 @@ eval {
     $dbseq = $pseq->adaptor->find_by_primary_key($pseq->primary_key);
     ($dbf) = $dbseq->top_SeqFeatures();
     ok $dbf;
-    ok ($dbf->location->seq_id, "XZ:AB123456.4"); # no removal
+    is ($dbf->location->seq_id, "XZ:AB123456.4"); # no removal
     # same game as before but now with implicit namespace
     $pfeat->location->seq_id('AB123456');
     ok $pfeat->store();
@@ -141,14 +134,14 @@ eval {
     $dbseq = $pseq->adaptor->find_by_primary_key($pseq->primary_key);
     ($dbf) = $dbseq->top_SeqFeatures();
     ok $dbf;
-    ok ($dbf->location->seq_id, "AB123456");
+    is ($dbf->location->seq_id, "AB123456");
 };
 
 print STDERR $@ if $@;
 
 # delete seq
-ok ($pseq->remove(), 1);
+is ($pseq->remove(), 1);
 my $ns = Bio::DB::Persistent::BioNamespace->new(-identifiable => $pseq);
 ok $ns = $db->get_object_adaptor($ns)->find_by_unique_key($ns);
 ok $ns->primary_key();
-ok ($ns->remove(), 1);
+is ($ns->remove(), 1);

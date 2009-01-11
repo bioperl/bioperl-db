@@ -4,7 +4,7 @@
 use vars qw($old_obda_path);
 
 BEGIN {
-    use lib qw(. t);
+    use lib 't';
     use Bio::Root::Test;
     test_begin(-tests => 16);
 

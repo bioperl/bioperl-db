@@ -2,7 +2,7 @@
 # $Id$
 
 BEGIN {
-    use lib qw(. t);
+    use lib 't';
     use Bio::Root::Test;
     test_begin(-tests => 113);
 

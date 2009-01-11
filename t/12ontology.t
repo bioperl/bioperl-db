@@ -1,20 +1,13 @@
 # -*-Perl-*-
 # $Id$
 
-use lib 't';
-
 BEGIN {
-    # to handle systems with no installed Test module
-    # we include the t dir (where a copy of Test.pm is located)
-    # as a fallback
-    eval { require Test; };
-    use Test;    
-    plan tests => 738;
+    use lib qw(. t);
+    use Bio::Root::Test;
+    test_begin(-tests => 740);
+	use_ok('DBTestHarness');
+	use_ok('Bio::OntologyIO');
 }
-
-use DBTestHarness;
-use Bio::OntologyIO;
-use Bio::Root::IO;
 
 $biosql = DBTestHarness->new("biosql");
 ok $biosql;
@@ -22,10 +15,8 @@ ok $biosql;
 $db = $biosql->get_DBAdaptor();
 ok $db;
 
-my $io = Bio::Root::IO->new(); # saves typing
-my $ontio = Bio::OntologyIO->new(-file => $io->catfile('t','data',
-						       'sofa.ontology'),
-				 -format => 'so');
+my $ontio = Bio::OntologyIO->new(-file => test_input_file('sofa.ontology'),
+				 -format => 'soflat');
 ok ($ontio);
 my $ont = $ontio->next_ontology();
 ok ($ont);
@@ -62,7 +53,7 @@ my $queryrels =
 my $reladp = $db->get_object_adaptor("Bio::Ontology::RelationshipI");
 my $qres = $reladp->find_by_query($queryrels);
 while(my $rel = $qres->next_object()) {
-    ok ($rel->ontology->name, "My Test Ontology");
+    is ($rel->ontology->name, "My Test Ontology");
     $dbont->add_term($rel->subject_term);
     $dbont->add_term($rel->object_term);
     #$dbont->add_term($rel->predicate_term);
@@ -72,22 +63,22 @@ while(my $rel = $qres->next_object()) {
 # now query the ontology
 my ($term) = $dbont->find_terms(-identifier => "MYTO:0000233");
 ok ($term);
-ok ($term->identifier, "MYTO:0000233");
-ok ($term->name, "processed_transcript");
+is ($term->identifier, "MYTO:0000233");
+is ($term->name, "processed_transcript");
 @rels = $dbont->get_relationships($term);
-ok (scalar(@rels), 5);
+is (scalar(@rels), 5);
 @relset = grep { $_->predicate_term->name eq "IS_A"; } @rels;
-ok (scalar(@relset), 3);
+is (scalar(@relset), 3);
 @relset = grep { $_->object_term->identifier eq "MYTO:0000233"; } @rels;
-ok (scalar(@relset), 4);
+is (scalar(@relset), 4);
 
 # check for correct storage and retrieval of synonyms and dbxrefs
 ($term) = $dbont->find_terms(-identifier => "MYTO:0000203");
 ok ($term);
-ok ($term->name, "untranslated_region");
+is ($term->name, "untranslated_region");
 my @syns = $term->get_synonyms();
-ok (scalar(@syns), 1);
-ok ($syns[0], "UTR");
+is (scalar(@syns), 1);
+is ($syns[0], "UTR");
 # modify, update, and re-retrieve to check with multiple synonyms, and with
 # dbxrefs (this version of SOFA doesn't come with any dbxrefs)
 $term->add_synonym("junk DNA");
@@ -98,9 +89,9 @@ $term = $term->adaptor->find_by_primary_key($term->primary_key);
 ok ($term);
 # now test
 @syns = $term->get_synonyms();
-ok (scalar(@syns), 2);
-ok (scalar(grep { $_ eq "junk DNA"; } @syns), 1);
-ok (scalar($term->get_dbxrefs()), 1);
+is (scalar(@syns), 2);
+is (scalar(grep { $_ eq "junk DNA"; } @syns), 1);
+is (scalar($term->get_dbxrefs()), 1);
 
 #
 # test the transitive closure computations
@@ -135,13 +126,13 @@ my $pathadp = $db->get_object_adaptor("Bio::Ontology::PathI");
 $qres = $pathadp->find_by_query($query);
 my $n = 0;
 while(my $path = $qres->next_object()) {
-    ok ($path->ontology->name, "My Test Ontology");
-    ok ($path->subject_term->name, "exon");
-    ok ($path->object_term->name, "gene");
-    ok ($path->predicate_term->name, "PART_OF");
+    is ($path->ontology->name, "My Test Ontology");
+    is ($path->subject_term->name, "exon");
+    is ($path->object_term->name, "gene");
+    is ($path->predicate_term->name, "PART_OF");
     $n++;
 }
-ok ($n, 1);
+is ($n, 1);
 
 # test for distance zero paths
 $query = Bio::DB::Query::BioQuery->new(
@@ -155,15 +146,15 @@ $query = Bio::DB::Query::BioQuery->new(
 $qres = $pathadp->find_by_query($query);
 $n = 0;
 while(my $path = $qres->next_object()) {
-    ok ($path->ontology->name, "My Test Ontology");
-    ok ($path->subject_term->name, $path->object_term->name);
-    ok ($path->predicate_term->name, "identity");
-    ok ($path->predicate_term->ontology->name, "My BioSQL Predicate Ontology");
-    ok ($path->distance, 0);
+    is ($path->ontology->name, "My Test Ontology");
+    is ($path->subject_term->name, $path->object_term->name);
+    is ($path->predicate_term->name, "identity");
+    is ($path->predicate_term->ontology->name, "My BioSQL Predicate Ontology");
+    is ($path->distance, 0);
     $n++ if $path->subject_term->identifier; # don't count hard-coded but
 					     # unused relationship types
 }
-ok ($n, 86);
+is ($n, 86);
 
 #
 # test removal of relationships
@@ -179,7 +170,7 @@ $n = 0;
 while ($qres->next_object()) {
     $n++;
 }
-ok ($n, 0);
+is ($n, 0);
 
 # there should still be terms though
 my $dbterm = Bio::Ontology::Term->new(-identifier => "MYTO:0000233");
@@ -187,10 +178,10 @@ $dbterm = $db->get_object_adaptor($dbterm)->find_by_unique_key($dbterm);
 ok ($dbterm);
 ok ($dbterm->primary_key);
 ok ($dbterm->ontology);
-ok ($dbterm->ontology->name, "My Test Ontology");
-ok ($dbterm->identifier, "MYTO:0000233");
+is ($dbterm->ontology->name, "My Test Ontology");
+is ($dbterm->identifier, "MYTO:0000233");
 ($term) = $dbont->find_terms(-identifier => "MYTO:0000233");
 ok ($term);
-ok ($dbterm->name, $term->name);
-ok (scalar($dbterm->get_synonyms()), scalar($term->get_synonyms()));
+is ($dbterm->name, $term->name);
+is (scalar($dbterm->get_synonyms()), scalar($term->get_synonyms()));
 

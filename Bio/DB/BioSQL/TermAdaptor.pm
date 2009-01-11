@@ -334,8 +334,8 @@ sub attach_children{
     my $dbladp = $self->db->get_object_adaptor("Bio::Annotation::DBLink");
     my $qres = $dbladp->find_by_association(-objs => [$obj,$dbladp]);
     while(my $dbl = $qres->next_object()) {
-	# terms store dblinks as flat strings currently
-	$obj->add_dblink($dbl->namespace_string());
+      # terms store dblinks as objects
+      $obj->add_dbxref([$dbl]);
     }
     # retrieve the synonyms (synonyms aren't objects in their own right
     # in bioperl - although they could be)

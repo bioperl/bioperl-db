@@ -9,8 +9,8 @@ my $v = '1.007000';
 use strict;
 eval "use Bio::Root::Build $v";
 if ($@) {
-    warn "BioPerl core version $v is required for BioPerl-db\n";
-    exit 0;
+    # using die so wrappers can catch the error message    
+    die "BioPerl minimal core version $v is required for BioPerl-db\n";
 }
 
 # Set up the Bio::Root::Build object

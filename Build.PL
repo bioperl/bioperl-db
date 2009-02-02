@@ -5,8 +5,8 @@
 
 # Uses a custom subclass of Module::Build called Bio::Root::Build
 
-my $v = '1.006000';
 use strict;
+my $v = '1.006900'; # pre-1.7, requires bioperl-live main trunk
 eval "use Bio::Root::Build $v";
 if ($@) {
     # using die so wrappers can catch the error message    

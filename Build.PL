@@ -5,7 +5,7 @@
 
 # Uses a custom subclass of Module::Build called Bio::Root::Build
 
-my $v = '1.007000';
+my $v = '1.006000';
 use strict;
 eval "use Bio::Root::Build $v";
 if ($@) {
@@ -71,8 +71,8 @@ sub biosql_conf {
     $config{host} = $build->prompt("Machine to connect to (mandatory)?", $config{host});
     $config{user} = $build->prompt("User to connect to server as (mandatory)?", $config{user});
     
-    $config{port} = $build->prompt("Port the server is running on (optional, '' for none)?", $config{port});
-    $config{port} = '' if $config{port} eq "''";
+    $config{port} = $build->prompt("Port the server is running on (optional, '' for undef/none)?", $config{port});
+    $config{port} = undef if $config{port} eq "''";
     
     $config{password} = $build->prompt("Password (optional)?", $config{password} || 'undef');
     $config{password} = '' if $config{password} eq 'undef';
@@ -107,7 +107,11 @@ sub biosql_conf {
     
     print $out "{\n";
     while (my ($key, $val) = each %config) {
-        $val = "'$val'" unless $key eq 'schema_sql';
+        # no empty strings, undefined conf setting should be undef (w/o quotes)
+        $val = "'$val'" unless $key eq 'schema_sql' || !defined($val);
+        if (!defined($val)) {
+            $val = 'undef';
+        }
         print $out "\t'$key' => $val,\n";
     }
     print $out "}\n";

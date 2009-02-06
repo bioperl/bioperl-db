@@ -22,7 +22,7 @@ my $biosql = DBTestHarness->new("biosql");
 my $db = $biosql->get_DBAdaptor();
 ok $db;
 
-my $registry_file = "t/data/seqdatabase.ini";
+my $registry_file = test_input_file("seqdatabase.ini");
 my $obda_name = "mytestbiosql";
 # create a temporary seqdatabase.ini file specific for this test database
 write_registry($registry_file);

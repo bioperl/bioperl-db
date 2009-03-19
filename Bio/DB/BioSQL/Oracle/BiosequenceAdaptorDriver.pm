@@ -267,7 +267,13 @@ sub get_biosequence{
 	$sth->bind_param(1, $bioentryid);
     }
     # execute and fetch
-    $sth->execute();
+    if (! $sth->execute()) {
+        $self->throw("error while executing query $cache_key with values ("
+                     .(defined($start) ? "$start;" : "")
+                     .(defined($end) ? ($end-$start+1).";" : "")
+                     .$bioentryid."):\n"
+                     .$sth->errstr." (".$sth->state.")");
+    }
     $row = $sth->fetchall_arrayref();
     return (@$row ? $row->[0]->[0] : undef);
 }

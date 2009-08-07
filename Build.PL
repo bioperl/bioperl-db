@@ -6,24 +6,20 @@
 # Uses a custom subclass of Module::Build called Bio::Root::Build
 
 use strict;
-my $v = '1.006900'; # pre-1.7, requires bioperl-live main trunk
-eval "use Bio::Root::Build $v";
-if ($@) {
-    # using die so wrappers can catch the error message    
-    die "BioPerl minimal core version $v is required for BioPerl-db\n";
-}
+use warnings;
+use Module::Build;
 
 # Set up the Bio::Root::Build object
-my $build = Bio::Root::Build->new(
+my $build = Module::Build->new(
     module_name         => 'Bio',
     dist_name           => 'BioPerl-db',
-    dist_version        => $v,
+    dist_version        => '1.006009',
     dist_author         => 'BioPerl Team <bioperl-l@bioperl.org>',
     dist_abstract       => 'BioPerl-db - package for biological databases',
     license             => 'perl',
     requires            => {
                             'perl'                      => '5.6.1',
-                            #'Bio::Root::Version'        => '1.007000', # checked above
+                            'Bio::Root::Version'        => '1.006000', # checked above
                             'DBI'                       => 0
                            },
     dynamic_config      => 1,
@@ -35,16 +31,14 @@ my $build = Bio::Root::Build->new(
 
 # Ask questions
 biosql_conf();
-$build->choose_scripts;
 
-# Add extra things to MANIFEST.SKIP
-$build->add_to_manifest_skip('t/DBHarness.biosql.conf');
+# no scripts
+#$build->choose_scripts;
 
 # Create the build script and exit
 $build->create_build_script;
 
 exit;
-
 
 # setup t/DBHarness.biosql.conf
 sub biosql_conf {

@@ -8,6 +8,9 @@
 use strict;
 use warnings;
 use Module::Build;
+use File::Spec;
+use File::Copy;
+use Data::Dumper;
 
 # Set up the Bio::Root::Build object
 my $build = Module::Build->new(
@@ -18,22 +21,29 @@ my $build = Module::Build->new(
     dist_abstract       => 'BioPerl-db - package for biological databases',
     license             => 'perl',
     requires            => {
-                            'perl'                      => '5.6.1',
-                            'Bio::Root::Version'        => '1.006000', # checked above
-                            'DBI'                       => 0
-                           },
+        'Bio::Root::Version'        => '1.006009',
+        'perl'                      => '5.6.1',
+        'DBI'                       => 0
+        },
     dynamic_config      => 1,
     create_makefile_pl  => 'passthrough'
-    
-    #pm_files           => {} # modules in Bio are treated as if they were in lib and auto-installed
-    #script_files       => [] # scripts in scripts directory are installed on-demand
 );
 
-# Ask questions
-biosql_conf();
+# pm files are in Bio, not lib
+$build->pm_files($build->_find_file_by_type('pm',  'Bio'));
 
-# no scripts
-#$build->choose_scripts;
+# get script files optionally
+# right now, the default is to install all scripts, can modify if needed
+if($build->y_n("Install scripts? y/n", 'n')) {
+    # need to copy over and add 'bp_' for all scripts (end with .PLS?)
+    # for now this installs scripts w/o above
+    $build->script_files(
+        [keys %{$build->_find_file_by_type('pl', 'scripts')}]
+    );
+}
+
+# Ask questions for db configuration
+biosql_conf();
 
 # Create the build script and exit
 $build->create_build_script;
@@ -42,7 +52,7 @@ exit;
 
 # setup t/DBHarness.biosql.conf
 sub biosql_conf {
-    $build->y_n("Have you already installed BioSQL? y/n", 'n') || die "\nBioSQL must be installed prior to installation of bioperl-db; see the INSTALL file\n";
+    $build->y_n("Have you already installed BioSQL? y/n", 'y') || die "\nBioSQL must be installed prior to installation of bioperl-db; see the INSTALL file\n";
     
     my $config_file = File::Spec->catfile('t', 'DBHarness.biosql.conf');
     if (-e $config_file) {
@@ -114,3 +124,4 @@ sub biosql_conf {
     # we deliberately don't add the config file to cleanup, but it shouldn't
     # cause problems because it is in MANIFEST.SKIP
 }
+

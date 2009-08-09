@@ -8,8 +8,9 @@
 use strict;
 use warnings;
 use Module::Build;
-use File::Spec;
-use File::Copy;
+use File::Spec ();
+use File::Copy ();
+use File::Basename ();
 use Data::Dumper;
 
 # Set up the Bio::Root::Build object
@@ -29,21 +30,37 @@ my $build = Module::Build->new(
     create_makefile_pl  => 'passthrough'
 );
 
+# Ask questions for db configuration (Harness file)
+biosql_conf();
+
 # pm files are in Bio, not lib
 $build->pm_files($build->_find_file_by_type('pm',  'Bio'));
 
-# get script files optionally
-# right now, the default is to install all scripts, can modify if needed
-if($build->y_n("Install scripts? y/n", 'n')) {
-    # need to copy over and add 'bp_' for all scripts (end with .PLS?)
-    # for now this installs scripts w/o above
-    $build->script_files(
-        [keys %{$build->_find_file_by_type('pl', 'scripts')}]
-    );
-}
+# Optionally have script files installed.
 
-# Ask questions for db configuration
-biosql_conf();
+# This would be much easier if we decide to prefix the scripts in
+# the scripts directory; lots of cat-herding here for little benefit.
+if($build->y_n("Install scripts? y/n", 'n')) {
+    my $files = $build->_find_file_by_type('pl', 'scripts');
+    
+    # This is a temp directory, cleaned up afterwards.
+    my $script_build = 'bp_scripts';
+    if (!-d $script_build) {
+        mkdir $script_build || die "Couldn't create temp script directory: $!";
+    }
+    my @tobp;
+    while (my ($file, $dest) = each %$files) {
+        $dest = 'bp_'.File::Basename::basename($dest);
+        $dest =~ s{\.pl$}{.PLS};
+        $dest = File::Spec->catfile($script_build, $dest);
+        File::Copy::copy($file, $dest);
+        push @tobp, $dest;
+    }
+    
+    $build->script_files(\@tobp);
+    
+    $build->add_to_cleanup($script_build);
+}
 
 # Create the build script and exit
 $build->create_build_script;

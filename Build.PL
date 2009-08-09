@@ -11,7 +11,6 @@ use Module::Build;
 use File::Spec ();
 use File::Copy ();
 use File::Basename ();
-use Data::Dumper;
 
 # Set up the Bio::Root::Build object
 my $build = Module::Build->new(

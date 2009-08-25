@@ -1,24 +1,30 @@
 # -*-Perl-*-
 # $Id$
 
+use strict;
+use warnings;
+
 BEGIN {
     use lib 't';
     use Bio::Root::Test;
-    test_begin(-tests => 21);
+    test_begin(-tests => 23);
 
 	use_ok('DBTestHarness');
 	use_ok('Bio::SeqIO');
 	use_ok('Bio::DB::Persistent::BioNamespace');
 }
 
-$biosql = DBTestHarness->new("biosql");
-$db = $biosql->get_DBAdaptor();
+my $biosql = DBTestHarness->new("biosql");
+my $db = $biosql->get_DBAdaptor();
 ok $db;
 
 my $seqio = Bio::SeqIO->new('-format' => 'genbank',
 			    '-file' => test_input_file('parkin.gb'));
 my $seq = $seqio->next_seq();
 ok $seq;
+my $sn = $seq->species->scientific_name;
+my $sc = join(", ", $seq->species->classification);
+
 my $pseq = $db->create_persistent($seq);
 $pseq->namespace("mytestnamespace");
 $pseq->store();
@@ -43,6 +49,8 @@ eval {
     is ($dbseq->seq_version, $seq->seq_version);
     is ($dbseq->version, 1);
     is ($dbseq->version, $seq->version);
+ 	is ($dbseq->species->scientific_name, $sn);
+ 	is (join(", ", $dbseq->species->classification), $sc);
 };
 
 print STDERR $@ if $@;

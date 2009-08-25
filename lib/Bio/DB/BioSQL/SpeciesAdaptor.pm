@@ -96,7 +96,6 @@ use strict;
 use Bio::DB::BioSQL::BasePersistenceAdaptor;
 use Bio::DB::PersistentObjectI;
 use Bio::Species;
-use Data::Dumper;
 
 @ISA = qw(Bio::DB::BioSQL::BasePersistenceAdaptor);
 
@@ -265,6 +264,7 @@ sub populate_from_row{
 	# get the classification array in a separate query
 	my $clf = $self->get_classification($rows->[0]);
 	if($clf && ref $clf eq 'ARRAY') {
+        
 	    # for the species object we do not maintain the nodes that don't
 	    # correspond to a standard rank, so remove them (e.g., 'root')
 	    while($clf->[0]->[1] && ($clf->[0]->[1] eq "no rank")) {

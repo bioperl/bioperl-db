@@ -12,7 +12,7 @@ use File::Basename;
 my $build = Module::Build->new(
     module_name         => 'Bio::DB',
     dist_name           => 'BioPerl-DB',
-    dist_version        => '1.006009',
+    dist_version        => '1.006900',
     dist_author         => 'BioPerl Team <bioperl-l@bioperl.org>',
     dist_abstract       => 'BioPerl-DB - package for biological databases',
     license             => 'perl',

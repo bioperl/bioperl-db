@@ -18,12 +18,15 @@ my $build = Module::Build->new(
     license             => 'perl',
     requires            => {
                             'perl'               => '5.6.1',
-                            'Bio::Root::Version' => '1.006009',
+                            'Bio::Root::Version' => '1.006900',
                             'DBI'                => 0
-                           },
+        },
+    recommends          => {
+                            'Graph::Directed'   => 0
+        },
     get_options         => {
                             accept  => { }
-                           },
+        },
     dynamic_config      => 1,
     create_makefile_pl  => 'passthrough'
 );

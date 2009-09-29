@@ -1,6 +1,9 @@
 # -*-Perl-*-
 # $Id$
 
+use strict;
+use warnings;
+
 BEGIN {
     use lib 't';
     use Bio::Root::Test;
@@ -9,30 +12,28 @@ BEGIN {
 	use_ok('Bio::Species');
 }
 
-$biosql = DBTestHarness->new("biosql");
+my $biosql = DBTestHarness->new("biosql");
 ok $biosql;
 
-$db = $biosql->get_DBAdaptor();
+my $db = $biosql->get_DBAdaptor();
 ok $db;
 
-$s = Bio::Species->new('-classification' => [reverse(
-					     qw(Eukaryota Metazoa Chordata
-						Vertebrata Mammalia Eutheria
-						Primates Catarrhini Hominidae
-						Homo sapiens))]);
-$p_s = $db->create_persistent($s);
+my $s = Bio::Species->new('-classification' => [reverse(
+    qw(Eukaryota Metazoa Chordata Vertebrata Mammalia Eutheria
+    Primates Catarrhini Hominidae Homo), 'Homo sapiens')]);
+my $p_s = $db->create_persistent($s);
 ok $p_s;
 isa_ok $p_s,"Bio::DB::PersistentObjectI";
 isa_ok $p_s,"Bio::Species";
 
 $p_s->create();
-$dbid = $p_s->primary_key();
+my $dbid = $p_s->primary_key();
 ok $dbid;
 
-$adp = $db->get_object_adaptor($s);
+my $adp = $db->get_object_adaptor($s);
 ok $adp;
 isa_ok $adp,"Bio::DB::PersistenceAdaptorI";
-$dbobj = $adp->find_by_primary_key($dbid);
+my $dbobj = $adp->find_by_primary_key($dbid);
 
 is ($dbobj->species, $s->species);
 is ($dbobj->genus, $s->genus);
@@ -43,7 +44,7 @@ while(@dbclf || @clf) {
     is (shift(@dbclf), shift(@clf));
 }
 
-$dbobj2 = $adp->find_by_unique_key($s);
+my $dbobj2 = $adp->find_by_unique_key($s);
 ok $dbobj2;
 if($dbobj2) {
     is ($dbobj2->primary_key(), $dbobj->primary_key());
@@ -76,8 +77,8 @@ if($dbobj2) {
     is ($dbobj2->genus, $s->genus);
     is ($dbobj2->binomial, $s->binomial);
     is ($dbobj2->ncbi_taxid, $s->ncbi_taxid);
-    is ($dbobj2->common_name, "human");
-    is ($dbobj2->sub_species, "subsp. sapiens");
+    is ($dbobj2->common_name, $p_s->common_name);
+    is ($dbobj2->sub_species, $p_s->sub_species);
     is (scalar($dbobj2->classification), scalar($s->classification));
     @dbclf = $dbobj->classification();
     @clf = $s->classification();

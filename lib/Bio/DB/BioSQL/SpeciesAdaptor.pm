@@ -263,7 +263,8 @@ sub populate_from_row{
 	$obj->ncbi_taxid($rows->[3]) if $rows->[3];
 	# get the classification array in a separate query
 	my $clf = $self->get_classification($rows->[0]);
-	if($clf && @$clf) {
+	if($clf && ref $clf eq 'ARRAY') {
+        
 	    # for the species object we do not maintain the nodes that don't
 	    # correspond to a standard rank, so remove them (e.g., 'root')
 	    while($clf->[0]->[1] && ($clf->[0]->[1] eq "no rank")) {
@@ -271,18 +272,28 @@ sub populate_from_row{
 	    }
 	    # in the species object we store the species element without the
 	    # genus, and similarly for the sub-species and variant
-	    for(my $i = scalar(@$clf)-2; $i >= 0; $i--) {
-		# if this node's name matches the start of the previous one,
-		# remove this portion from the previous one's name
-		if(index($clf->[$i+1]->[0], $clf->[$i]->[0]) == 0) {
-		    $clf->[$i+1]->[0] = substr($clf->[$i+1]->[0],
-					       length($clf->[$i]->[0])+1);
-		}
-		# don't do this stuff beyond genus and species
-		last if $clf->[$i]->[1] eq "genus";
-	    }
+        
+        # Commented out: 8-24-09 cjfields, re: bug 2092
+        # explanation : Bio::Species (and BioPerl after 1.5.2) don't munge
+        # the genus/species names if at all possible
+        
+	#    for(my $i = scalar(@$clf)-2; $i >= 0; $i--) {
+	#	# if this node's name matches the start of the previous one,
+	#	# remove this portion from the previous one's name
+	#	if(index($clf->[$i+1]->[0], $clf->[$i]->[0]) == 0) {
+	#	    $clf->[$i+1]->[0] = substr($clf->[$i+1]->[0],
+	#				       length($clf->[$i]->[0])+1);
+	#	}
+	#	# don't do this stuff beyond genus and species
+	#	last if $clf->[$i]->[1] eq "genus";
+	#    }
+        
 	    # we do not store the variant nor subspecies etc in the species
 	    # object's classification array, so we need to sort those out
+        
+        # TODO: this needs to be clarified in re: to the new behavior of
+        # Bio::Species -- cjfields 8-24-09
+        
 	    my $rank = $clf->[scalar(@$clf)-1]->[1];
 	    while(grep { $rank eq $_; } keys %rank_attr_map) {
 		my $meth = $rank_attr_map{$rank};
@@ -293,6 +304,10 @@ sub populate_from_row{
 	    # done massaging, store away
 	    $obj->classification([reverse(map { $_->[0]; } @$clf)], "FORCE");
 	}
+    # cases where no node is found (or taxonomy isn't loaded)
+    
+    # TODO: do we still do the following based on current Species behavior?
+    # -- cjfields 8/24/09
 	if($rows->[4] && (! $obj->classification)) {
 	    # poor man's binomial
 	    my @clf = split(' ',$rows->[4]);

@@ -1,58 +1,68 @@
 #!/usr/bin/perl -w
 
-# This is a Module::Build script for bioperl-db installation.
+# This is a Module::Build script for BioPerl-DB installation.
 # See http://search.cpan.org/~kwilliams/Module-Build/lib/Module/Build.pm
 
-# Uses a custom subclass of Module::Build called Bio::Root::Build
-
 use strict;
-my $v = '1.006000';
-eval "use Bio::Root::Build $v";
-if ($@) {
-    # using die so wrappers can catch the error message    
-    die "BioPerl minimal core version $v is required for BioPerl-db\n";
-}
+use warnings;
+use Module::Build;
+use File::Spec;
+use File::Basename;
 
-# Set up the Bio::Root::Build object
-my $build = Bio::Root::Build->new(
-    module_name         => 'Bio',
-    dist_name           => 'BioPerl-db',
-    dist_version        => $v,
+my $build = Module::Build->new(
+    module_name         => 'Bio::DB',
+    dist_name           => 'BioPerl-DB',
+    dist_version        => '1.006000_001',
     dist_author         => 'BioPerl Team <bioperl-l@bioperl.org>',
-    dist_abstract       => 'BioPerl-db - package for biological databases',
+    dist_abstract       => 'BioPerl-DB - package for biological databases',
     license             => 'perl',
     requires            => {
-                            'perl'                      => '5.6.1',
-                            #'Bio::Root::Version'        => '1.007000', # checked above
-                            'DBI'                       => 0
+                            'perl'               => '5.6.1',
+                            'Bio::Root::Version' => '1.006001',
+                            'DBI'                => 0
+                           },
+    get_options         => {
+                            accept  => { }
                            },
     dynamic_config      => 1,
     create_makefile_pl  => 'passthrough'
-    
-    #pm_files           => {} # modules in Bio are treated as if they were in lib and auto-installed
-    #script_files       => [] # scripts in scripts directory are installed on-demand
 );
 
-# Ask questions
-biosql_conf();
-$build->choose_scripts;
+my $accept = $build->args->{accept};
 
-# Add extra things to MANIFEST.SKIP
-$build->add_to_manifest_skip('t/DBHarness.biosql.conf');
+# Ask questions for db configuration (Harness file)
+biosql_conf();
+
+# Optionally have script files installed.
+if ($accept ? 0 : $build->y_n("Install scripts? y/n", 'n')) {
+    my $files = $build->_find_file_by_type('pl', 'scripts');
+    
+    my $script_build = File::Spec->catdir($build->blib, 'script');
+    
+    my @tobp;
+    while (my ($file, $dest) = each %$files) {
+        $dest = 'bp_'.File::Basename::basename($dest);
+        $dest = File::Spec->catfile($script_build, $dest);
+        $build->copy_if_modified(from => $file, to => $dest);
+        push @tobp, $dest;
+    }
+    
+    $build->script_files(\@tobp);
+}
 
 # Create the build script and exit
 $build->create_build_script;
 
 exit;
 
-
 # setup t/DBHarness.biosql.conf
 sub biosql_conf {
-    $build->y_n("Have you already installed BioSQL? y/n", 'n') || die "\nBioSQL must be installed prior to installation of bioperl-db; see the INSTALL file\n";
+    my $continue = $accept || $build->y_n("Have you already installed BioSQL? y/n", 'y');
+    $continue || die "\nBioSQL must be installed prior to installation of bioperl-db; see the INSTALL file\n";
     
     my $config_file = File::Spec->catfile('t', 'DBHarness.biosql.conf');
     if (-e $config_file) {
-        $build->y_n("Do you want to use the existing '$config_file' config file? y/n", 'y') && return;
+        ($accept || $build->y_n("Do you want to use the existing '$config_file' config file? y/n", 'y')) && return;
         unlink($config_file);
     }
     
@@ -120,3 +130,4 @@ sub biosql_conf {
     # we deliberately don't add the config file to cleanup, but it shouldn't
     # cause problems because it is in MANIFEST.SKIP
 }
+

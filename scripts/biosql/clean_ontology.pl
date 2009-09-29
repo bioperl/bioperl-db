@@ -1,4 +1,5 @@
-# 
+#!/usr/bin/perl
+ 
 # This script will remove specific records in ontology table, as well as in 
 # term, term_relationship, term_path, term_dbxref, term_synonym, which are 
 # related to ontology table.

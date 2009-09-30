@@ -1,9 +1,0 @@
-ConfigData$
-^DBHarness
-^_build
-^Build$
-^blib
-~$
-\.bak$
-^MANIFEST\.SKIP$
-CVS

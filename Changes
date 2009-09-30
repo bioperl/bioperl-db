@@ -5,8 +5,9 @@ http://www.bioperl.org/wiki/Change_log
 
 1.6.x
 ------------------
-* Convert back to simple Module::Build
-* Now uses correct Bio::Species syntax [1.6.1]
+* [bug 2092] - Now uses correct Bio::Species syntax [1.6.1]
+* [bug 2757] - patch for error handling [maj]
+* small POD fixes
 
 1.5.2
 -----

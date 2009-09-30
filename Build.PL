@@ -20,10 +20,13 @@ my $build = Module::Build->new(
                             'perl'               => '5.6.1',
                             'Bio::Root::Version' => '1.006001',
                             'DBI'                => 0
-                           },
+        },
+    recommends          => {
+                            'Graph::Directed'   => 0
+        },
     get_options         => {
                             accept  => { }
-                           },
+        },
     dynamic_config      => 1,
     create_makefile_pl  => 'passthrough'
 );

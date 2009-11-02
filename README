@@ -2,7 +2,7 @@
 
 The bioperl-db package contains interfaces and adaptors that work 
 with a BioSQL database and serialize and de-serialize Bioperl
-objects. 
+objects.
 
 ===================================================================
 Information about BioSQL and bioperl-db

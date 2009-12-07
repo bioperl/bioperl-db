@@ -216,6 +216,8 @@ sub translate_query{
 	    }
 	    # record the association table alias
 	    $entitymap->{$assoc} = [$alias || $assoc];
+            $aliasmap->{$alias} = $assoc if $alias;
+	    $aliasmap->{$alias} = $assoc if $alias;
 	    # resolve all participating entities to table names; at the same
 	    # time we need foreign keys and joins to all participating entities
 	    for(my $i = 0; $i < @entities; $i++) {

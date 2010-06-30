@@ -125,7 +125,7 @@ sub set {
 	    }
 	}
 	if (ref($arg) eq "ARRAY") {
-	    if (grep {lc($arg->[0]) eq $_} qw(and or)) {
+	    if ($arg->[0] && grep {lc($arg->[0]) eq $_} qw(and or)) {
 		$op = shift @$arg;
 	    }
 	    foreach my $el (@$arg) {

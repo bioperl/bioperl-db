@@ -3,7 +3,15 @@ Revision history for bioperl-db.
 Full details of changes between all versions are available online at:
 http://www.bioperl.org/wiki/Change_log
 
-1.6.x
+1.6.900
+------------------
+* [2958] - association table alias is not honored [maj]
+* [2624] - Bio::SeqFeature::Generic scores not persisted [cjfields]
+* [2573] - Ontology tests failing [cjfields]
+* [2572] - get_dblinks in load_seqdatabase.pl is deprecated [cjfields]
+* small doc fixes
+
+1.6.0, 1.6.1
 ------------------
 * [bug 2092] - Now uses correct Bio::Species syntax [1.6.1]
 * [bug 2757] - patch for error handling [maj]

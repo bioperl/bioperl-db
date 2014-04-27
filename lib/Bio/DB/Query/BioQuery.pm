@@ -1,5 +1,3 @@
-# $Id$
-
 #
 # Copyright Chris Mungall <cmungall@fruitfly.org>
 #
@@ -9,17 +7,18 @@
 
 =head1 NAME
 
-Bio::DB::Query::BioQuery - Object representing a query on a bioperldb
+Bio::DB::Query::BioQuery - Object representing a query on a Bioperl db
 
 =head1 SYNOPSIS
 
   # generally
   $q = Bio::DB::Query::BioQuery->new;
   $q->where(["AND", "attA=x", "attB=y", "attC=y"]);
-  $adaptor->fetch_by_query($q);
 
-  # more specific example in the context of biosql:
-  $query = Bio::DB::Query::BioQuery->new();
+  # more specific example in the context of Biosql:
+  $query = Bio::DB::Query::BioQuery->new( .... );
+  $result = $adaptor->find_by_query($query);
+  $obj = $result->next_object;
 
   # all mouse sequences loaded under namespace ensembl that
   # have receptor in their description
@@ -55,6 +54,20 @@ Bio::DB::Query::BioQuery - Object representing a query on a bioperldb
   $query->where(["p.accession_number = 'Hs.2'",
 	         "Bio::Ontology::TermI::name = 'cluster member'"]);
 
+  # Query and retrieve objects, note the use of 'or' and binding here
+  $query = Bio::DB::Query::BioQuery->new(
+        -datacollections => ['Bio::SeqI seq'],
+        -where           => [
+            "or",
+            "seq.primary_id = ?",
+            "seq.display_id = ?",
+            "seq.accession_number = ?" ] );
+
+  $result = $adaptor->find_by_query( $query, -values => [$id] );
+  # An array of Seq objects might be returned
+  while ( $dbseq = $result->next_object ) {
+     print $dbseq->display_id, "\n";
+  }
 
 =head1 DESCRIPTION
 
@@ -75,10 +88,10 @@ language like SQL, one can imagine different languages with different
 grammars.
 
 Other than being more high level, a BioQuery differs from a SQL Query
-in that it is object based, not table based.
+in that it is object-based, not table-based.
 
 The BioQuery is a schema-independent representation of a query; it may
-or may not be tied to the bioperl object model.
+or may not be tied to the Bioperl object model.
 
 =head1 STATUS
 
@@ -170,8 +183,8 @@ sub new {
 Contact Hilmar Lapp, hlapp at gmx.net, for questions, bugs, flames,
 praises etc.
 
-Off records, this implementation has grown hideous. It needs to be
-rewritten. The problem is, it''s not an easy task, and it works
+Off the record, this implementation has grown hideous. It needs to be
+rewritten. The problem is, it's not an easy task, and it works
 currently as far as I can tell ...
 
 =cut

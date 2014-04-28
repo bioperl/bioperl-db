@@ -54,16 +54,16 @@ Bio::DB::Query::BioQuery - Object representing a query on a Bioperl db
   $query->where(["p.accession_number = 'Hs.2'",
 	         "Bio::Ontology::TermI::name = 'cluster member'"]);
 
-  # Query and retrieve objects, note the use of 'or' and binding here
+  # Query and retrieve objects, note the use of 'or'
   $query = Bio::DB::Query::BioQuery->new(
         -datacollections => ['Bio::SeqI seq'],
         -where           => [
             "or",
-            "seq.primary_id = ?",
-            "seq.display_id = ?",
-            "seq.accession_number = ?" ] );
+            "seq.primary_id = '$id'",
+            "seq.display_id = '$id'",
+            "seq.accession_number = '$id'" ] );
 
-  $result = $adaptor->find_by_query( $query, -values => [$id] );
+  $result = $adaptor->find_by_query( $query );
   # An array of Seq objects might be returned
   while ( $dbseq = $result->next_object ) {
      print $dbseq->display_id, "\n";

@@ -1205,82 +1205,102 @@ sub find_by_association{
 
 =cut
 
-sub find_by_query{
-    my ($self,$query,@args) = @_;
+sub find_by_query {
+    my ( $self, $query, @args ) = @_;
     my $sth;
 
     # get arguments
-    my ($fkargs,$fact,$qname,$qvalues,$flatonly) =
-	$self->_rearrange([qw(FKOBJS OBJ_FACTORY NAME VALUES FLAT_ONLY)], 
-                          @args);
+    my ( $fkargs, $fact, $qname, $qvalues, $flatonly )
+        = $self->_rearrange( [qw(FKOBJS OBJ_FACTORY NAME VALUES FLAT_ONLY)], @args );
     $fkargs = [] unless $fkargs;
+
     # first gather the foreign objects
     my @fkobjs = $self->get_foreign_key_objects(@$fkargs);
+
     # if it is a named query, we check the cache
     $sth = $self->sth($qname) if $qname;
+
     # the query might be known but disabled because it is unsupported by the
     # underlying schema
-    if($sth && ($sth eq "DISABLED")) {
-    	return Bio::DB::Query::PrebuiltResult->new(-objs => []);
-    } elsif(! $sth) { # not in cache or not a named query
-	# translate query object from objects and slots to tables and columns
-	$query = $self->dbd()->translate_query($self, $query, \@fkobjs);
-	# obtain SQL generator
-	my $sqlgen = $self->sql_generator();
-	# obtain SQL statement from generator
-	my $sql = $sqlgen->generate_sql($query);
-	# prepare
-	$self->debug("preparing query: $sql\n");
-	if($sth = $self->dbd->prepare($self->dbh(), $sql)) {
-	    # cache if named query
-	    $self->sth($qname, $sth) if $qname;
-	} else {
-	    # This is most likely due to an unsupported query. Some
-	    # drivers, e.g., Oracle, do check whether column names and
-	    # table names exist. So we'll disable this query.
-	    $self->sth($qname, "DISABLED") if $qname;
-	    return Bio::DB::Query::PrebuiltResult->new(-objs => []);
-	}
+    if ( $sth && ( $sth eq "DISABLED" ) ) {
+        return Bio::DB::Query::PrebuiltResult->new( -objs => [] );
     }
+    elsif ( !$sth ) {    # not in cache or not a named query
+         # translate query object from objects and slots to tables and columns
+        $query = $self->dbd()->translate_query( $self, $query, \@fkobjs );
+
+        # obtain SQL generator
+        my $sqlgen = $self->sql_generator();
+
+        # obtain SQL statement from generator
+        my $sql = $sqlgen->generate_sql($query);
+
+        # prepare
+        $self->debug("preparing query: $sql\n");
+        if ( $sth = $self->dbd->prepare( $self->dbh(), $sql ) ) {
+
+            # cache if named query
+            $self->sth( $qname, $sth ) if $qname;
+        }
+        else {
+            # This is most likely due to an unsupported query. Some
+            # drivers, e.g., Oracle, do check whether column names and
+            # table names exist. So we'll disable this query.
+            $self->sth( $qname, "DISABLED" ) if $qname;
+            return Bio::DB::Query::PrebuiltResult->new( -objs => [] );
+        }
+    }
+
     # bind parameter values if any and if a named query
-    if($qname && $qvalues && @$qvalues) {
+    if ( $qname && $qvalues && @$qvalues ) {
         my $dbd = $self->dbd();
-	for(my $i = 1; $i <= @$qvalues; $i++) {
-	    $self->debug("Query $qname: binding column $i to \"".
-			 $qvalues->[$i-1]."\"\n");
-	    # We generally don't want to raise an exception.
-	    my $rv;
-	    eval { $rv = $dbd->bind_param($sth, $i, $qvalues->[$i-1]); };
-	    if(! $rv) {
-		# This is either due to an internal bug or to a constraint
-		# column not supported by the underlying schema (i.e., mapped
-		# to undef). While the first case warrants an exception, the
-		# latter is perfectly legal and should go as unnoticed as
-		# possible. We'll return an empty set and disable the query
-		# for future use.
-		$sth->finish();
-		$self->sth($qname, "DISABLED") if $qname;
-		return Bio::DB::Query::PrebuiltResult->new(-objs => []);
-	    }
-	}
+        for ( my $i = 1; $i <= @$qvalues; $i++ ) {
+            $self->debug( "Query $qname: binding column $i to \""
+                    . $qvalues->[ $i - 1 ]
+                    . "\"\n" );
+
+            # We generally don't want to raise an exception.
+            my $rv;
+            eval { $rv = $dbd->bind_param( $sth, $i, $qvalues->[ $i - 1 ] ); };
+            if ( !$rv ) {
+
+                # This is either due to an internal bug or to a constraint
+                # column not supported by the underlying schema (i.e., mapped
+                # to undef). While the first case warrants an exception, the
+                # latter is perfectly legal and should go as unnoticed as
+                # possible. We'll return an empty set and disable the query
+                # for future use.
+                $sth->finish();
+                $self->sth( $qname, "DISABLED" ) if $qname;
+                return Bio::DB::Query::PrebuiltResult->new( -objs => [] );
+            }
+        }
     }
+
     # ready to execute
-    if(! $sth->execute()) {
-	# The subsequent exception may be caught. Remove sth from cache
-	# in order not to trip up obscure driver-specific bugs.
-	my $err = $sth->errstr;
-	$sth->finish();
-	$self->sth($qname, undef) if $qname;
-	$self->throw("error while executing query ".
-		     ($qname ? "$qname " : "") . "in ".ref($self).
-		     "::find_by_query: ".$err);
+    if ( !$sth->execute() ) {
+
+        # The subsequent exception may be caught. Remove sth from cache
+        # in order not to trip up obscure driver-specific bugs.
+        my $err = $sth->errstr;
+        $sth->finish();
+        $self->sth( $qname, undef ) if $qname;
+        $self->throw( "error while executing query "
+                . ( $qname ? "$qname " : "" ) . "in "
+                . ref($self)
+                . "::find_by_query: "
+                . $err );
     }
+
     # construct query result object
-    my $qres = Bio::DB::Query::DBQueryResult->new(-sth => $sth,
-						  -adaptor => $self,
-						  -factory => $fact,
-						  -num_fks => scalar(@fkobjs),
-                                                  -flat_only => $flatonly);
+    my $qres = Bio::DB::Query::DBQueryResult->new(
+        -sth       => $sth,
+        -adaptor   => $self,
+        -factory   => $fact,
+        -num_fks   => scalar(@fkobjs),
+        -flat_only => $flatonly
+    );
+
     # that's it -- return the result object
     return $qres;
 }

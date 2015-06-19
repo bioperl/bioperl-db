@@ -1,4 +1,3 @@
-# $Id$
 
 The bioperl-db package contains interfaces and adaptors that work 
 with a BioSQL database and serialize and de-serialize Bioperl
@@ -22,9 +21,9 @@ related projects at http://www.bioperl.org and http://www.open-bio.org.
 I. Scripts located in the scripts/ directory:
 
 biosql/load_seqdatabase.pl      - a very flexible script to load
-			          sequences into a BioSQL database
+			                            sequences into a BioSQL database
 biosql/bioentry2flat.pl         - dump sequence data into rich sequence
-		                  format flatfile from a BioSQL database
+		                              format flatfile from a BioSQL database
 biosql/load_ontology.pl         - load GO or SOFA ontology data into
                                   a BioSQL database
 biosql/merge-unique-ann.pl      - script used by load_seqdatabase.pl,
@@ -32,7 +31,7 @@ biosql/merge-unique-ann.pl      - script used by load_seqdatabase.pl,
 biosql/update-on-new-date.pl    - script used by load_seqdatabase.pl,
                                   it will update based on date
 biosql/update-on-new-version.pl - script used by load_seqdatabase.pl,
-			          it will update based on version
+			                            it will update based on version
 biosql/cgi-bin/getentry.pl      - example CGI script that fetches from
                                   a BioSQL database
 biosql/clean_ontology.pl        - "cleans" an ontology in a BioSQL
@@ -44,7 +43,7 @@ biosql/freshen-annot.pl         - script used by load-seqdatabase.pl,
 biosql/load_interpro.pl         - deprecated
 biosql/terms/add-term-annot.pl  - load ontology terms read from a file
 biosql/terms/importrelation.pl  - load relations between ontology
-			          terms and bioentries
+			                            terms and bioentries
 biosql/terms/interpro2go.pl     - load from interpro2go file
 corba/caching_corba_server.pl   - setup a corba sequence caching server
 corba/test_bioenv.pl            - test the bioenv of a running server
@@ -64,7 +63,7 @@ following things are unsupported or do not work yet:
 
      - sub-seqfeatures
      - round-tripping fuzzy locations (they will be stored according
-	  to their Bio::Location::CoordinatePolicyI interpretation)
+	     to their Bio::Location::CoordinatePolicyI interpretation)
      - Bio::Annotation::DBLink::optional_id
 
 To understand the layout of the API and how you can interact with the

@@ -1,78 +1,45 @@
-# $Id$
 
 bioperl-db INSTALLATION
 
-INSTALL THE RIGHT BIOPERL
+INSTALL BIOPERL FIRST
 
 You need at least the corresponding version of Bioperl. Since this
-is bioperl-db 1.5.2, you will need bioperl 1.5.2.
+is bioperl-db 1.5.2, you will need bioperl 1.5.2 or later.
+Installation instructions are here:
 
-INSTALL BIOSQL
+http://www.bioperl.org/wiki/Installing_Bioperl_for_Unix
+
+
+THEN INSTALL BIOSQL
 
 The bioperl-db package is designed to work with the BioSQL database.
 Install the BioSQL package by following the instructions in its
 INSTALL file. You can obtain the BioSQL package at www.biosql.org.
 BioSQL requires a relational database, either Mysql, Oracle, or
-PostgreSQL. Support for additional RDBMSs gets added every once in a
-while, check out the documentation at www.biosql.org.
+PostgreSQL.
 
 
-INSTALLATION
+INSTALL BIOPERL-DB USING CPAN
 
-Installation instructions at the following address apply here:
-http://www.bioperl.org/wiki/Installing_Bioperl_for_Unix
-The next 2 sections summarize the essential points from there.
+Enter the CPAN shell:
 
+ perl -e shell -MCPAN
 
-CPAN INSTALLATION
-
-To install using CPAN you will need a recent version (v1.8802 has
-been tested) of it and your prefer_installer conf set to 'MB':
-
-  >cpan
-  cpan>o conf prefer_installer MB
-  cpan>o conf commit
-  cpan>q
-
-Ensure that you have installed BioSQL properly prior to attempting
-an installation. You will also probably need root privileges.
-Find the name of the bioperl-db version you want:
-
-  >cpan
-  cpan>d /bioperl-db/
-  Database was generated on Mon, 20 Nov 2006 05:24:36 GMT
-  Distribution S/SE/SENDU/bioperl-db-1.5.2_100.tar.gz
-  
 Now install:
 
- cpan>install S/SE/SENDU/bioperl-db-1.5.2_100.tar.gz
+ cpan>install CJFIELDS/BioPerl-DB-1.006900.tar.gz
 
-If you've installed everything perfectly then you may pass all the tests
-run in the './Build test' phase.
-It's also possible that you may fail some tests. Possible explanations:
-problems with local Perl installation, previously undetected bug in
-Bioperl, flawed test script and so on. A few failed tests may not affect
-your usage of bioperl-db.
 
-If you decide that the failed tests will not affect how you intend to use
-bioperl-db and you'd like to install anyway do:
+MANUALLY INSTALL BIOPERL-DB
 
- cpan>force install S/SE/SENDU/bioperl-db-1.5.2_100.tar.gz
+Use this URL to download the archive:
 
-This is what most experienced Bioperl users would do. However, if you're
-concerned about a failed test and need assistance or advice then contact
-bioperl-l@bioperl.org.
-  
+  https://github.com/bioperl/bioperl-db/archive/master.zip
 
-MANUAL INSTALLATION
+Then:
 
-Download the bioperl-db archive, then extract its contents. Example:
-
-  >gunzip bioperl-db-<release-version>.tar.gz
-  >tar xvf bioperl-db-<release-version>.tar
-  >cd bioperl-db
-
-where <release-version> is the current release.
+  >unzip master.zip
+  >cd bioperl-db-master
 
 Issue the following command from within bioperl-db/:
 

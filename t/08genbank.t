@@ -1,5 +1,4 @@
 # -*-Perl-*-
-# $Id$
 
 use strict;
 use warnings;
@@ -18,8 +17,8 @@ my $biosql = DBTestHarness->new("biosql");
 my $db = $biosql->get_DBAdaptor();
 ok $db;
 
-my $seqio = Bio::SeqIO->new('-format' => 'genbank',
-			    '-file' => test_input_file('parkin.gb'));
+my $seqio = Bio::SeqIO->new(-format => 'genbank',
+			                -file => test_input_file('parkin.gb'));
 my $seq = $seqio->next_seq();
 ok $seq;
 my $sn = $seq->species->scientific_name;

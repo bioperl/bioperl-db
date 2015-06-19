@@ -1,28 +1,34 @@
-LOCUS       AB019558     1644 bp    mRNA            ROD       20-JUN-2000
+LOCUS       AB019558                1644 bp    mRNA    linear   ROD 20-JUN-2000
 DEFINITION  Mus musculus mRNA for parkin, complete cds.
 ACCESSION   AB019558
 VERSION     AB019558.1  GI:5456929
 KEYWORDS    parkin.
-SOURCE      Mus musculus skeletal muscle cDNA to mRNA.
+SOURCE      Mus musculus (house mouse)
   ORGANISM  Mus musculus
-            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
-            Mammalia; Eutheria; Rodentia; Sciurognathi; Muridae; Murinae; Mus.
-REFERENCE   1  (sites)
+            Eukaryota; Opisthokonta; Metazoa; Eumetazoa; Bilateria; 
+            Deuterostomia; Chordata; Craniata; Vertebrata; Gnathostomata; 
+            Teleostomi; Euteleostomi; Sarcopterygii; 
+            Tetrapoda; Amniota; Mammalia; Theria; Eutheria; 
+            Euarchontoglires; Glires; Rodentia; Sciurognathi; Muroidea; 
+            Muridae; Murinae; Mus; Mus.
+REFERENCE   1
   AUTHORS   Kitada,T., Asakawa,S., Minoshima,S., Mizuno,Y. and Shimizu,N.
   TITLE     Molecular cloning, gene expression, and identification of a
             splicing variant of the mouse parkin gene
-  JOURNAL   Mamm. Genome 11, 417-421 (2000)
+  JOURNAL   Mamm. Genome 11 (6), 417-421 (2000)
+   PUBMED   10818204
 REFERENCE   2  (bases 1 to 1644)
   AUTHORS   Shimizu,N., Kitada,T. and Asakawa,S.
   TITLE     Direct Submission
-  JOURNAL   Submitted (08-NOV-1998) to the DDBJ/EMBL/GenBank databases.
-            Nobuyoshi Shimizu, Keio University School of Medicine, Department
-            of Molecular Biology; 35 Shinanomachi, Shinjuku-ku, Tokyo 160-8582,
-            Japan (E-mail:shimizu@dmb.med.keio.ac.jp,
-            Tel:81-3-3351-2370(ex.2720), Fax:81-3-3351-2370)
+  JOURNAL   Submitted (08-NOV-1998) Nobuyoshi Shimizu, Keio University School
+            of Medicine, Department of Molecular Biology; 35 Shinanomachi,
+            Shinjuku-ku, Tokyo 160-8582, Japan
+            (E-mail:shimizu@dmb.med.keio.ac.jp, Tel:81-3-3351-2370(ex.2720),
+            Fax:81-3-3351-2370)
 FEATURES             Location/Qualifiers
      source          1..1644
                      /organism="Mus musculus"
+                     /mol_type="mRNA"
                      /db_xref="taxon:10090"
                      /tissue_type="skeletal muscle"
      CDS             71..1465
@@ -39,7 +45,6 @@ FEATURES             Location/Qualifiers
                      GCGAGLLPEQGQRKVTCEGGNGLGCGFVFCRDCKEAYHEGDCDSLLEPSGATSQAYRV
                      DKRAAEQARWEEASKETIKKTTKPCPRCNVPIEKNGGCMHMKCPQPQCKLEWCWNCGC
                      EWNRACMGDHWFDV"
-BASE COUNT      406 a    450 c    452 g    336 t
 ORIGIN      
         1 ggaggctcgg gcgggcgcca gtgcccgcgt aggtccttct cgacccgcag ccaccacccg
        61 cccggtgacc atgatagtgt ttgtcaggtt caactccagc tatggcttcc cagtggaggt
@@ -70,7 +75,4 @@ ORIGIN
      1561 cacataaatg cgcacacaca aacacaggct gcagattaca gaagcagccc ctagatcctt
      1621 tctagggcac ccacagaaaa ccac
 //
-
-
-
 

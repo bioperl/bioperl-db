@@ -1,5 +1,4 @@
 # -*-Perl-*-
-# $Id$
 
 use strict;
 use warnings;
@@ -7,7 +6,7 @@ use warnings;
 BEGIN {
     use lib 't';
     use Bio::Root::Test;
-    test_begin(-tests => 67);
+    test_begin(-tests => 118);
 	use_ok('DBTestHarness');
 	use_ok('Bio::Species');
 }
@@ -19,8 +18,10 @@ my $db = $biosql->get_DBAdaptor();
 ok $db;
 
 my $s = Bio::Species->new('-classification' => [reverse(
-    qw(Eukaryota Metazoa Chordata Vertebrata Mammalia Eutheria
-    Primates Catarrhini Hominidae Homo), 'Homo sapiens')]);
+    qw(Eukaryota Opisthokonta Metazoa Eumetazoa Bilateria Deuterostomia Chordata Craniata 
+       Vertebrata Gnathostomata Teleostomi Euteleostomi Sarcopterygii Tetrapoda Amniota Mammalia 
+       Theria Eutheria Euarchontoglires Primates Haplorrhini Simiiformes Catarrhini Hominoidea 
+       Hominidae Homininae Homo ), 'Homo sapiens')]);
 my $p_s = $db->create_persistent($s);
 ok $p_s;
 isa_ok $p_s,"Bio::DB::PersistentObjectI";

@@ -957,7 +957,7 @@ sub _find_by_unique_key{
     }
     my $dbd = $self->dbd();
     $i = 0;
-    foreach (keys %$query_h) {
+    foreach (sort keys %$query_h) {
 	$dbd->bind_param($sth, ++$i, $query_h->{$_});
     }
     # execute and check for error

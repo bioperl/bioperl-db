@@ -207,7 +207,7 @@ sub prepare_findbyuk_sth{
     my @attrs = $self->_build_select_list($adp,$fkslots);
     # WHERE clause constraints
     my @cattrs = ();
-    foreach (keys %$ukval_h) {
+    foreach (sort keys %$ukval_h) {
 	my $col;
 	if(exists($slotmap->{$_})) {
 	    $col = $slotmap->{$_};

@@ -481,7 +481,7 @@ sub prepare_findbyuk_sth {
 
     # WHERE clause constraints
     my @cattrs = ();
-    foreach ( keys %$ukval_h ) {
+    foreach ( sort keys %$ukval_h ) {
         my $col;
         if ( exists( $slotmap->{$_} ) ) {
             $col = $slotmap->{$_};

@@ -596,7 +596,7 @@ sub prepare_insert_association_sth {
 
     # now add the columns for values if any
     if ($values) {
-        foreach my $colkey ( keys %$values ) {
+        foreach my $colkey ( sort keys %$values ) {
             $self->throw("unmapped association column $colkey")
                 unless exists( $columnmap->{$colkey} );
             $attr = $columnmap->{$colkey};

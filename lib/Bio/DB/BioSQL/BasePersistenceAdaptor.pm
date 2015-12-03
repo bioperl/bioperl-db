@@ -419,7 +419,7 @@ sub add_association{
 	my $dbd = $self->dbd();
 	$columnmap = $dbd->slot_attribute_map(
 					$dbd->association_table_name($objs));
-	foreach my $valkey (keys %$values) {
+	foreach my $valkey (sort keys %$values) {
 	    if($columnmap->{$valkey}) {
 		$self->debug(substr(ref($self),rindex(ref($self),"::")+2).
 			     "::add_assoc: ".
